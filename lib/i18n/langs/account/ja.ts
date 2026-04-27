@@ -1,0 +1,8 @@
+export default {
+  settings: { title: 'アカウント設定', profile: 'プロフィール', trading: '取引', notifications: '通知', builderCodes: 'ビルダーコード', exportPrivateKey: '秘密鍵のエクスポート', loginRequired: '設定ページにアクセスするにはログインしてください' },
+  profile: { title: 'プロフィール設定', avatar: 'アバター', changeAvatar: 'アップロード', uploading: 'アップロード中...', email: 'メールアドレス', emailPlaceholder: 'メールアドレスを入力', notVerified: '未認証', resend: '再送信', username: 'ユーザー名', usernamePlaceholder: 'ユーザー名を入力', bio: '自己紹介', bioPlaceholder: '自己紹介を入力してください', socialConnections: 'ソーシャル連携', connectX: 'Xを連携', save: '変更を保存', saving: '保存中...', saved: '保存済み', error: 'エラー', uploadError: 'アップロードに失敗しました', saveError: '保存に失敗しました' },
+  trading: { title: '取引設定', marketOrderType: '成行注文タイプ', marketOrderTypeDesc: '成行注文の実行方法を選択', fok: 'フィル・オア・キル (FOK)', fokDesc: '全量を即時約定するか、注文全体をキャンセル', limitOrderType: '指値注文タイプ', limitOrderTypeDesc: '指値注文の実行方法を選択', gtt: 'グッド・ティル・タイム (GTT)', gttDesc: '板に載せ、約定または有効期限まで待機', ioc: 'イミディエイト・オア・キャンセル (IOC)', iocDesc: '可能な分だけ即時約定し、残りはキャンセル', fokLimit: 'フィル・オア・キル (FOK)', fokLimitDesc: '指値で全量を即時約定するか、注文全体をキャンセル' },
+  notifications: { title: '通知設定', email: 'メール', inApp: 'アプリ内', resolutions: '結果確定', orderFills: '注文約定', hideSmallFills: '少額約定を非表示 (<1シェア)' },
+  builder: { title: 'ビルダー設定', noProfile: 'ビルダープロフィールがまだありません。', createDesc: 'YesONoでの構築を始めるためにプロフィールを作成してください。', builderName: 'ビルダー名', builderNamePlaceholder: 'ビルダー名を入力', createProfile: 'ビルダープロフィールを作成' },
+  export: { title: '秘密鍵のエクスポート', description: '秘密鍵をエクスポートすると、資金を直接管理・保護できます。メールまたはソーシャルログインで登録した場合に適用されます。', warning: '秘密鍵を誰とも共有しないでください。私たちが秘密鍵を求めることは絶対にありません。', basicSteps: '基本手順', step1: '下のプロセスを開始し、Privyセキュリティモーダルにサインインします。', step2: '秘密鍵をエクスポートし、表示された秘密鍵を安全に保管します。', step3: 'セキュリティモーダルを閉じます。', startExport: 'エクスポート開始' },
+}

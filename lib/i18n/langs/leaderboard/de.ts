@@ -1,0 +1,42 @@
+export default {
+  title: "Bestenliste",
+  timeRange: {
+    today: "Heute",
+    weekly: "Wöchentlich",
+    monthly: "Monatlich",
+    all: "Alle",
+  },
+  categories: {
+    all: "Alle Kategorien",
+    politics: "Politik",
+    sports: "Sport",
+    crypto: "Krypto",
+    finance: "Finanzen",
+    culture: "Kultur",
+    mentions: "Erwähnungen",
+    weather: "Wetter",
+    economics: "Wirtschaft",
+    tech: "Technik",
+  },
+  table: {
+    searchPlaceholder: "Nach Name suchen",
+    profitLoss: "Gewinn/Verlust",
+    volume: "Volumen",
+  },
+  biggestWins: {
+    title: "Größte Gewinne dieses Monats",
+    buttonText: "Größte Gewinne",
+  },
+  userProfile: {
+    positions: "Positionen",
+    profitLoss: "Gewinn/Verlust",
+    volume: "Volumen",
+    joined: "Beigetreten",
+    monthAgo: "Monat her",
+    monthsAgo: "Monate her",
+  },
+  loading: "Laden...",
+  retry: "Wiederholen",
+  noData: "Keine Daten",
+  dataUnavailable: "Bestenliste kann vorübergehend nicht geladen werden. Bitte versuchen Sie es erneut.",
+} as const;

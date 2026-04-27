@@ -1,0 +1,57 @@
+{
+  "name": "yesono-embed",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:https": "next dev --experimental-https",
+    "build": "next build",
+    "build:clean": "rm -rf .next .open-next",
+    "start": "next start",
+    "lint": "next lint",
+    "deploy": "bash ./scripts/deploy.sh prod",
+    "deploy:dev": "bash ./scripts/deploy.sh dev",
+    "preview": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare preview"
+  },
+  "dependencies": {
+    "@number-flow/react": "^0.5.10",
+    "@tanstack/react-query": "^5.37.1",
+    "@types/react-virtualized-auto-sizer": "^1.0.8",
+    "@types/react-window": "^2.0.0",
+    "antd": "^5.27.0",
+    "axios": "^1.7.7",
+    "lightweight-charts": "^5.1.0",
+    "lodash": "^4.18.1",
+    "lucide-react": "0.469.0",
+    "next": "^15.5.15",
+    "p-queue": "^9.1.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-virtualized-auto-sizer": "^2.0.2",
+    "react-window": "^2.2.4",
+    "recharts": "^3.6.0",
+    "swr": "^2.3.6",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.18.0",
+    "@types/node": "^20.10.6",
+    "@types/react": "19.2.5",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.0.4",
+    "postcss": "^8.4.35",
+    "tailwindcss": "3.4.17",
+    "typescript": "^5.3.3",
+    "wrangler": "^4.79.0"
+  },
+  "resolutions": {
+    "axios": "^1.7.7",
+    "lodash": "^4.18.1",
+    "lodash-es": "^4.18.1",
+    "lucide-react": "0.469.0",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "yarn@1.22.19"
+}

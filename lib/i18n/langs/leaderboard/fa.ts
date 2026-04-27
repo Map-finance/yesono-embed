@@ -1,0 +1,42 @@
+export default {
+  title: "جدول امتیازات",
+  timeRange: {
+    today: "امروز",
+    weekly: "هفتگی",
+    monthly: "ماهانه",
+    all: "همه",
+  },
+  categories: {
+    all: "همه دسته‌ها",
+    politics: "سیاست",
+    sports: "ورزش",
+    crypto: "رمزارز",
+    finance: "مالی",
+    culture: "فرهنگ",
+    mentions: "اشاره‌ها",
+    weather: "آب و هوا",
+    economics: "اقتصاد",
+    tech: "فناوری",
+  },
+  table: {
+    searchPlaceholder: "جستجو بر اساس نام",
+    profitLoss: "سود/زیان",
+    volume: "حجم",
+  },
+  biggestWins: {
+    title: "بزرگترین بردهای این ماه",
+    buttonText: "بزرگترین بردها",
+  },
+  userProfile: {
+    positions: "موقعیت‌ها",
+    profitLoss: "سود/زیان",
+    volume: "حجم",
+    joined: "عضویت",
+    monthAgo: "ماه پیش",
+    monthsAgo: "ماه پیش",
+  },
+  loading: "در حال بارگذاری...",
+  retry: "تلاش مجدد",
+  noData: "داده‌ای موجود نیست",
+  dataUnavailable: "رتبه‌بندی موقتاً در دسترس نیست. لطفاً دوباره تلاش کنید.",
+} as const;

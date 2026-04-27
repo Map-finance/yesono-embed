@@ -1,0 +1,42 @@
+export default {
+  title: "Leaderboard",
+  timeRange: {
+    today: "Today",
+    weekly: "Weekly",
+    monthly: "Monthly",
+    all: "All",
+  },
+  categories: {
+    all: "All Categories",
+    politics: "Politics",
+    sports: "Sports",
+    crypto: "Crypto",
+    finance: "Finance",
+    culture: "Culture",
+    mentions: "Mentions",
+    weather: "Weather",
+    economics: "Economics",
+    tech: "Tech",
+  },
+  table: {
+    searchPlaceholder: "Search by name",
+    profitLoss: "Profit/Loss",
+    volume: "Volume",
+  },
+  biggestWins: {
+    title: "Biggest wins this month",
+    buttonText: "Biggest wins",
+  },
+  userProfile: {
+    positions: "Positions",
+    profitLoss: "Profit/loss",
+    volume: "Volume",
+    joined: "Joined",
+    monthAgo: "month ago",
+    monthsAgo: "months ago",
+  },
+  loading: "Loading...",
+  retry: "Retry",
+  noData: "No data",
+  dataUnavailable: "Leaderboard is temporarily unavailable. Please try again.",
+} as const;

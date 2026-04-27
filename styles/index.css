@@ -1,0 +1,324 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  :root {
+    /* 主题变量（由主题系统动态设置） */
+    /* 背景色 */
+    --bg-primary: #111111;
+    --bg-secondary: #1a1a1a;
+    --bg-card: #1e1e1e;
+    --bg-input: #1e1e30;
+    --bg-hover: #2a2a2a;
+
+    /* 文字色 */
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #808080;
+    --text-inverse: #000000;
+
+    /* 主题色 */
+    --accent: #ffd608;
+    --accent-secondary: #ffe44d;
+    --accent-hover: #ffc700;
+
+    /* 状态色 */
+    --green: #00ff00;
+    --red: #ff4757;
+    --yellow: #ffa502;
+    --blue: #3742fa;
+
+    /* 边框色 */
+    --border: #2a2a2a;
+    --border-light: #3a3a3a;
+    --border-dark: #1a1a1a;
+    --crypto-border: #3d5266;
+
+    /* 字体 */
+    --font-primary: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
+    --font-secondary: system-ui, -apple-system, sans-serif;
+    --font-mono: Menlo, Monaco, "Courier New", monospace;
+
+    /* 字体大小 */
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-base: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 20px;
+    --font-size-2xl: 24px;
+    --font-size-3xl: 30px;
+
+    /* 字体粗细 */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* 间距 */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+
+    /* 圆角 */
+    --radius-none: 0;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
+
+    /* 阴影 */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+    /* 过渡 */
+    --transition-fast: 150ms ease-in-out;
+    --transition-normal: 200ms ease-in-out;
+    --transition-slow: 300ms ease-in-out;
+
+    /* 兼容旧变量名 */
+    --color-primary: var(--accent);
+    --color-secondary: var(--accent-secondary);
+    --color-background: var(--bg-primary);
+    --color-text: var(--text-primary);
+    --color-accent: var(--accent);
+
+    --font-size-small: var(--font-size-xs);
+    --font-size-medium: var(--font-size-sm);
+    --font-size-large: var(--font-size-base);
+
+    --border-radius-small: var(--radius-sm);
+    --border-radius-medium: var(--radius-md);
+    --border-radius-large: var(--radius-lg);
+    --topbar-height: 7rem;
+  }
+
+  /* 亮色主题 CSS 变量 — 与 JS applyTheme(lightTheme) 保持同步 */
+  [data-theme="light"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-card: #fafafa;
+    --bg-input: #ffffff;
+    --bg-hover: #e5e5e5;
+
+    --text-primary: #000000;
+    --text-secondary: #4a4a4a;
+    --text-tertiary: #808080;
+    --text-inverse: #ffffff;
+
+    --accent: #FFD608;
+    --accent-secondary: #FFE44D;
+    --accent-hover: #FFC700;
+
+    --green: #00c853;
+    --red: #d32f2f;
+    --yellow: #f57c00;
+    --blue: #1976d2;
+
+    --border: #e0e0e0;
+    --border-light: #f0f0f0;
+    --border-dark: #d0d0d0;
+  }
+
+  html {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
+  }
+
+  body {
+    @apply m-0 antialiased;
+    font-family: var(--font-primary);
+    background-color: var(--color-background);
+    color: var(--color-text);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+      monospace;
+  }
+
+  button {
+    @apply cursor-pointer border-none bg-transparent;
+    font-family: inherit;
+  }
+
+  input {
+    font-family: inherit;
+  }
+
+  a {
+    @apply no-underline text-inherit;
+  }
+}
+
+@layer utilities {
+
+  /* 隐藏滚动条 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 自定义滚动条样式 */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
+
+  /* 瀑布流布局样式 - 横向填充（从左到右），完全兼容 Edge Runtime */
+  .masonry-grid {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .masonry-grid_column {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 移动端间距优化 */
+  @media (max-width: 640px) {
+    .masonry-grid {
+      gap: 8px;
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .masonry-grid {
+      gap: 12px;
+    }
+  }
+}
+
+.recharts-wrapper.outline-none * {
+  outline: none;
+}
+
+/* 移动端底部弹出动画 */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Global Table Responsive Styles */
+@layer components {
+
+  /* Mobile optimization for tables */
+  @media (max-width: 768px) {
+    .custom-table .ant-table-thead>tr>th {
+      font-size: 12px !important;
+      padding: 8px 4px !important;
+    }
+
+    .custom-table .ant-table-tbody>tr>td {
+      font-size: 12px !important;
+      padding: 8px 4px !important;
+    }
+
+    .custom-table .ant-btn {
+      padding: 4px 8px !important;
+      font-size: 12px !important;
+      height: auto !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .custom-table .ant-table-thead>tr>th {
+      font-size: 11px !important;
+      padding: 6px 2px !important;
+    }
+
+    .custom-table .ant-table-tbody>tr>td {
+      font-size: 11px !important;
+      padding: 6px 2px !important;
+    }
+  }
+}
+
+/* Fix antd table placeholder making empty-state look faded */
+.no-fade-empty-table .ant-table-placeholder .ant-table-cell {
+  color: var(--text-primary) !important;
+}
+
+.no-fade-empty-table .ant-table-placeholder .ant-table-cell * {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Toast Animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+#tv-attr-logo {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+a[href*="tradingview.com"][title*="Charting"] {
+  display: none !important;
+}

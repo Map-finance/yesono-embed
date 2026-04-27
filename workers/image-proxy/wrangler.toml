@@ -1,0 +1,12 @@
+name = "yesono-image-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-12-31"
+
+[vars]
+ALLOWED_IMAGE_HOSTS = "polymarket-upload.s3.us-east-2.amazonaws.com,cryptologos.cc,img.logo.dev,cdn.jsdelivr.net,images.unsplash.com,picsum.photos,via.placeholder.com,robohash.org,c.qf318.com,dev-api.yesono.trade"
+
+# 中文注释：
+# - 这里不强行写 route，避免不同团队的域名/环境不一致导致部署失败。
+# - 你可以在 Cloudflare Dashboard（Workers → 你的 Worker → Triggers）里手动绑定路由：
+#   - 推荐（最省事，无需额外 DNS）：`yesono.trade/i*`
+#   - 或者（更清晰，独立子域名）：`img.yesono.trade/*`（需要先加 DNS 记录）

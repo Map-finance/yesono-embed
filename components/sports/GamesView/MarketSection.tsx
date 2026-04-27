@@ -1,0 +1,490 @@
+"use client";
+
+/**
+ * MarketSection - 详情视图中的单个市场分类卡片
+ * 可展开显示 OrderBook（参考 games 卡片展开）
+ * 用于 Moneyline、Spreads、Totals、Both Teams to Score 等
+ */
+
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
+import { SportsMarketItem, SportsMarketOutcome } from "@/types/sports";
+import { useTranslation } from "@/lib/i18n";
+import GameButton from "@/components/sports/Live/GameButton";
+import Tabs from "@/components/ui/Tabs";
+import IconButton from "@/components/ui/IconButton";
+import SpotOrderbook from "@/components/detail/SpotOrderbook";
+import SportsOutcomeGraph from "./SportsOutcomeGraph";
+import MarketChart from "@/components/detail/MarketChart";
+import { Market } from "@/types/types";
+import { PolymarketMarketResp } from "@/types/home";
+import {
+  getOutcomeLabel,
+  sortOutcomesByOriginalIndex,
+} from "@/lib/utils/outcomes";
+
+/** 可复用的 LineValue 切换器：黄色倒三角固定居中，选中按钮通过 translateX 滑动到中间 */
+function LineValueSwitcher({
+  lines,
+  activeIdx,
+  onSelect,
+}: {
+  lines: { value: number; idx: number }[];
+  activeIdx: number;
+  onSelect: (idx: number) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [tx, setTx] = useState(0);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const inner = innerRef.current;
+    if (!container || !inner) return;
+    const btn = inner.querySelector(`[data-line-idx="${activeIdx}"]`) as HTMLElement | null;
+    if (!btn) return;
+    // btn.offsetLeft 是相对于 innerRef 的偏移
+    const offset = btn.offsetLeft + btn.offsetWidth / 2 - container.offsetWidth / 2;
+    setTx(-offset);
+  }, [activeIdx, lines]);
+
+  return (
+    <div
+      className="relative mt-2 border-t border-[var(--border)]"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* 固定居中的黄色倒三角，紧贴上方 border 线 */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[1px] z-10 text-[var(--accent)] text-[10px] leading-none pointer-events-none">
+        ▼
+      </div>
+      <div className="flex items-center justify-center pt-3">
+        <button
+          className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex-shrink-0"
+          onClick={() => onSelect(Math.max(0, activeIdx - 1))}
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <div ref={containerRef} className="overflow-hidden flex-1 min-w-0">
+          <div
+            ref={innerRef}
+            className="flex items-center gap-3 w-max transition-transform duration-300 ease-in-out"
+            style={{ transform: `translateX(${tx}px)` }}
+          >
+            {lines.map((lv) => {
+              const isActive = lv.idx === activeIdx;
+              return (
+                <button
+                  key={lv.idx}
+                  data-line-idx={lv.idx}
+                  onClick={() => onSelect(lv.idx)}
+                  className={`relative flex items-center justify-center h-6 px-2 flex-shrink-0 transition-all duration-200 ${
+                    isActive
+                      ? "text-[var(--text-primary)]"
+                      : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                  }`}
+                >
+                  <span
+                    className={`transition-all duration-200 ${
+                      isActive ? "text-sm font-bold" : "text-xs font-normal"
+                    }`}
+                  >
+                    {lv.value}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <button
+          className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex-shrink-0"
+          onClick={() => onSelect(Math.min(lines.length - 1, activeIdx + 1))}
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface MarketSectionProps {
+  title: string;
+  volume?: string;
+  markets: SportsMarketItem[];
+  onOutcomeClick?: (item: SportsMarketItem, idx: number) => void;
+  selectedMarketId?: string;
+  /** 当前选中的 outcome 索引（0 或 1） */
+  selectedOutcomeIdx?: number;
+  /** 是否为 spread/total 类型（需要 lineValue 切换器） */
+  hasLineValues?: boolean;
+  /** market 类型标识（spreads / totals 用于专有渲染） */
+  sectionKey?: string;
+  /** 主队缩写（spreads 按锢 originalIndex=0 显示） */
+  homeAbbr?: string;
+  /** 客队缩写（spreads 按锢 originalIndex=1 显示） */
+  awayAbbr?: string;
+  /** 多线图表数据（用于 moneyline 显示所有 market 曲线） */
+  chartMarket?: Market;
+  chartEventMarkets?: PolymarketMarketResp[];
+}
+
+function getAbbr(title: string): string {
+  const clean = title.replace(/\s*\(.*?\)/, "").trim();
+  const words = clean.split(/\s+/);
+  const word = words.find((w) => w.length > 2) || words[0] || "";
+  return word.slice(0, 4).toUpperCase();
+}
+
+function formatPrice(price: string): string {
+  const num = parseFloat(price);
+  if (isNaN(num)) return "—";
+  return `${(num * 100).toFixed(1)}¢`;
+}
+
+function getYesOutcome(item: SportsMarketItem): SportsMarketOutcome | undefined {
+  const sorted = sortOutcomesByOriginalIndex(item.outcomes || []);
+  return sorted[0];
+}
+
+function getYesPrice(item?: SportsMarketItem): string {
+  if (!item) return "—";
+  const yes = getYesOutcome(item);
+  return yes ? formatPrice(yes.price) : "—";
+}
+
+function getSignedLineForOutcome(item: SportsMarketItem, outcomeOriginalIndex: number): string {
+  const lv = item.lineValue;
+  if (lv === null || lv === undefined) return "";
+  const absLv = Math.abs(lv);
+  if (outcomeOriginalIndex === 0) {
+    return lv < 0 ? String(lv) : `-${absLv}`;
+  } else {
+    const neg = -lv;
+    return neg > 0 ? `+${neg}` : String(neg);
+  }
+}
+
+function groupByLineValue(markets: SportsMarketItem[]): [number, SportsMarketItem[]][] {
+  const map = new Map<number, SportsMarketItem[]>();
+  markets.forEach((m) => {
+    const lv = Math.abs(m.lineValue ?? 0);
+    if (!map.has(lv)) map.set(lv, []);
+    map.get(lv)!.push(m);
+  });
+  return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+}
+
+/** Spread 用：每个 market 独立一组，不去重 */
+function groupEachByMarket(markets: SportsMarketItem[]): [number, SportsMarketItem[]][] {
+  return markets.map((m) => [Math.abs(m.lineValue ?? 0), [m]]);
+}
+
+// 颜色常量
+const GREEN_ACTIVE = "#3bab68";
+const RED_ACTIVE = "#e13737";
+const UNSELECTED_BG = "rgba(200,200,200,0.2)";
+
+const MarketSection: React.FC<MarketSectionProps> = ({
+  title,
+  volume,
+  markets,
+  onOutcomeClick,
+  selectedMarketId,
+  selectedOutcomeIdx,
+  hasLineValues = false,
+  sectionKey,
+  homeAbbr = "",
+  awayAbbr = "",
+  chartMarket,
+  chartEventMarkets,
+}) => {
+  const { t } = useTranslation();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [lineIdx, setLineIdx] = useState(0);
+
+  const lineGroups = useMemo(
+    () => hasLineValues
+      ? (sectionKey === "spreads" ? groupEachByMarket(markets) : groupByLineValue(markets))
+      : [],
+    [markets, hasLineValues, sectionKey]
+  );
+
+  // hasLineValues 时每组只有 1 个 market，lineIdx 对应第 lineIdx 个 market
+  const currentMarkets = hasLineValues
+    ? lineGroups[lineIdx]?.[1] || []
+    : markets;
+
+  // 判断是否为 moneyline 类型
+  const isMoneyline = markets.length > 0 && markets[0]?.subType === "moneyline";
+
+  const handleClick = (e: React.MouseEvent, item: SportsMarketItem, idx: number) => {
+    e.stopPropagation();
+    onOutcomeClick?.(item, idx);
+  };
+
+  /** Spreads: 当前组的单个 market 显示 home/away 2 按钮(originalIndex决定) */
+  const renderSpreadButtons = (items: SportsMarketItem[]) => {
+    const item = items[0];
+    if (!item) return <span className="opacity-40">-</span>;
+    const sorted = sortOutcomesByOriginalIndex(item.outcomes || []);
+    const homeOutcome = sorted.find(o => o.originalIndex === 0);
+    const awayOutcome = sorted.find(o => o.originalIndex === 1);
+    const rawLv = item.lineValue ?? 0;
+    const homeLvStr = rawLv > 0 ? `+${rawLv}` : rawLv !== 0 ? String(rawLv) : "";
+    const awayLv = -rawLv;
+    const awayLvStr = awayLv > 0 ? `+${awayLv}` : awayLv !== 0 ? String(awayLv) : "";
+    const homeAbbrFromOutcome = homeOutcome ? getAbbr(homeOutcome.outcome) : (homeAbbr || "H");
+    const awayAbbrFromOutcome = awayOutcome ? getAbbr(awayOutcome.outcome) : (awayAbbr || "A");
+    const isSelected = selectedMarketId === item.marketId;
+    return (
+      <div className="flex gap-1.5 flex-wrap">
+        <GameButton
+          key={`${item.marketId}-home`}
+          size="sm"
+          variant="secondary"
+          color={isSelected ? GREEN_ACTIVE : UNSELECTED_BG}
+          textColor={isSelected ? "#fff" : "var(--text-primary)"}
+          className="min-w-[90px]"
+          onClick={(e) => handleClick(e, item, 0)}
+        >
+          <span className="uppercase opacity-80 text-xs">{homeAbbrFromOutcome}</span>
+          {homeLvStr && <span className="ml-1 text-xs">{homeLvStr}</span>}
+          <span className="ml-1 font-bold">{homeOutcome ? formatPrice(homeOutcome.price) : "—"}</span>
+        </GameButton>
+        <GameButton
+          key={`${item.marketId}-away`}
+          size="sm"
+          variant="secondary"
+          color={isSelected ? RED_ACTIVE : UNSELECTED_BG}
+          textColor={isSelected ? "#fff" : "var(--text-primary)"}
+          className="min-w-[90px]"
+          onClick={(e) => handleClick(e, item, 1)}
+        >
+          <span className="uppercase opacity-80 text-xs">{awayAbbrFromOutcome}</span>
+          {awayLvStr && <span className="ml-1 text-xs">{awayLvStr}</span>}
+          <span className="ml-1 font-bold">{awayOutcome ? formatPrice(awayOutcome.price) : "—"}</span>
+        </GameButton>
+      </div>
+    );
+  };
+
+  /** Totals: 每个 market 双按钮 (Over/Under)，线値显示绝对値 */
+  const renderTotalButtons = (items: SportsMarketItem[]) => (
+    <div className="flex gap-2 flex-wrap">
+      {items.map((item) => {
+        const sorted = sortOutcomesByOriginalIndex(item.outcomes || []);
+        const outcome0 = sorted[0];
+        const outcome1 = sorted[1];
+        const isThisMarket = selectedMarketId === item.marketId;
+        const absLine = item.lineValue != null ? Math.abs(item.lineValue) : "";
+        const active0 = isThisMarket && selectedOutcomeIdx === 0;
+        const active1 = isThisMarket && selectedOutcomeIdx === 1;
+        return (
+          <div key={item.marketId} className="flex gap-1.5">
+            <GameButton
+              size="sm"
+              variant="secondary"
+              color={active0 ? GREEN_ACTIVE : UNSELECTED_BG}
+              textColor={active0 ? "#fff" : "var(--text-primary)"}
+              className="min-w-[90px]"
+              onClick={(e) => handleClick(e, item, 0)}
+            >
+              <span className="uppercase opacity-80 text-xs">O</span>
+              {absLine !== "" && <span className="ml-1 text-xs">{absLine}</span>}
+              <span className="ml-1 font-bold">{outcome0 ? formatPrice(outcome0.price) : "—"}</span>
+            </GameButton>
+            <GameButton
+              size="sm"
+              variant="secondary"
+              color={active1 ? RED_ACTIVE : UNSELECTED_BG}
+              textColor={active1 ? "#fff" : "var(--text-primary)"}
+              className="min-w-[90px]"
+              onClick={(e) => handleClick(e, item, 1)}
+            >
+              <span className="uppercase opacity-80 text-xs">U</span>
+              {absLine !== "" && <span className="ml-1 text-xs">{absLine}</span>}
+              <span className="ml-1 font-bold">{outcome1 ? formatPrice(outcome1.price) : "—"}</span>
+            </GameButton>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // Render buttons for current markets
+  const renderButtons = () => {
+    // Spreads: 当前分组的单个 market，显示 home/away 2 按钮
+    if (sectionKey === "spreads") {
+      return renderSpreadButtons(currentMarkets);
+    }
+    // Totals: 双按钮 (O/U)，线値显绝对値
+    if (sectionKey === "totals") {
+      return renderTotalButtons(currentMarkets);
+    }
+    // 非 moneyline 类型：其他二元类型（保留原来逻辑）
+    if (!isMoneyline) {
+      return renderTotalButtons(currentMarkets);
+    }
+
+    // Moneyline: render all buttons inline
+    return (
+      <div className="flex gap-2 flex-wrap">
+        {markets.map((item) => {
+          const isDraw = item.marketTitle.toLowerCase().startsWith("draw");
+          const abbr = isDraw ? "DRAW" : getAbbr(item.marketTitle);
+          const isActive = selectedMarketId === item.marketId;
+          return (
+            <GameButton
+              key={item.marketId}
+              size="sm"
+              variant={isDraw ? "secondary" : "primary"}
+              color={isActive ? "#d4a017" : UNSELECTED_BG}
+              textColor={isActive ? "#fff" : "var(--text-primary)"}
+              className="min-w-[100px]"
+              onClick={(e) => handleClick(e, item, 0)}
+            >
+              <span className="uppercase opacity-80">{abbr}</span>
+              <span className="ml-1 font-bold">{getYesPrice(item)}</span>
+            </GameButton>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="border border-[var(--border)] rounded-lg overflow-hidden cursor-pointer"
+      onClick={() => setIsExpanded((p) => !p)}
+    >
+      <div className="p-3 hover:bg-[var(--bg-secondary)]/30 transition-all">
+        {/* 标题 + 按钮：桌面端同行，移动端上下排列 */}
+        <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
+          <div className="flex-shrink-0 min-w-0">
+            <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
+              {title}
+            </div>
+            {volume && (
+              <div className="text-xs text-[var(--text-tertiary)]">
+                ${volume} {t.sports.game.vol}.
+              </div>
+            )}
+          </div>
+          {/* 按钮居右，移动端全宽 */}
+          <div className="flex-shrink-0 max-sm:w-full" onClick={(e) => e.stopPropagation()}>
+            {renderButtons()}
+          </div>
+        </div>
+
+        {/* LineValue 切换器：spreads 和 totals 均需要 */}
+        {hasLineValues && lineGroups.length > 1 && (
+          <LineValueSwitcher
+            lines={lineGroups.map(([lv], i) => ({ value: Math.abs(lv), idx: i }))}
+            activeIdx={lineIdx}
+            onSelect={(idx) => {
+              setLineIdx(idx);
+              // 切换 lineValue 时同步到交易面板
+              const newGroup = lineGroups[idx]?.[1];
+              if (newGroup?.[0] && onOutcomeClick) {
+                onOutcomeClick(newGroup[0], 0);
+              }
+            }}
+          />
+        )}
+      </div>
+
+      {/* 展开面板：OrderBook / Graph */}
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: isExpanded ? "600px" : "0",
+          opacity: isExpanded ? 1 : 0,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {isExpanded && (
+          <Tabs
+            items={[
+              {
+                label: t.sports.game.orderBook,
+                value: "orderbook",
+                content: (() => {
+                  const obMarket =
+                    currentMarkets.find((m) => m.marketId === selectedMarketId) ||
+                    currentMarkets[0];
+                  if (!obMarket) {
+                    return (
+                      <div className="p-4 text-center text-[var(--text-tertiary)] text-sm">
+                        {t.sports.game.noEvents}
+                      </div>
+                    );
+                  }
+                  return (
+                    <SpotOrderbook
+                      key={obMarket.marketId}
+                      ticker={getAbbr(obMarket.marketTitle)}
+                      marketId={obMarket.marketId}
+                      marketOutcomes={
+                        obMarket.outcomes?.map((o: any) => ({
+                          tokenId: String(o.tokenId || o.id),
+                          originalIndex: o.originalIndex,
+                          tradingPair: o.tradingPair || undefined,
+                        })) || []
+                      }
+                      selectedSide={selectedOutcomeIdx === 1 ? "no" : "yes"}
+                    />
+                  );
+                })(),
+              },
+              {
+                label: t.sports.game.graph,
+                value: "graph",
+                content: (() => {
+                  // 如果有多线图表数据（moneyline），使用 MarketChart
+                  if (chartMarket && chartEventMarkets) {
+                    return (
+                      <div className="p-2">
+                        <MarketChart
+                          market={chartMarket}
+                          eventMarkets={chartEventMarkets}
+                        />
+                      </div>
+                    );
+                  }
+                  // 否则使用单线 SportsOutcomeGraph
+                  const graphMarket =
+                    currentMarkets.find((m) => m.marketId === selectedMarketId) ||
+                    currentMarkets[0];
+                  if (!graphMarket) {
+                    return (
+                      <div className="p-4 text-center text-[var(--text-tertiary)] text-sm">
+                        {t.sports.game.noEvents}
+                      </div>
+                    );
+                  }
+                  return (
+                    <SportsOutcomeGraph
+                      key={graphMarket.marketId}
+                      marketId={graphMarket.marketId}
+                      label={graphMarket.marketTitle.replace(/\s*\(.*?\)/, "").trim()}
+                      isVisible={isExpanded}
+                    />
+                  );
+                })(),
+              },
+            ]}
+            defaultValue="orderbook"
+            rightSlot={
+              <div className="mr-2">
+                <IconButton size="sm">
+                  <RefreshCcw size={14} />
+                </IconButton>
+              </div>
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MarketSection;

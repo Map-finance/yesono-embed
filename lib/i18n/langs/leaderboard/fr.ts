@@ -1,0 +1,42 @@
+export default {
+  title: "Classement",
+  timeRange: {
+    today: "Aujourd'hui",
+    weekly: "Hebdomadaire",
+    monthly: "Mensuel",
+    all: "Tout",
+  },
+  categories: {
+    all: "Toutes les catégories",
+    politics: "Politique",
+    sports: "Sports",
+    crypto: "Crypto",
+    finance: "Finance",
+    culture: "Culture",
+    mentions: "Mentions",
+    weather: "Météo",
+    economics: "Économie",
+    tech: "Tech",
+  },
+  table: {
+    searchPlaceholder: "Rechercher par nom",
+    profitLoss: "Profit/Perte",
+    volume: "Volume",
+  },
+  biggestWins: {
+    title: "Plus grands gains ce mois-ci",
+    buttonText: "Plus grands gains",
+  },
+  userProfile: {
+    positions: "Positions",
+    profitLoss: "Profit/Perte",
+    volume: "Volume",
+    joined: "Inscrit",
+    monthAgo: "mois",
+    monthsAgo: "mois",
+  },
+  loading: "Chargement...",
+  retry: "Réessayer",
+  noData: "Aucune donnée",
+  dataUnavailable: "Le classement est temporairement indisponible. Veuillez réessayer.",
+} as const;

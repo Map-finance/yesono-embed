@@ -1,0 +1,12 @@
+.next/cache/**
+.next/standalone/**
+.next/trace
+.next/trace/**
+.next/swc/**
+.next/.cache/**
+*.pack
+*.pack.gz
+node_modules/**
+.git/**
+*.md
+docs/**

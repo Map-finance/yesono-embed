@@ -1,0 +1,42 @@
+export default {
+  title: "لوحة المتصدرين",
+  timeRange: {
+    today: "اليوم",
+    weekly: "أسبوعي",
+    monthly: "شهري",
+    all: "الكل",
+  },
+  categories: {
+    all: "جميع الفئات",
+    politics: "سياسة",
+    sports: "رياضة",
+    crypto: "عملات رقمية",
+    finance: "مالية",
+    culture: "ثقافة",
+    mentions: "إشارات",
+    weather: "طقس",
+    economics: "اقتصاد",
+    tech: "تقنية",
+  },
+  table: {
+    searchPlaceholder: "البحث بالاسم",
+    profitLoss: "الربح/الخسارة",
+    volume: "الحجم",
+  },
+  biggestWins: {
+    title: "أكبر المكاسب هذا الشهر",
+    buttonText: "أكبر المكاسب",
+  },
+  userProfile: {
+    positions: "المراكز",
+    profitLoss: "الربح/الخسارة",
+    volume: "الحجم",
+    joined: "انضم",
+    monthAgo: "شهر مضى",
+    monthsAgo: "أشهر مضت",
+  },
+  loading: "جارٍ التحميل...",
+  retry: "إعادة المحاولة",
+  noData: "لا توجد بيانات",
+  dataUnavailable: "القائمة غير متاحة مؤقتًا. حاول مرة أخرى لاحقًا.",
+} as const;

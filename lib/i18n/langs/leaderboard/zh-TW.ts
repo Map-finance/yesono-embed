@@ -1,0 +1,42 @@
+export default {
+  title: "排行榜",
+  timeRange: {
+    today: "今日",
+    weekly: "每週",
+    monthly: "每月",
+    all: "全部",
+  },
+  categories: {
+    all: "所有分類",
+    politics: "政治",
+    sports: "體育",
+    crypto: "加密貨幣",
+    finance: "金融",
+    culture: "文化",
+    mentions: "提及",
+    weather: "天氣",
+    economics: "經濟",
+    tech: "科技",
+  },
+  table: {
+    searchPlaceholder: "按名稱搜尋",
+    profitLoss: "盈虧",
+    volume: "交易量",
+  },
+  biggestWins: {
+    title: "本月最大收益",
+    buttonText: "最大收益",
+  },
+  userProfile: {
+    positions: "倉位",
+    profitLoss: "盈虧",
+    volume: "交易量",
+    joined: "加入於",
+    monthAgo: "個月前",
+    monthsAgo: "個月前",
+  },
+  loading: "載入中...",
+  retry: "重試",
+  noData: "暫無資料",
+  dataUnavailable: "排行榜暫時無法載入，請稍後再試。",
+} as const;

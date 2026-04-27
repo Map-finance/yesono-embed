@@ -1,0 +1,42 @@
+export default {
+  title: "Clasificación",
+  timeRange: {
+    today: "Hoy",
+    weekly: "Semanal",
+    monthly: "Mensual",
+    all: "Todo",
+  },
+  categories: {
+    all: "Todas las categorías",
+    politics: "Política",
+    sports: "Deportes",
+    crypto: "Cripto",
+    finance: "Finanzas",
+    culture: "Cultura",
+    mentions: "Menciones",
+    weather: "Clima",
+    economics: "Economía",
+    tech: "Tecnología",
+  },
+  table: {
+    searchPlaceholder: "Buscar por nombre",
+    profitLoss: "Ganancia/Pérdida",
+    volume: "Volumen",
+  },
+  biggestWins: {
+    title: "Mayores ganancias este mes",
+    buttonText: "Mayores ganancias",
+  },
+  userProfile: {
+    positions: "Posiciones",
+    profitLoss: "Ganancia/Pérdida",
+    volume: "Volumen",
+    joined: "Se unió",
+    monthAgo: "mes atrás",
+    monthsAgo: "meses atrás",
+  },
+  loading: "Cargando...",
+  retry: "Reintentar",
+  noData: "Sin datos",
+  dataUnavailable: "No se puede cargar la clasificación. Inténtalo de nuevo más tarde.",
+} as const;

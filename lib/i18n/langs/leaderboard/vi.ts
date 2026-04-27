@@ -1,0 +1,42 @@
+export default {
+  title: "Bảng xếp hạng",
+  timeRange: {
+    today: "Hôm nay",
+    weekly: "Tuần",
+    monthly: "Tháng",
+    all: "Tất cả",
+  },
+  categories: {
+    all: "Tất cả danh mục",
+    politics: "Chính trị",
+    sports: "Thể thao",
+    crypto: "Tiền mã hóa",
+    finance: "Tài chính",
+    culture: "Văn hóa",
+    mentions: "Đề cập",
+    weather: "Thời tiết",
+    economics: "Kinh tế",
+    tech: "Công nghệ",
+  },
+  table: {
+    searchPlaceholder: "Tìm theo tên",
+    profitLoss: "Lãi/Lỗ",
+    volume: "Khối lượng",
+  },
+  biggestWins: {
+    title: "Chiến thắng lớn nhất tháng này",
+    buttonText: "Chiến thắng lớn nhất",
+  },
+  userProfile: {
+    positions: "Vị thế",
+    profitLoss: "Lãi/lỗ",
+    volume: "Khối lượng",
+    joined: "Tham gia",
+    monthAgo: "tháng trước",
+    monthsAgo: "tháng trước",
+  },
+  loading: "Đang tải...",
+  retry: "Thử lại",
+  noData: "Không có dữ liệu",
+  dataUnavailable: "Bảng xếp hạng tạm thời không tải được. Vui lòng thử lại sau.",
+} as const;

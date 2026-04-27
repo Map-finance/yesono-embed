@@ -1,0 +1,42 @@
+export default {
+  title: "Κατάταξη",
+  timeRange: {
+    today: "Σήμερα",
+    weekly: "Εβδομαδιαία",
+    monthly: "Μηνιαία",
+    all: "Όλα",
+  },
+  categories: {
+    all: "Όλες οι κατηγορίες",
+    politics: "Πολιτική",
+    sports: "Αθλητικά",
+    crypto: "Κρυπτονομίσματα",
+    finance: "Οικονομικά",
+    culture: "Πολιτισμός",
+    mentions: "Αναφορές",
+    weather: "Καιρός",
+    economics: "Οικονομία",
+    tech: "Τεχνολογία",
+  },
+  table: {
+    searchPlaceholder: "Αναζήτηση με όνομα",
+    profitLoss: "Κέρδος/Ζημία",
+    volume: "Όγκος",
+  },
+  biggestWins: {
+    title: "Μεγαλύτερα κέρδη αυτόν τον μήνα",
+    buttonText: "Μεγαλύτερα κέρδη",
+  },
+  userProfile: {
+    positions: "Θέσεις",
+    profitLoss: "Κέρδος/Ζημία",
+    volume: "Όγκος",
+    joined: "Εγγράφηκε",
+    monthAgo: "μήνα πριν",
+    monthsAgo: "μήνες πριν",
+  },
+  loading: "Φόρτωση...",
+  retry: "Επανάληψη",
+  noData: "Δεν υπάρχουν δεδομένα",
+  dataUnavailable: "Η κατάταξη δεν είναι προσωρινά διαθέσιμη. Δοκιμάστε ξανά.",
+} as const;

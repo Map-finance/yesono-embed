@@ -1,0 +1,42 @@
+export default {
+  title: "กระดานผู้นำ",
+  timeRange: {
+    today: "วันนี้",
+    weekly: "รายสัปดาห์",
+    monthly: "รายเดือน",
+    all: "ทั้งหมด",
+  },
+  categories: {
+    all: "ทุกหมวดหมู่",
+    politics: "การเมือง",
+    sports: "กีฬา",
+    crypto: "คริปโต",
+    finance: "การเงิน",
+    culture: "วัฒนธรรม",
+    mentions: "กล่าวถึง",
+    weather: "สภาพอากาศ",
+    economics: "เศรษฐกิจ",
+    tech: "เทคโนโลยี",
+  },
+  table: {
+    searchPlaceholder: "ค้นหาตามชื่อ",
+    profitLoss: "กำไร/ขาดทุน",
+    volume: "ปริมาณ",
+  },
+  biggestWins: {
+    title: "ชนะมากที่สุดเดือนนี้",
+    buttonText: "ชนะมากที่สุด",
+  },
+  userProfile: {
+    positions: "ตำแหน่ง",
+    profitLoss: "กำไร/ขาดทุน",
+    volume: "ปริมาณ",
+    joined: "เข้าร่วม",
+    monthAgo: "เดือนที่แล้ว",
+    monthsAgo: "เดือนที่แล้ว",
+  },
+  loading: "กำลังโหลด...",
+  retry: "ลองอีกครั้ง",
+  noData: "ไม่มีข้อมูล",
+  dataUnavailable: "ไม่สามารถโหลดกระดานผู้นำได้ชั่วคราว โปรดลองอีกครั้งในภายหลัง",
+} as const;

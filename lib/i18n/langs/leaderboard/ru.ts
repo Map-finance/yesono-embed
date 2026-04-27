@@ -1,0 +1,42 @@
+export default {
+  title: "Таблица лидеров",
+  timeRange: {
+    today: "Сегодня",
+    weekly: "За неделю",
+    monthly: "За месяц",
+    all: "Все",
+  },
+  categories: {
+    all: "Все категории",
+    politics: "Политика",
+    sports: "Спорт",
+    crypto: "Крипто",
+    finance: "Финансы",
+    culture: "Культура",
+    mentions: "Упоминания",
+    weather: "Погода",
+    economics: "Экономика",
+    tech: "Технологии",
+  },
+  table: {
+    searchPlaceholder: "Поиск по имени",
+    profitLoss: "Прибыль/Убыток",
+    volume: "Объём",
+  },
+  biggestWins: {
+    title: "Крупнейшие выигрыши в этом месяце",
+    buttonText: "Крупнейшие выигрыши",
+  },
+  userProfile: {
+    positions: "Позиции",
+    profitLoss: "Прибыль/Убыток",
+    volume: "Объём",
+    joined: "Присоединился",
+    monthAgo: "месяц назад",
+    monthsAgo: "месяцев назад",
+  },
+  loading: "Загрузка...",
+  retry: "Повторить",
+  noData: "Нет данных",
+  dataUnavailable: "Рейтинг временно недоступен. Попробуйте позже.",
+} as const;

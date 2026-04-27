@@ -1,0 +1,42 @@
+export default {
+  title: "Ranglista",
+  timeRange: {
+    today: "Ma",
+    weekly: "Heti",
+    monthly: "Havi",
+    all: "Összes",
+  },
+  categories: {
+    all: "Összes kategória",
+    politics: "Politika",
+    sports: "Sport",
+    crypto: "Kripto",
+    finance: "Pénzügy",
+    culture: "Kultúra",
+    mentions: "Említések",
+    weather: "Időjárás",
+    economics: "Gazdaság",
+    tech: "Technológia",
+  },
+  table: {
+    searchPlaceholder: "Keresés név alapján",
+    profitLoss: "Nyereség/Veszteség",
+    volume: "Forgalom",
+  },
+  biggestWins: {
+    title: "Legnagyobb nyeremények ebben a hónapban",
+    buttonText: "Legnagyobb nyeremények",
+  },
+  userProfile: {
+    positions: "Pozíciók",
+    profitLoss: "Nyereség/Veszteség",
+    volume: "Forgalom",
+    joined: "Csatlakozott",
+    monthAgo: "hónapja",
+    monthsAgo: "hónapja",
+  },
+  loading: "Betöltés...",
+  retry: "Újra",
+  noData: "Nincs adat",
+  dataUnavailable: "A ranglista átmenetileg nem elérhető. Próbálja újra később.",
+} as const;

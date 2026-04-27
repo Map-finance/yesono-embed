@@ -1,0 +1,42 @@
+export default {
+  title: "Classifica",
+  timeRange: {
+    today: "Oggi",
+    weekly: "Settimanale",
+    monthly: "Mensile",
+    all: "Tutto",
+  },
+  categories: {
+    all: "Tutte le categorie",
+    politics: "Politica",
+    sports: "Sport",
+    crypto: "Crypto",
+    finance: "Finanza",
+    culture: "Cultura",
+    mentions: "Menzioni",
+    weather: "Meteo",
+    economics: "Economia",
+    tech: "Tecnologia",
+  },
+  table: {
+    searchPlaceholder: "Cerca per nome",
+    profitLoss: "Profitto/Perdita",
+    volume: "Volume",
+  },
+  biggestWins: {
+    title: "Maggiori guadagni questo mese",
+    buttonText: "Maggiori guadagni",
+  },
+  userProfile: {
+    positions: "Posizioni",
+    profitLoss: "Profitto/Perdita",
+    volume: "Volume",
+    joined: "Iscritto",
+    monthAgo: "mese fa",
+    monthsAgo: "mesi fa",
+  },
+  loading: "Caricamento...",
+  retry: "Riprova",
+  noData: "Nessun dato",
+  dataUnavailable: "La classifica non è al momento disponibile. Riprova più tardi.",
+} as const;

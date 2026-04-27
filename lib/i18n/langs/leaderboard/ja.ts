@@ -1,0 +1,42 @@
+export default {
+  title: "リーダーボード",
+  timeRange: {
+    today: "今日",
+    weekly: "週間",
+    monthly: "月間",
+    all: "全期間",
+  },
+  categories: {
+    all: "すべてのカテゴリ",
+    politics: "政治",
+    sports: "スポーツ",
+    crypto: "暗号資産",
+    finance: "金融",
+    culture: "カルチャー",
+    mentions: "メンション",
+    weather: "天気",
+    economics: "経済",
+    tech: "テクノロジー",
+  },
+  table: {
+    searchPlaceholder: "名前で検索",
+    profitLoss: "損益",
+    volume: "取引量",
+  },
+  biggestWins: {
+    title: "今月の最大利益",
+    buttonText: "最大利益",
+  },
+  userProfile: {
+    positions: "ポジション",
+    profitLoss: "損益",
+    volume: "取引量",
+    joined: "参加日",
+    monthAgo: "ヶ月前",
+    monthsAgo: "ヶ月前",
+  },
+  loading: "読み込み中...",
+  retry: "再試行",
+  noData: "データがありません",
+  dataUnavailable: "ランキングを読み込めませんでした。しばらくしてから再度お試しください。",
+} as const;
