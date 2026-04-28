@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart,
   ColorType,
@@ -10,12 +10,12 @@ import {
 } from "lightweight-charts";
 import { Loader2 } from "lucide-react";
 import { getAssetColor } from "@/utils/format";
+import { useLivePriceFeed } from "@/lib/hooks/use-live-price-feed";
+import { useTradeTapeFeed } from "@/lib/hooks/use-trade-tape-feed";
+import type { PricePoint } from "@/lib/services/live-price-ws";
 import LivePriceHeader from "./LivePriceHeader";
 
-interface Point {
-  time: Time;
-  value: number;
-}
+type Point = PricePoint;
 
 interface TradeTapeItem {
   id: string;
@@ -105,10 +105,7 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   const pulseDotRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Area", Time> | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const tradeWsRef = useRef<WebSocket | null>(null);
-  const tradeReconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updatePulseDotRef = useRef<() => void>(() => {});
   const tradeFlushTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mockTradeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mockTradeAutoStopTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -117,12 +114,9 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   const tradeRemoveTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const pendingTradeItemsRef = useRef<TradeTapeItem[]>([]);
   const tradeSeqRef = useRef(0);
-  const unsupportedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const basePriceRef = useRef<number | null>(null);
   const onPriceUpdateRef = useRef(onPriceUpdate);
   const onUnsupportedRef = useRef(onUnsupported);
-  // 标记是否已收到过真实 payload 数据（用于超时判断和 onclose 兜底）
-  const hasReceivedDataRef = useRef(false);
 
   const themeColor = getAssetColor(symbol);
 
@@ -345,128 +339,10 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       updatePulseDot();
     });
 
-    // 2. WebSocket Connection
-    const connectWs = () => {
-      const ws = new WebSocket(process.env.NEXT_PUBLIC_ORDERBOOK_WS_URL!);
-      wsRef.current = ws;
+    // 让外层 hooks 可以触发 pulse dot 重绘
+    updatePulseDotRef.current = updatePulseDot;
 
-      ws.onopen = () => {
-        console.log("[LivePriceChart] WS Connected. Subscribing to", symbol);
-        const subscribeMsg = {
-          type: "subscribe",
-          operation: "cryptoPrice",
-          symbol: symbol,
-        };
-        ws.send(JSON.stringify(subscribeMsg));
-
-        // 订阅后若 5 秒内未收到真实数据，主动判定为服务端不支持该 symbol
-        // 定时器存于 ref，不触发任何 React 渲染
-        if (unsupportedTimerRef.current)
-          clearTimeout(unsupportedTimerRef.current);
-        unsupportedTimerRef.current = setTimeout(() => {
-          if (!hasReceivedDataRef.current) {
-            console.warn(
-              "[LivePriceChart] No data in 5s, symbol unsupported:",
-              symbol
-            );
-            ws.onclose = null; // 阻止 onclose 重复触发 onUnsupported
-            ws.close();
-            onUnsupportedRef.current?.();
-          }
-        }, 3000);
-      };
-
-      ws.onmessage = (event) => {
-        // 0 字节是正常的 ACK 消息，支持和不支持的 symbol 都会收到，直接忽略
-        if (!event.data || event.data.length === 0) return;
-        try {
-          const data = JSON.parse(event.data);
-          if (!seriesRef.current) return;
-
-          if (data.type === "subscribe" && data.topic === "crypto_prices") {
-            const rawData = data.payload.data;
-            // 服务端返回空数组表示当前 symbol 暂无历史数据，视为“未收到真实数据”
-            // 不清除 unsupported 超时计时器，等待 5 秒兜底逻辑触发 onUnsupported
-            if (!rawData || rawData.length === 0) {
-              return;
-            }
-            const historicalData: Point[] = rawData.map((item: any) => ({
-              time: (item.timestamp / 1000) as Time,
-              value: item.value,
-            }));
-
-            historicalData.sort(
-              (a, b) => (a.time as number) - (b.time as number)
-            );
-
-            const uniqueData = historicalData.filter(
-              (item, index, self) =>
-                index === 0 || item.time !== self[index - 1].time
-            );
-
-            if (uniqueData.length > 0) {
-              basePriceRef.current = uniqueData[0].value;
-              const lastPoint = uniqueData[uniqueData.length - 1];
-              const change = lastPoint.value - basePriceRef.current;
-              setLivePrice(lastPoint.value);
-              setLivePriceChange(change);
-              onPriceUpdateRef.current?.(lastPoint.value, change);
-            }
-
-            seriesRef.current.setData(uniqueData);
-            chartRef.current?.timeScale().fitContent();
-            // 收到非空的真实历史数据：标记支持，并清除"不支持超时计时器"
-            hasReceivedDataRef.current = true;
-            if (unsupportedTimerRef.current) {
-              clearTimeout(unsupportedTimerRef.current);
-              unsupportedTimerRef.current = null;
-            }
-            setLoading(false);
-            updatePulseDot();
-          }
-
-          if (
-            data.type === "update" &&
-            data.topic === "crypto_prices_chainlink"
-          ) {
-            const time = (data.payload.timestamp / 1000) as Time;
-            const newValue = data.payload.value;
-            seriesRef.current.update({
-              time: time,
-              value: newValue,
-            });
-            if (basePriceRef.current !== null) {
-              const change = newValue - basePriceRef.current;
-              setLivePrice(newValue);
-              setLivePriceChange(change);
-              onPriceUpdateRef.current?.(newValue, change);
-            }
-            updatePulseDot();
-          }
-        } catch (e) {
-          console.error("[LivePriceChart] WS Parse Error:", e);
-        }
-      };
-
-      ws.onclose = () => {
-        // WS 关闭时若从未收到过真实数据，说明该 symbol 不在服务端支持列表中
-        if (!hasReceivedDataRef.current) {
-          onUnsupportedRef.current?.();
-          return; // 不重连
-        }
-        console.log("[LivePriceChart] WS Closed. Reconnecting in 3s...");
-        reconnectTimeoutRef.current = setTimeout(connectWs, 3000);
-      };
-
-      ws.onerror = (err) => {
-        console.error("[LivePriceChart] WS Error:", err);
-        ws.close();
-      };
-    };
-
-    connectWs();
-
-    // 3. Responsive Resize
+    // 2. Responsive Resize（WebSocket 已迁出到 §6.1 manager + hooks）
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
@@ -477,151 +353,111 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
     };
     window.addEventListener("resize", handleResize);
 
-    // 4. Cleanup
+    // 3. Cleanup
     return () => {
-      hasReceivedDataRef.current = false; // symbol 切换时重置，允许新 symbol 重新尝试
       window.removeEventListener("resize", handleResize);
-      if (unsupportedTimerRef.current) {
-        clearTimeout(unsupportedTimerRef.current);
-        unsupportedTimerRef.current = null;
-      }
-      if (wsRef.current) {
-        wsRef.current.onclose = null;
-        wsRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      updatePulseDotRef.current = () => {};
+      seriesRef.current = null;
+      chartRef.current = null;
       chart.remove();
     };
   }, [symbol, height, themeColor]);
 
-  useEffect(() => {
-    setTradeTapeItems([]);
-    pendingTradeItemsRef.current = [];
-    clearAllTradeItemTimers();
+  // ============== Live price feed（替换原组件内 new WebSocket） ==============
+  useLivePriceFeed(symbol, {
+    onSnapshot: (points) => {
+      const series = seriesRef.current;
+      if (!series || points.length === 0) return;
+      basePriceRef.current = points[0].value;
+      const last = points[points.length - 1];
+      const change = last.value - basePriceRef.current;
+      setLivePrice(last.value);
+      setLivePriceChange(change);
+      onPriceUpdateRef.current?.(last.value, change);
+      series.setData(points);
+      chartRef.current?.timeScale().fitContent();
+      setLoading(false);
+      updatePulseDotRef.current();
+    },
+    onUpdate: (point) => {
+      const series = seriesRef.current;
+      if (!series) return;
+      series.update(point);
+      if (basePriceRef.current !== null) {
+        const change = point.value - basePriceRef.current;
+        setLivePrice(point.value);
+        setLivePriceChange(change);
+        onPriceUpdateRef.current?.(point.value, change);
+      }
+      updatePulseDotRef.current();
+    },
+    onUnsupported: () => {
+      onUnsupportedRef.current?.();
+    },
+  });
 
-    if (tradeFlushTimerRef.current) {
-      clearTimeout(tradeFlushTimerRef.current);
-      tradeFlushTimerRef.current = null;
-    }
-    if (mockTradeTimerRef.current) {
-      clearInterval(mockTradeTimerRef.current);
-      mockTradeTimerRef.current = null;
-    }
-    if (mockTradeAutoStopTimerRef.current) {
-      clearTimeout(mockTradeAutoStopTimerRef.current);
-      mockTradeAutoStopTimerRef.current = null;
-    }
-    if (tradeReconnectTimeoutRef.current) {
-      clearTimeout(tradeReconnectTimeoutRef.current);
-      tradeReconnectTimeoutRef.current = null;
-    }
-    if (tradeWsRef.current) {
-      tradeWsRef.current.onclose = null;
-      tradeWsRef.current.close();
-      tradeWsRef.current = null;
-    }
-
-    if (!eventSlug) return;
-
-    let closedByCleanup = false;
-
-    const pushTrade = (side: "BUY" | "SELL", price: number, size: number) => {
+  // 共享 trade pushTrade，给 mock 模式 + 真实流复用
+  const pushTrade = useCallback(
+    (side: "BUY" | "SELL", price: number, size: number) => {
       if (!Number.isFinite(price) || !Number.isFinite(size)) return;
       const amount = price * size;
       if (!Number.isFinite(amount) || amount <= 0) return;
       enqueueTradeItem(side, amount);
+    },
+    [enqueueTradeItem]
+  );
+
+  // mock 模式开关：在客户端 mount 后才能从 location/localStorage 读
+  const [mockEnabled, setMockEnabled] = useState(false);
+  useEffect(() => {
+    setMockEnabled(isMockTradeStreamEnabled());
+  }, []);
+
+  // symbol/eventSlug 切换或卸载时清空 trade tape 显示与定时器
+  useEffect(() => {
+    setTradeTapeItems([]);
+    pendingTradeItemsRef.current = [];
+    clearAllTradeItemTimers();
+    if (tradeFlushTimerRef.current) {
+      clearTimeout(tradeFlushTimerRef.current);
+      tradeFlushTimerRef.current = null;
+    }
+    return () => {
+      pendingTradeItemsRef.current = [];
+      if (tradeFlushTimerRef.current) {
+        clearTimeout(tradeFlushTimerRef.current);
+        tradeFlushTimerRef.current = null;
+      }
+      clearAllTradeItemTimers();
+    };
+  }, [eventSlug, clearAllTradeItemTimers]);
+
+  // mock 模式：定时推假 trade（不走 WS）
+  useEffect(() => {
+    if (!mockEnabled || !eventSlug) return;
+
+    const pushMockTrade = () => {
+      const side: "BUY" | "SELL" = Math.random() > 0.5 ? "BUY" : "SELL";
+      const mockPrice = 0.35 + Math.random() * 0.3;
+      const mockSize = 2 + Math.random() * 80;
+      pushTrade(side, mockPrice, mockSize);
     };
 
-    if (isMockTradeStreamEnabled()) {
-      const stopMockPush = () => {
+    pushMockTrade();
+    mockTradeTimerRef.current = setInterval(pushMockTrade, MOCK_TRADE_INTERVAL_MS);
+
+    const autoStopMs = getMockTradeAutoStopMs();
+    if (autoStopMs > 0) {
+      mockTradeAutoStopTimerRef.current = setTimeout(() => {
+        mockTradeAutoStopTimerRef.current = null;
         if (mockTradeTimerRef.current) {
           clearInterval(mockTradeTimerRef.current);
           mockTradeTimerRef.current = null;
         }
-      };
-
-      const pushMockTrade = () => {
-        const side: "BUY" | "SELL" = Math.random() > 0.5 ? "BUY" : "SELL";
-        const mockPrice = 0.35 + Math.random() * 0.3;
-        const mockSize = 2 + Math.random() * 80;
-        pushTrade(side, mockPrice, mockSize);
-      };
-
-      pushMockTrade();
-      mockTradeTimerRef.current = setInterval(
-        pushMockTrade,
-        MOCK_TRADE_INTERVAL_MS
-      );
-      const autoStopMs = getMockTradeAutoStopMs();
-      if (autoStopMs > 0) {
-        mockTradeAutoStopTimerRef.current = setTimeout(() => {
-          mockTradeAutoStopTimerRef.current = null;
-          stopMockPush();
-        }, autoStopMs);
-      }
-
-      return () => {
-        closedByCleanup = true;
-        pendingTradeItemsRef.current = [];
-        stopMockPush();
-        if (mockTradeAutoStopTimerRef.current) {
-          clearTimeout(mockTradeAutoStopTimerRef.current);
-          mockTradeAutoStopTimerRef.current = null;
-        }
-        if (tradeFlushTimerRef.current) {
-          clearTimeout(tradeFlushTimerRef.current);
-          tradeFlushTimerRef.current = null;
-        }
-        clearAllTradeItemTimers();
-      };
+      }, autoStopMs);
     }
 
-    const connectTradeWs = () => {
-      const ws = new WebSocket(process.env.NEXT_PUBLIC_ORDERBOOK_WS_URL!);
-      tradeWsRef.current = ws;
-
-      ws.onopen = () => {
-        ws.send(
-          JSON.stringify({
-            operation: "subscribe",
-            type: "trade_message",
-            event_slug: eventSlug,
-          })
-        );
-      };
-
-      ws.onmessage = (event) => {
-        if (!event.data || event.data.length === 0) return;
-
-        try {
-          const data = JSON.parse(event.data);
-          if (data?.type !== "trade_message") return;
-          if (data?.side !== "BUY" && data?.side !== "SELL") return;
-
-          pushTrade(data.side, Number(data?.price), Number(data?.size));
-        } catch (err) {
-          console.error("[LivePriceChart] Trade WS parse error:", err);
-        }
-      };
-
-      ws.onclose = () => {
-        if (closedByCleanup) return;
-        tradeReconnectTimeoutRef.current = setTimeout(connectTradeWs, 3000);
-      };
-
-      ws.onerror = (err) => {
-        console.error("[LivePriceChart] Trade WS error:", err);
-        ws.close();
-      };
-    };
-
-    connectTradeWs();
-
     return () => {
-      closedByCleanup = true;
-      pendingTradeItemsRef.current = [];
       if (mockTradeTimerRef.current) {
         clearInterval(mockTradeTimerRef.current);
         mockTradeTimerRef.current = null;
@@ -630,22 +466,15 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
         clearTimeout(mockTradeAutoStopTimerRef.current);
         mockTradeAutoStopTimerRef.current = null;
       }
-      if (tradeFlushTimerRef.current) {
-        clearTimeout(tradeFlushTimerRef.current);
-        tradeFlushTimerRef.current = null;
-      }
-      clearAllTradeItemTimers();
-      if (tradeReconnectTimeoutRef.current) {
-        clearTimeout(tradeReconnectTimeoutRef.current);
-        tradeReconnectTimeoutRef.current = null;
-      }
-      if (tradeWsRef.current) {
-        tradeWsRef.current.onclose = null;
-        tradeWsRef.current.close();
-        tradeWsRef.current = null;
-      }
     };
-  }, [clearAllTradeItemTimers, enqueueTradeItem, eventSlug]);
+  }, [mockEnabled, eventSlug, pushTrade]);
+
+  // 真实 trade 流：mock 关闭时才订阅
+  useTradeTapeFeed(
+    eventSlug,
+    useMemo(() => ({ onTrade: pushTrade }), [pushTrade]),
+    !mockEnabled
+  );
 
   return (
     <>
