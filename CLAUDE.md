@@ -20,7 +20,7 @@ No tests configured.
 
 ## Architecture
 
-Next.js 14 App Router on `@opennextjs/cloudflare`. UI uses Tailwind + Antd 5 + a CSS-variable theme. Data fetched via SWR / TanStack Query with a thin axios layer at [lib/request.ts](lib/request.ts).
+Next.js 14 App Router on `@opennextjs/cloudflare`. UI is **migrating from Antd 5 → shadcn/ui + Radix Primitives + Tailwind** (see [docs/react-component-guide.md §18](docs/react-component-guide.md#18-ui-组件库shadcnui)); CSS-variable theme drives both. Data fetched via SWR / TanStack Query with a thin axios layer at [lib/request.ts](lib/request.ts).
 
 ### Token / auth
 
@@ -44,7 +44,9 @@ iframe.contentWindow.postMessage({ type: "yesono-embed:clear-token" }, "*");
 ### Provider stack
 
 [app/ClientWrapper.tsx](app/ClientWrapper.tsx):
-`I18nProvider` → `EmbedProvider` → `ToastProvider` → `NavigationProvider` → `ConfigProvider (Antd)` → `App` → children + `IframeBridge`.
+`I18nProvider` → `EmbedProvider` → `ToastProvider` → `NavigationProvider` → `ConfigProvider (Antd, transitional)` → `App` → children + `IframeBridge`.
+
+The Antd `ConfigProvider` / `App` wrapper is transitional and will be removed once existing Antd components are migrated to shadcn/ui (see [docs/react-component-guide.md §18.4](docs/react-component-guide.md#184-迁移路线)).
 
 ### Available pages
 
@@ -63,7 +65,7 @@ iframe.contentWindow.postMessage({ type: "yesono-embed:clear-token" }, "*");
 
 ### Theme
 
-CSS variables in [lib/theme/](lib/theme/) (`var(--accent)`, `var(--bg-primary)`, etc.) drive both Tailwind and Antd. Light/dark via `data-theme` on `<html>`.
+CSS variables in [lib/theme/](lib/theme/) (`var(--accent)`, `var(--bg-primary)`, etc.) drive Tailwind, shadcn/ui, and (transitionally) Antd. Light/dark via `data-theme` on `<html>`. shadcn's default tokens (`--background`, `--foreground`, ...) are mapped to the project variables in [styles/index.css](styles/index.css).
 
 ### i18n
 
@@ -90,6 +92,10 @@ Optional:
 ### Telemetry
 
 Stripped. [lib/sentryClient.ts](lib/sentryClient.ts) is a no-op stub so existing call sites still compile. The host project should do its own error reporting.
+
+## Component conventions
+
+See [docs/react-component-guide.md](docs/react-component-guide.md) for the team's React component spec — naming, file size budgets, component layering, props/state/effect rules, styling, i18n, a11y, and the PR checklist. Treat it as the source of truth when adding new components or refactoring.
 
 ## Common gotchas
 
