@@ -23,7 +23,23 @@
 - ✅ 大版本升级（例如 Next 15 → 16）后必须 `pnpm build:clean` 清掉 `.next` / `.open-next` 旧缓存，否则 dev 会出现行为异常。
 - 没装 pnpm：`corepack enable && corepack prepare pnpm@10.33.2 --activate`，或 `npm i -g pnpm@10.33.2`。
 
-### 0.2 通用原则
+### 0.2 本地代码质量闸门（**强制**）
+
+三层防御，越靠左越早暴露：
+
+```
+编辑器实时 (VSCode ESLint 扩展)        ← 边敲边出红波浪线
+   ↓
+pre-commit hook (Husky + lint-staged)   ← git commit 时拦下 staged 文件
+   ↓
+GitHub Actions CI                       ← 兜底
+```
+
+- **VSCode 用户**：仓库已配 [.vscode/extensions.json](../.vscode/extensions.json) 和 [.vscode/settings.json](../.vscode/settings.json)，第一次打开会被提示安装 ESLint + Tailwind 扩展，**装上**。保存时会自动 `eslint --fix`。
+- **pre-commit hook**：`pnpm install` 后 husky 会自动注册 `.husky/pre-commit`，每次 `git commit` 前自动跑 [lint-staged](../package.json) 对暂存的 `.ts/.tsx/.js/.mjs` 文件做 `eslint --fix`；**有 error 就拦下提交**。
+- **绕过（仅紧急）**：`git commit --no-verify -m "..."`。乱用会被 review 抓。
+
+### 0.3 通用原则
 
 1. **可读 > 可炫**。命名和分层比奇技淫巧重要。
 2. **删 > 加**。能删的代码先删，不要为"以后可能用到"留死代码。

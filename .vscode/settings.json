@@ -1,0 +1,21 @@
+{
+  // ESLint：实时校验 TS/TSX/JS，保存时自动 --fix
+  "eslint.enable": true,
+  "eslint.useFlatConfig": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // 跟仓库 packageManager 字段对齐
+  "npm.packageManager": "pnpm",
+
+  // TS：用工作区里的 typescript 版本，避免 VSCode 自带的版本不一致
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}

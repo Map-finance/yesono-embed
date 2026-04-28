@@ -19,6 +19,8 @@ pnpm preview         # OpenNext local preview
 
 Package manager: **pnpm 10.33.2** (pinned via `packageManager` in package.json). `yarn.lock` and `.yarnrc.yml` have been removed; do not reintroduce them.
 
+`pnpm install` also wires the husky `pre-commit` hook ([.husky/pre-commit](.husky/pre-commit)) that runs `lint-staged` on staged `.ts/.tsx/.js/.mjs` files. Errors block the commit. Bypass with `git commit --no-verify` only in emergencies.
+
 No tests configured.
 
 ## Architecture
