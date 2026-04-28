@@ -6,7 +6,12 @@
 // ============== 常量定义 ==============
 import { getAuthApiUrl } from '@/lib/config/authApiUrl';
 
-export const WS_URL = process.env.NEXT_PUBLIC_ORDERBOOK_WS_URL!;
+// §6.1 #6: WS URL 顶层校验，缺值直接 throw（启动期暴露），禁用 process.env.XXX! 非空断言
+const RAW_WS_URL = process.env.NEXT_PUBLIC_ORDERBOOK_WS_URL;
+if (!RAW_WS_URL) {
+  throw new Error("NEXT_PUBLIC_ORDERBOOK_WS_URL is required");
+}
+export const WS_URL: string = RAW_WS_URL;
 const API_BASE_URL = getAuthApiUrl('/api');
 
 // ============== 类型定义 ==============

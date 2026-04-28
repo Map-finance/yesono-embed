@@ -20,7 +20,7 @@ const nextConfig = {
   compress: true,
   productionBrowserSourceMaps: false,
   experimental: {
-    optimizePackageImports: ["lucide-react", "antd", "recharts", "lodash"],
+    optimizePackageImports: ["lucide-react", "recharts", "lodash"],
   },
   async headers() {
     return [

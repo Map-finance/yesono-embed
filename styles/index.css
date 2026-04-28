@@ -124,81 +124,6 @@
 
   /* 移动端间距优化 */
 }
-@utility custom-table {
-  /* Mobile optimization for tables */
-  @media (max-width: 768px) {
-    & .ant-table-thead > tr > th {
-      font-size: 12px !important;
-      padding: 8px 4px !important;
-    }
-
-    & .ant-table-tbody > tr > td {
-      font-size: 12px !important;
-      padding: 8px 4px !important;
-    }
-
-    & .ant-btn {
-      padding: 4px 8px !important;
-      font-size: 12px !important;
-      height: auto !important;
-    }
-  }
-
-  @media (max-width: 480px) {
-    & .ant-table-thead > tr > th {
-      font-size: 11px !important;
-      padding: 6px 2px !important;
-    }
-
-    & .ant-table-tbody > tr > td {
-      font-size: 11px !important;
-      padding: 6px 2px !important;
-    }
-  }
-}
-@utility ant-table-thead {
-  /* Mobile optimization for tables */
-  @media (max-width: 768px) {
-    .custom-table & > tr > th {
-      font-size: 12px !important;
-      padding: 8px 4px !important;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .custom-table & > tr > th {
-      font-size: 11px !important;
-      padding: 6px 2px !important;
-    }
-  }
-}
-@utility ant-table-tbody {
-  /* Mobile optimization for tables */
-  @media (max-width: 768px) {
-    .custom-table & > tr > td {
-      font-size: 12px !important;
-      padding: 8px 4px !important;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .custom-table & > tr > td {
-      font-size: 11px !important;
-      padding: 6px 2px !important;
-    }
-  }
-}
-@utility ant-btn {
-  /* Mobile optimization for tables */
-  @media (max-width: 768px) {
-    .custom-table & {
-      padding: 4px 8px !important;
-      font-size: 12px !important;
-      height: auto !important;
-    }
-  }
-}
-
 @layer base {
   * {
     @apply box-border;
@@ -416,15 +341,6 @@
   /* Global Table Responsive Styles */
 }
 
-/* Fix antd table placeholder making empty-state look faded */
-.no-fade-empty-table .ant-table-placeholder .ant-table-cell {
-  color: var(--text-primary) !important;
-}
-
-.no-fade-empty-table .ant-table-placeholder .ant-table-cell * {
-  opacity: 1 !important;
-  filter: none !important;
-}
 
 /* Toast Animations */
 @keyframes slide-in {
