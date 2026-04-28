@@ -2,7 +2,7 @@
 
 > 适用项目：yesono-embed（Next.js 14 + TS + Tailwind + **shadcn/ui** + Radix Primitives）
 > 维护：所有提交 PR 前请对照本规范自检；review 时把违反项作为阻塞理由
-> 最后更新：2026-04-28
+> 最后更新：2026-04-27（对齐 AI Workflow nextjs profile 命名规则）
 >
 > 当前历史代码仍残留 Antd 5 组件，处于过渡期 —— **新增组件一律使用 shadcn/ui**，旧 Antd 组件随业务迭代逐步替换。详见 [§18 UI 组件库](#18-ui-组件库shadcnui)。
 
@@ -21,26 +21,32 @@
 
 ### 1.1 命名
 
+> 与 AI 工作流框架（`AI-WORKFLOW-DESIGN.md` nextjs profile）对齐：**文件名一律 kebab-case**，组件标识符仍 PascalCase。
+
 | 类型 | 规则 | 示例 |
 |---|---|---|
-| 组件文件 | `PascalCase.tsx` | `MarketCard.tsx` |
-| Hook 文件 | `useXxx.ts` | `useMarketChart.ts` |
-| 工具文件 | `camelCase.ts` | `formatPrice.ts` |
+| 组件文件 | `kebab-case.tsx`（`export` 的组件名仍是 `PascalCase`） | `market-card.tsx` → `export default function MarketCard()` |
+| Hook 文件 | `use-xxx.ts` | `use-market-chart.ts` |
+| 工具文件 | `kebab-case.ts` | `format-price.ts` |
 | 类型文件 | `xxx.types.ts`，或就近放在组件内 | `market.types.ts` |
-| 样式 | 优先 Tailwind class；其次 CSS Module（`Xxx.module.css`） | — |
+| 样式 | 优先 Tailwind class；其次 CSS Module（`xxx.module.css`） | `market-card.module.css` |
+
+**组件 / Hook / 类型的标识符**仍按 React 惯例：组件 `PascalCase`、Hook `useXxx`、类型 `PascalCase`。只有**文件名**走 kebab-case。
 
 **禁止**：内联 `style={{...}}`（除非是动态计算出的尺寸/位置）。
+
+**迁移**：存量 `PascalCase.tsx` 不强制改名（避免大批 rename 污染 git history），但**新增文件一律 kebab-case**；旧文件随业务迭代顺手 rename。
 
 ### 1.2 目录组织
 
 ```
 components/
   cards/                  # 同类组件聚一个目录
-    MarketCard.tsx
-    VSCard.tsx
+    market-card.tsx
+    vs-card.tsx
     index.ts              # 集中 re-export
   detail/
-    MarketChart/          # 复杂组件做成目录
+    market-chart/         # 复杂组件做成目录（kebab-case）
       index.tsx           # 组件入口
       hooks.ts            # 内部 hook
       utils.ts            # 内部 utils
@@ -90,15 +96,15 @@ components/
 "use client";  // ① 仅 client component 加，server 不加
 
 // ② imports：按"远 → 近"分组，每组之间空一行
-import { useState, useMemo } from "react";              // 1) react
-import { useRouter } from "next/navigation";            // 2) next / 三方
-import { Bookmark } from "lucide-react";                // 3) UI 库
+import { useState, useMemo } from "react";                // 1) react
+import { useRouter } from "next/navigation";              // 2) next / 三方
+import { Bookmark } from "lucide-react";                  // 3) UI 库
 
-import { Market } from "@/types/types";                 // 4) 项目内 types
-import { useTranslation } from "@/lib/i18n";            // 5) 项目内 lib / hooks
-import ProxyImage from "@/components/common/ProxyImage";// 6) 项目内组件
+import { Market } from "@/types/types";                   // 4) 项目内 types
+import { useTranslation } from "@/lib/i18n";              // 5) 项目内 lib / hooks
+import ProxyImage from "@/components/common/proxy-image"; // 6) 项目内组件
 
-import styles from "./MarketCard.module.css";           // 7) 样式
+import styles from "./market-card.module.css";            // 7) 样式
 
 // ③ 类型 / Props
 interface MarketCardProps {
@@ -305,7 +311,7 @@ import { clsx } from "clsx";
 2. 处理空数据 / 空数组 / null。
 3. 关键交互（点击、输入）触发回调。
 
-工具：`@testing-library/react` + `vitest`。文件 `Xxx.test.tsx` 与组件同目录。
+工具：`@testing-library/react` + `vitest`。文件 `xxx.test.tsx` 与组件同目录（kebab-case）。
 
 ---
 
