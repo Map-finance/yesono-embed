@@ -9,10 +9,11 @@
  */
 
 import ProxyImage from "@/components/common/ProxyImage";
+import Link from "next/link";
 
 export default function MacroDashboardCard() {
   return (
-    <a href="/market/1">
+    <Link href="/market/1">
       <div className="border rounded-md border-(--border) py-6 px-4 hover:scale-[1.02] transition-transform">
         <div>
           <div className="flex items-center gap-4">
@@ -30,6 +31,6 @@ export default function MacroDashboardCard() {
           </div>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }

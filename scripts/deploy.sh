@@ -55,11 +55,6 @@ if [ "${SKIP_LINT:-}" != "1" ]; then
   pnpm lint
 fi
 
-# --- env 备份（保留：本地最后一道防线）---------------------------------------
-if [ -x "$(dirname "$0")/backup-env.sh" ]; then
-  bash "$(dirname "$0")/backup-env.sh" || echo "WARN: env backup failed, continuing"
-fi
-
 # --- 构建 + 部署 ------------------------------------------------------------
 echo "→ Deploying to: $ENV"
 

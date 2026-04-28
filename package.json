@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "deploy": "bash ./scripts/deploy.sh prod",
     "deploy:dev": "bash ./scripts/deploy.sh dev",
-    "preview": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare preview"
+    "preview": "bash -c 'eval \"$(node scripts/extract-wrangler-vars.mjs prod)\" && NODE_ENV=production pnpm exec opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && pnpm exec opennextjs-cloudflare preview'",
+    "prepare": "husky"
   },
   "dependencies": {
     "@number-flow/react": "^0.5.14",
@@ -41,10 +42,15 @@
     "@types/react-dom": "19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "postcss": "^8.5.12",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
     "wrangler": "^4.85.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs}": "eslint --fix"
   },
   "pnpm": {
     "overrides": {

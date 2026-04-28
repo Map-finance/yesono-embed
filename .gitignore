@@ -51,6 +51,7 @@ next-env.d.ts
 # IDE
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 *.swp
 *.swo
@@ -94,7 +95,6 @@ tmp/
 temp/
 
 # Editor directories and files
-.vscode/
 .idea/
 *.suo
 *.ntvs*

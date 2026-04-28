@@ -6,14 +6,12 @@ const HOST_FRAME_ANCESTORS =
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
+  // 不需要 `output: "standalone"`：OpenNext 自己打 .open-next/worker.js。
+  // 不需要 `eslint`：Next 16 已删除该配置项；CI 通过 `pnpm lint` 单独把关。
   reactStrictMode: true,
   compiler: {
     removeConsole:
       process.env.NODE_ENV === "production" ? { exclude: ["error"] } : false,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   typescript: {
     // TODO: 暂时关掉以推进依赖升级；存量 ts 错误见 git diff 后另开 PR 修

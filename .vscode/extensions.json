@@ -1,0 +1,7 @@
+{
+  // 打开仓库时 VSCode 会建议安装这些扩展
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss"
+  ]
+}

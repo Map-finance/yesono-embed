@@ -1,9 +1,10 @@
 import ProbabilityGauge from "@/components/ui/charts/ProbabilityGauge";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function EconomyCard() {
   return (
-    <a href="/market/1">
+    <Link href="/market/1">
       <div className="border border-(--border) px-4 py-6 hover:scale-[1.02] rounded-md transition-transform cursor-pointer">
         <div className="flex items-center gap-3">
           <Image
@@ -19,6 +20,6 @@ export default function EconomyCard() {
         </div>
         <ProbabilityGauge value={75} />
       </div>
-    </a>
+    </Link>
   );
 }
