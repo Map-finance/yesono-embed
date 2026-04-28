@@ -2,6 +2,7 @@
 
 import { Election } from "@/app/dashboards/global-elections/page";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ElectionCard(
@@ -22,7 +23,7 @@ export default function ElectionCard(
       onClick={handleClick}
       className="border border-(--border) rounded-lg p-6 font-semibold hover:scale-[1.02] transition-transform cursor-pointer"
     >
-      <a href="/market/1">
+      <Link href="/market/1">
         <div className="flex gap-4 items-center">
           <div className="text-center">
             <div className="text-2xl">{props.day}</div>
@@ -40,10 +41,10 @@ export default function ElectionCard(
             className="ml-auto size-[48px] object-cover rounded-md"
           />
         </div>
-      </a>
+      </Link>
       <div className="space-y-2 mt-4">
         {props.candidates.map((candidate, index) => (
-          <a
+          <Link
             className="block"
             href={`/market/${index + 1}`}
             key={candidate.name}
@@ -53,7 +54,7 @@ export default function ElectionCard(
               avatar={candidate.avatar}
               winRate={candidate.winRate}
             />
-          </a>
+          </Link>
         ))}
       </div>
     </div>

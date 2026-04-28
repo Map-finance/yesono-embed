@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import ButtonSwitch from "@/components/ui/ButtonSwitch";
 import { BarChartBig, ChevronDown } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 type FutureItem = {
@@ -19,7 +20,7 @@ function FuturesChart({ items, initialVisible = 6, title, simple }: { items: Fut
     const visible = expanded ? items.length : Math.min(initialVisible, items.length);
 
     return (
-        <a className="flex-1" href="/market/1">
+        <Link className="flex-1" href="/market/1">
             <div className="bg-bg-card p-4 rounded-md hover:scale-[1.02] hover:shadow transition-all">
                 <div className="text-lg font-semibold mb-4">{title}</div>
 
@@ -76,7 +77,7 @@ function FuturesChart({ items, initialVisible = 6, title, simple }: { items: Fut
                     )
                 }
             </div>
-        </a>
+        </Link>
     );
 }
 
