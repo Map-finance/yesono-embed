@@ -92,9 +92,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        # 临时放行：存量 89 个 react-hooks 错误来自 React 19 / Next 16 升级，
-        # 跟踪在 issue（清理后请去掉 continue-on-error 让它变阻塞）。
-        continue-on-error: true
         run: pnpm lint
 
       - name: Inject vars from wrangler.jsonc
