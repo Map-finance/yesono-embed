@@ -15,9 +15,9 @@ See [CLAUDE.md](./CLAUDE.md) for architecture notes.
 ## Getting started
 
 ```bash
-yarn install
+pnpm install
 cp .env.example .env.local      # tweak as needed
-yarn dev                        # http://localhost:3000  (PORT=3002 if 3000 taken)
+pnpm dev                        # http://localhost:3000  (PORT=3002 if 3000 taken)
 ```
 
 `/` redirects to `/trending`.
@@ -48,13 +48,19 @@ Set `NEXT_PUBLIC_EMBED_FRAME_ANCESTORS` to the host origin(s) before going live
 
 ## Build & deploy
 
-Cloudflare Pages via `@opennextjs/cloudflare` + Wrangler:
+Cloudflare Workers via `@opennextjs/cloudflare` + Wrangler. Env values come from
+[wrangler.jsonc](./wrangler.jsonc) `vars` / `env.dev.vars` (single source of
+truth — no separate `.env.production`).
 
 ```bash
-yarn deploy:dev    # uses .env.development → wrangler --env dev
-yarn deploy        # uses .env.production
-yarn preview       # local OpenNext preview
+pnpm deploy:dev    # → worker: dev-yesono-embed (safe default)
+pnpm deploy        # → worker: yesono-embed (prompts for confirmation)
+pnpm preview       # local OpenNext preview
 ```
+
+Preferred path is CI: [.github/workflows/deploy.yml](./.github/workflows/deploy.yml)
+auto-deploys PR previews, `main` → dev, and `v*` tags → prod. See
+[CLAUDE.md](./CLAUDE.md#deploy) for required GitHub Secrets and the trigger matrix.
 
 ## Color scheme
 

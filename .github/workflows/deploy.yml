@@ -1,0 +1,171 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "dev"
+        type: choice
+        options: [dev, prod]
+
+# 一个 commit / PR 只跑一份；新 push 进来取消旧的 run
+concurrency:
+  group: deploy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write   # PR preview 评论需要
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 触发矩阵：
+  #   tag v*           → prod (worker: yesono-embed)
+  #   push main        → dev  (worker: dev-yesono-embed)
+  #   PR (any branch)  → preview (worker: pr-<num>-yesono-embed)
+  #   workflow_dispatch→ 取 inputs.environment
+  # ---------------------------------------------------------------------------
+  resolve:
+    # PR 关闭走清理分支，不走部署
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.pick.outputs.target }}
+      worker_name: ${{ steps.pick.outputs.worker_name }}
+      wrangler_args: ${{ steps.pick.outputs.wrangler_args }}
+    steps:
+      - id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "target=preview"                                                    >> "$GITHUB_OUTPUT"
+            echo "worker_name=pr-${{ github.event.pull_request.number }}-yesono-embed" >> "$GITHUB_OUTPUT"
+            # PR preview 复用 dev 的 vars（dev API 是只读的，PR 走它最安全）
+            echo "wrangler_args=--env dev --name pr-${{ github.event.pull_request.number }}-yesono-embed" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "target=prod"                  >> "$GITHUB_OUTPUT"
+            echo "worker_name=yesono-embed"     >> "$GITHUB_OUTPUT"
+            echo "wrangler_args="               >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "target=dev"                   >> "$GITHUB_OUTPUT"
+            echo "worker_name=dev-yesono-embed" >> "$GITHUB_OUTPUT"
+            echo "wrangler_args=--env dev"      >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.environment }}" = "prod" ]; then
+              echo "target=prod"                  >> "$GITHUB_OUTPUT"
+              echo "worker_name=yesono-embed"     >> "$GITHUB_OUTPUT"
+              echo "wrangler_args="               >> "$GITHUB_OUTPUT"
+            else
+              echo "target=dev"                   >> "$GITHUB_OUTPUT"
+              echo "worker_name=dev-yesono-embed" >> "$GITHUB_OUTPUT"
+              echo "wrangler_args=--env dev"      >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "no matching trigger; skip"
+            exit 78  # neutral skip
+          fi
+
+  build-and-deploy:
+    needs: resolve
+    runs-on: ubuntu-latest
+    environment: ${{ needs.resolve.outputs.target }}   # 在 GitHub repo 里建 environments: dev / prod / preview，可绑 reviewers
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          # 与 package.json 的 packageManager 字段保持一致
+          version: 10.33.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Inject vars from wrangler.jsonc
+        # 让 next build 烤到 bundle 里的 NEXT_PUBLIC_* 与 worker 运行时 vars 同源
+        run: |
+          # PR preview 用 dev 的 vars
+          if [ "${{ needs.resolve.outputs.target }}" = "prod" ]; then
+            ENV_KEY=prod
+          else
+            ENV_KEY=dev
+          fi
+          node scripts/extract-wrangler-vars.mjs "$ENV_KEY" >> "$GITHUB_ENV"
+        env:
+          NODE_ENV: production
+
+      - name: Build (OpenNext for Cloudflare)
+        run: pnpm exec opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion
+        env:
+          NODE_ENV: production
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy ${{ needs.resolve.outputs.wrangler_args }}
+
+      - name: Comment preview URL on PR
+        if: needs.resolve.outputs.target == 'preview' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const worker = '${{ needs.resolve.outputs.worker_name }}';
+            const url = `https://${worker}.${{ secrets.CLOUDFLARE_WORKERS_SUBDOMAIN }}.workers.dev`;
+            const marker = '<!-- yesono-embed-preview -->';
+            const body = `${marker}\n🚀 **Preview deployed**\n\n- worker: \`${worker}\`\n- url: ${url}\n\n_Updated for commit ${context.sha.substring(0, 7)}_`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # PR 关闭时清理对应的 preview worker
+  cleanup-preview:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.33.2 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Delete preview worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm exec wrangler delete --name "pr-${{ github.event.pull_request.number }}-yesono-embed" || echo "preview worker not found, skip"

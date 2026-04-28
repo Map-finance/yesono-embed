@@ -4,13 +4,76 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-08-16",
   "compatibility_flags": ["nodejs_compat"],
+
+  // OpenNext 把所有静态资源放在 .open-next/assets。
+  // - html_handling: "auto-trailing-slash" 让 /foo 与 /foo/ 行为一致
+  // - not_found_handling: "none" 让 worker 接管 404（OpenNext 会路由到 Next 的 not-found）
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
   },
+
+  // Cloudflare 内置 logs / tail。dashboard 上能直接看运行时日志。
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // 每次 `wrangler deploy` / 每个 version 拿到独立 *.PRESET.workers.dev URL，
+  // 用于宿主侧 QA 验证某个具体 commit。
+  "preview_urls": true,
+  "workers_dev": true,
+
+  // 绑自定义域名时取消下面这块注释（改成实际域）；不绑就保留 *.workers.dev
+  // "routes": [
+  //   { "pattern": "embed.yesono.trade/*", "zone_name": "yesono.trade", "custom_domain": true }
+  // ],
+
+  // 顶层 = prod。NEXT_PUBLIC_* 都是公开变量（会进 bundle 给浏览器读），
+  // 直接写在仓库里，仓库本身就是 source of truth。
+  // 真正的密钥（以后若引入）用 `wrangler secret put` 注入，不要写这里。
+  "vars": {
+    "APP_ENV": "production",
+    "NEXT_PUBLIC_APP_ENV": "production",
+    "NEXT_PUBLIC_C2C_API_BASE_URL": "https://asian.yesono.trade",
+    "NEXT_PUBLIC_AUTH_API_URL": "https://api.yesono.trade",
+    "NEXT_PUBLIC_REVIEW_API_HOST": "https://api.bitassetchain.io",
+    "NEXT_PUBLIC_EXPLORER_BASE_URL": "https://ploutos.bacscan.net",
+    "NEXT_PUBLIC_IMAGE_PROXY_BASE_URL": "/i",
+    "NEXT_PUBLIC_ENABLE_IMAGE_PROXY": "true",
+    "NEXT_PUBLIC_IMAGE_PROXY_ALLOWED_HOSTS": "polymarket-upload.s3.us-east-2.amazonaws.com,cryptologos.cc,img.logo.dev,cdn.jsdelivr.net,images.unsplash.com,picsum.photos,via.placeholder.com,robohash.org",
+    "NEXT_PUBLIC_ORDERBOOK_WS_URL": "wss://ploutos-bundler.bitassetchain.io/ws",
+    "NEXT_PUBLIC_EMBED_FRAME_ANCESTORS": "*"
+  },
+
   "env": {
     "dev": {
-      "name": "dev-yesono-embed"
+      "name": "dev-yesono-embed",
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1
+      },
+      "preview_urls": true,
+      "workers_dev": true,
+      // 绑 dev 自定义域时填这里：
+      // "routes": [
+      //   { "pattern": "embed-dev.yesono.trade/*", "zone_name": "yesono.trade", "custom_domain": true }
+      // ],
+      "vars": {
+        "APP_ENV": "development",
+        "NEXT_PUBLIC_APP_ENV": "development",
+        "NEXT_PUBLIC_C2C_API_BASE_URL": "https://dev-api.yesono.trade/c2c",
+        "NEXT_PUBLIC_AUTH_API_URL": "https://dev-api.yesono.trade",
+        "NEXT_PUBLIC_REVIEW_API_HOST": "https://review.yesono.trade",
+        "NEXT_PUBLIC_EXPLORER_BASE_URL": "https://ploutos.bacscan.net",
+        "NEXT_PUBLIC_IMAGE_PROXY_BASE_URL": "/i",
+        "NEXT_PUBLIC_ENABLE_IMAGE_PROXY": "true",
+        "NEXT_PUBLIC_IMAGE_PROXY_ALLOWED_HOSTS": "polymarket-upload.s3.us-east-2.amazonaws.com,cryptologos.cc,img.logo.dev,cdn.jsdelivr.net,images.unsplash.com,picsum.photos,via.placeholder.com,robohash.org,c.qf318.com,dev-api.yesono.trade",
+        "NEXT_PUBLIC_ORDERBOOK_WS_URL": "wss://ploutos-bundler.bitassetchain.io/ws",
+        "NEXT_PUBLIC_EMBED_FRAME_ANCESTORS": "*"
+      }
     }
   }
 }

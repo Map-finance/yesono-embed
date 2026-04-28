@@ -5,22 +5,25 @@ YesONo Embed — a display-only fork of `h2-market`, intended to be loaded insid
 ## Commands
 
 ```bash
-yarn dev            # Next dev server (3000 by default; pass PORT=3002 if 3000 taken)
-yarn dev:https      # HTTPS dev (experimental)
-yarn build          # next build
-yarn build:clean    # rm -rf .next .open-next
-yarn start          # next start
-yarn lint
-yarn deploy         # bash scripts/deploy.sh prod (Cloudflare via OpenNext + Wrangler)
-yarn deploy:dev     # bash scripts/deploy.sh dev
-yarn preview        # OpenNext local preview
+pnpm install         # install deps (pnpm 10.x; do NOT use yarn or npm)
+pnpm dev             # Next dev server (3000 by default; pass PORT=3002 if 3000 taken)
+pnpm dev:https       # HTTPS dev (experimental)
+pnpm build           # next build
+pnpm build:clean     # rm -rf .next .open-next
+pnpm start           # next start
+pnpm lint            # eslint . (flat config)
+pnpm deploy          # bash scripts/deploy.sh prod (Cloudflare via OpenNext + Wrangler)
+pnpm deploy:dev      # bash scripts/deploy.sh dev
+pnpm preview         # OpenNext local preview
 ```
+
+Package manager: **pnpm 10.33.2** (pinned via `packageManager` in package.json). `yarn.lock` and `.yarnrc.yml` have been removed; do not reintroduce them.
 
 No tests configured.
 
 ## Architecture
 
-Next.js 14 App Router on `@opennextjs/cloudflare`. UI is **migrating from Antd 5 → shadcn/ui + Radix Primitives + Tailwind** (see [docs/react-component-guide.md §18](docs/react-component-guide.md#18-ui-组件库shadcnui)); CSS-variable theme drives both. Data fetched via SWR / TanStack Query with a thin axios layer at [lib/request.ts](lib/request.ts).
+Next.js 16 App Router on `@opennextjs/cloudflare`. UI is **migrating from Antd 5 → shadcn/ui + Radix Primitives + Tailwind** (see [docs/react-component-guide.md §18](docs/react-component-guide.md#18-ui-组件库shadcnui)); CSS-variable theme drives both. Data fetched via SWR / TanStack Query with a thin axios layer at [lib/request.ts](lib/request.ts).
 
 ### Token / auth
 
@@ -88,6 +91,38 @@ Optional:
 - `NEXT_PUBLIC_REVIEW_API_HOST` — used by [lib/services/marketService.ts](lib/services/marketService.ts) image review endpoint
 - `NEXT_PUBLIC_EXPLORER_BASE_URL` — block explorer link in detail pages
 - `NEXT_PUBLIC_IMAGE_PROXY_BASE_URL` / `NEXT_PUBLIC_IMAGE_PROXY_ALLOWED_HOSTS` / `NEXT_PUBLIC_ENABLE_IMAGE_PROXY` — image proxy
+
+**Source of truth for env**:
+- **Local dev** (`pnpm dev`): reads `.env.development` (gitignored; copy from `.env.example`).
+- **Cloudflare deploy** (`pnpm deploy[:dev]` or CI): values come from [wrangler.jsonc](wrangler.jsonc) `vars` (top-level = prod) and `env.dev.vars` (dev). [scripts/deploy.sh](scripts/deploy.sh) extracts them via [scripts/extract-wrangler-vars.mjs](scripts/extract-wrangler-vars.mjs) and exports to the build shell, so `next build` bakes the same values into the bundle that Cloudflare injects at runtime — single source of truth, no `.env.production`/wrangler drift.
+- Real secrets (none today; if added later) belong in `wrangler secret put`, **not** `vars`.
+
+### Deploy
+
+Two equivalent paths — pick one. CI is preferred; local is the hotfix lane.
+
+**CI (preferred)** — [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
+
+| trigger | environment | worker name | URL |
+|---|---|---|---|
+| PR opened/synced | preview | `pr-<num>-yesono-embed` | `*.workers.dev` (commented on PR) |
+| push to `main` | dev | `dev-yesono-embed` | `dev-yesono-embed.<sub>.workers.dev` or custom |
+| tag `v*` | prod | `yesono-embed` | `yesono-embed.<sub>.workers.dev` or custom |
+| PR closed | (cleanup) | — | preview worker is deleted |
+
+Required GitHub repo secrets:
+- `CLOUDFLARE_API_TOKEN` — token scoped to "Edit Workers"
+- `CLOUDFLARE_ACCOUNT_ID` — account UUID
+- `CLOUDFLARE_WORKERS_SUBDOMAIN` — your workers.dev subdomain (e.g. `yesono`), used to build PR preview URLs
+
+Optional GitHub repo Environments (`dev` / `prod` / `preview`) let you gate prod with required reviewers.
+
+**Local hotfix** — [scripts/deploy.sh](scripts/deploy.sh):
+- `pnpm deploy:dev` — defaults; safe.
+- `pnpm deploy` — prompts for `yes` confirmation before touching prod; rejects dirty git tree; runs `pnpm lint` first.
+- Bypasses (use sparingly): `SKIP_GIT_CHECK=1`, `SKIP_LINT=1`, `CONFIRM_PROD=yes`.
+
+Custom domain binding: edit the commented `routes` block in [wrangler.jsonc](wrangler.jsonc) for the relevant environment, then redeploy.
 
 ### Telemetry
 

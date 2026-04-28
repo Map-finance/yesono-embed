@@ -1,14 +1,29 @@
 # React 组件开发规范
 
-> 适用项目：yesono-embed（Next.js 14 + TS + Tailwind + **shadcn/ui** + Radix Primitives）
+> 适用项目：yesono-embed（Next.js 16 + TS + Tailwind v4 + **shadcn/ui** + Radix Primitives）
 > 维护：所有提交 PR 前请对照本规范自检；review 时把违反项作为阻塞理由
-> 最后更新：2026-04-27（对齐 AI Workflow nextjs profile 命名规则）
+> 最后更新：2026-04-28（迁移到 pnpm 10、Next 16）
 >
 > 当前历史代码仍残留 Antd 5 组件，处于过渡期 —— **新增组件一律使用 shadcn/ui**，旧 Antd 组件随业务迭代逐步替换。详见 [§18 UI 组件库](#18-ui-组件库shadcnui)。
 
 ---
 
 ## 0. 总则
+
+### 0.1 包管理器：pnpm（**强制**）
+
+本项目**只用 pnpm**，版本通过 [package.json](../package.json) 的 `packageManager` 字段锁死在 `pnpm@10.33.2`。
+
+- ❌ **禁止** 使用 `yarn` / `npm install`，会污染 lockfile，PR 会被打回。
+- ❌ **禁止** 提交 `yarn.lock`、`.yarnrc.yml`、`package-lock.json`、`.yarn/` 目录（已加入 [.gitignore](../.gitignore)）。
+- ✅ 唯一 lockfile 是 [pnpm-lock.yaml](../pnpm-lock.yaml)，必须随 `package.json` 一起提交。
+- ✅ 依赖覆盖统一写在 `package.json` 的 `pnpm.overrides`（不是 `resolutions`）。
+- ✅ 安装 `pnpm install`；新增依赖 `pnpm add <pkg>` / `pnpm add -D <pkg>`；移除 `pnpm remove <pkg>`。
+- ✅ 切换分支 / 拉取代码后如果 `package.json` 或 `pnpm-lock.yaml` 有变更，先 `pnpm install` 再启动。
+- ✅ 大版本升级（例如 Next 15 → 16）后必须 `pnpm build:clean` 清掉 `.next` / `.open-next` 旧缓存，否则 dev 会出现行为异常。
+- 没装 pnpm：`corepack enable && corepack prepare pnpm@10.33.2 --activate`，或 `npm i -g pnpm@10.33.2`。
+
+### 0.2 通用原则
 
 1. **可读 > 可炫**。命名和分层比奇技淫巧重要。
 2. **删 > 加**。能删的代码先删，不要为"以后可能用到"留死代码。
@@ -325,10 +340,11 @@ import { clsx } from "clsx";
 - [ ] 文案走 i18n。
 - [ ] 移动端 320px 宽度下不溢出。
 - [ ] Tab 键能聚焦所有交互元素。
-- [ ] `yarn lint` 通过。
+- [ ] `pnpm lint` 通过。
 - [ ] 暗色 / 亮色主题都看过。
 - [ ] 删除了未使用的 import 和 dead code。
 - [ ] 嵌入项目：宿主无 token 状态下不报错、不白屏。
+- [ ] 依赖变更只产生 `pnpm-lock.yaml` 变化，未误提交 `yarn.lock` / `package-lock.json` / `.yarn/`。
 
 ---
 
@@ -467,7 +483,7 @@ import { cn } from "@/lib/utils";
 | 2 | 新组件全部用 shadcn；不再 import `antd` | 持续 |
 | 3 | 把存量 Antd 组件按使用频率排序，逐个替换：`Modal` → `Dialog`，`Drawer` → `Sheet`，`Tabs` → `Tabs`，`Popover` → `Popover`，`Select` → `Select` | 1–2 天 |
 | 4 | 拆掉 [app/ClientWrapper.tsx](../app/ClientWrapper.tsx) 中的 `ConfigProvider` / `App`，主题改为纯 CSS 变量 | 半天 |
-| 5 | `yarn remove antd @ant-design/cssinjs`，跑 `yarn build` 确认无引用 | 10 分钟 |
+| 5 | `pnpm remove antd @ant-design/cssinjs`，跑 `pnpm build` 确认无引用 | 10 分钟 |
 
 ### 18.5 黑名单（与 §13 互补）
 
