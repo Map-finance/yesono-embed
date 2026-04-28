@@ -99,30 +99,11 @@ Optional:
 
 ### Deploy
 
-Two equivalent paths — pick one. CI is preferred; local is the hotfix lane.
+完整文档见 [docs/deploy.md](docs/deploy.md)。一句话总结：
 
-**CI (preferred)** — [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
-
-| trigger | environment | worker name | URL |
-|---|---|---|---|
-| PR opened/synced | preview | `pr-<num>-yesono-embed` | `*.workers.dev` (commented on PR) |
-| push to `main` | dev | `dev-yesono-embed` | `dev-yesono-embed.<sub>.workers.dev` or custom |
-| tag `v*` | prod | `yesono-embed` | `yesono-embed.<sub>.workers.dev` or custom |
-| PR closed | (cleanup) | — | preview worker is deleted |
-
-Required GitHub repo secrets:
-- `CLOUDFLARE_API_TOKEN` — token scoped to "Edit Workers"
-- `CLOUDFLARE_ACCOUNT_ID` — account UUID
-- `CLOUDFLARE_WORKERS_SUBDOMAIN` — your workers.dev subdomain (e.g. `yesono`), used to build PR preview URLs
-
-Optional GitHub repo Environments (`dev` / `prod` / `preview`) let you gate prod with required reviewers.
-
-**Local hotfix** — [scripts/deploy.sh](scripts/deploy.sh):
-- `pnpm deploy:dev` — defaults; safe.
-- `pnpm deploy` — prompts for `yes` confirmation before touching prod; rejects dirty git tree; runs `pnpm lint` first.
-- Bypasses (use sparingly): `SKIP_GIT_CHECK=1`, `SKIP_LINT=1`, `CONFIRM_PROD=yes`.
-
-Custom domain binding: edit the commented `routes` block in [wrangler.jsonc](wrangler.jsonc) for the relevant environment, then redeploy.
+- **平时**：CI 自动部署。push `main` → dev；tag `v*` → prod；PR → preview worker（关闭自动清理）。
+- **Hotfix**：本机 `pnpm deploy:dev` / `pnpm deploy`（prod 会要求二次确认）。
+- **环境变量**：[wrangler.jsonc](wrangler.jsonc) 的 `vars` 是单一真理来源；构建期与 worker 运行期都从它注入。改 env → 改 [wrangler.jsonc](wrangler.jsonc) → push 触发重部署。
 
 ### Telemetry
 

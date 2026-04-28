@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "deploy": "bash ./scripts/deploy.sh prod",
     "deploy:dev": "bash ./scripts/deploy.sh dev",
-    "preview": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare preview"
+    "preview": "bash -c 'eval \"$(node scripts/extract-wrangler-vars.mjs prod)\" && NODE_ENV=production pnpm exec opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && pnpm exec opennextjs-cloudflare preview'"
   },
   "dependencies": {
     "@number-flow/react": "^0.5.14",

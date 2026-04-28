@@ -48,19 +48,17 @@ Set `NEXT_PUBLIC_EMBED_FRAME_ANCESTORS` to the host origin(s) before going live
 
 ## Build & deploy
 
-Cloudflare Workers via `@opennextjs/cloudflare` + Wrangler. Env values come from
-[wrangler.jsonc](./wrangler.jsonc) `vars` / `env.dev.vars` (single source of
-truth — no separate `.env.production`).
+完整部署文档：**[docs/deploy.md](./docs/deploy.md)**。
+
+CI 走 [.github/workflows/deploy.yml](./.github/workflows/deploy.yml)：push `main` → dev、tag `v*` → prod、PR → preview。本机 hotfix：
 
 ```bash
 pnpm deploy:dev    # → worker: dev-yesono-embed (safe default)
 pnpm deploy        # → worker: yesono-embed (prompts for confirmation)
-pnpm preview       # local OpenNext preview
+pnpm preview       # local OpenNext preview, uses prod vars
 ```
 
-Preferred path is CI: [.github/workflows/deploy.yml](./.github/workflows/deploy.yml)
-auto-deploys PR previews, `main` → dev, and `v*` tags → prod. See
-[CLAUDE.md](./CLAUDE.md#deploy) for required GitHub Secrets and the trigger matrix.
+环境变量来自 [wrangler.jsonc](./wrangler.jsonc) `vars` / `env.dev.vars`（单一真理来源，构建期 + 运行期同源）。
 
 ## Color scheme
 
