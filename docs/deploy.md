@@ -3,6 +3,22 @@
 > 项目：yesono-embed（Next.js 16 + OpenNext + Cloudflare Workers）
 > 最后更新：2026-04-28
 
+## 部署模型（重要）
+
+```
+┌─ main 分支 ════ prod 环境 ════════════════════════════════════════┐
+│  push main 即上 prod；commit 必须经过 PR + review 进 main         │
+└──────────────────────────────────────────────────────────────────┘
+┌─ dev 分支 ════ dev 环境 ═════════════════════════════════════════┐
+│  push dev 即上 dev；日常协作的"前沿分支"                          │
+└──────────────────────────────────────────────────────────────────┘
+┌─ feat/fix/* 分支 ──► PR 到 main 或 dev ──► preview worker ────┐
+│  PR 合并/关闭后自动删除 preview                                   │
+└──────────────────────────────────────────────────────────────────┘
+┌─ tag v* ──► 仅作 release 归档，不触发部署 ─────────────────────┐
+└──────────────────────────────────────────────────────────────────┘
+```
+
 ## 路径概览
 
 两条部署链路。**默认走 CI**；本机命令是 hotfix lane。
@@ -10,9 +26,10 @@
 ```
 ┌─ 平时 ──────────────────────────────────────────────────────────┐
 │  PR opened/synced ──► GitHub Actions ──► preview worker         │
-│  push main         ──► GitHub Actions ──► dev-yesono-embed      │
-│  tag v*            ──► GitHub Actions ──► yesono-embed (prod)   │
+│  push dev          ──► GitHub Actions ──► dev-yesono-embed      │
+│  push main         ──► GitHub Actions ──► yesono-embed (prod)   │
 │  PR closed         ──► GitHub Actions ──► 删除 preview worker   │
+│  tag v*            ──► 不触发 CI（仅 git 归档）                 │
 └─────────────────────────────────────────────────────────────────┘
 ┌─ Hotfix（CI 挂时） ─────────────────────────────────────────────┐
 │  pnpm deploy:dev   ──► 本机 ──► dev-yesono-embed                │
@@ -56,12 +73,29 @@
 | 触发事件 | target | worker 名 |
 |---|---|---|
 | PR opened / synchronize / reopened | preview | `pr-<num>-yesono-embed` |
-| push to `main` | dev | `dev-yesono-embed` |
-| tag `v*` | prod | `yesono-embed` |
+| push to `main` | **prod** | `yesono-embed` |
+| push to `dev` | dev | `dev-yesono-embed` |
 | PR closed | (cleanup) | 删除 `pr-<num>-yesono-embed` |
+| tag `v*` | (无部署) | 仅 git 归档；如要做 GitHub Release 单开 workflow |
 | `workflow_dispatch` 手工触发 | 二选一 | dev or prod |
 
 并发：同一 ref 上后到的 push 会取消正在跑的 run（避免互相覆盖）。
+
+### 🚨 main = prod 的安全提醒
+
+模型选用 "push main 即上 prod"，**任何合并到 main 的 commit 立刻进入生产**。三道闸门帮你拦：
+
+1. **本地 pre-commit hook**（[.husky/pre-commit](../.husky/pre-commit)）：lint-staged + eslint，error 阻塞 commit
+2. **CI Lint step**（[.github/workflows/deploy.yml](../.github/workflows/deploy.yml)）：全量 `pnpm lint`，error 阻塞 deploy
+3. **强烈推荐**：在 GitHub `Settings → Branches → Branch protection rules` 给 `main` 加：
+   - ✅ Require a pull request before merging
+   - ✅ Require approvals (≥1)
+   - ✅ Require status checks to pass（勾上 `build-and-deploy` job）
+   - ✅ Do not allow bypassing the above settings
+
+   → 这样直接 `git push origin main` 会被拒，必须走 PR + 通过 CI lint + 至少 1 人 review 才能合并。
+
+如果还嫌不够，再加一道 **GitHub Environment 审批**：`Settings → Environments → prod → Required reviewers`，CI 跑到 deploy step 时会暂停等人按按钮。
 
 ### 必需的 GitHub Secrets
 
@@ -76,6 +110,8 @@
 ### 可选：GitHub Environments 审批
 
 `Settings → Environments`：建 `dev` / `prod` / `preview` 三个 env。给 `prod` 加 **Required reviewers**，prod 部署就需要人工审批才会进。
+
+> 既然 `main = prod` 是 push 即上线，**强烈建议至少把 prod 的 Required reviewers 配上**，作为 deploy step 的最后一道防线。
 
 ### 公开仓库注意事项
 

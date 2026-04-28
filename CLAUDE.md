@@ -103,7 +103,8 @@ Optional:
 
 完整文档见 [docs/deploy.md](docs/deploy.md)。一句话总结：
 
-- **平时**：CI 自动部署。push `main` → dev；tag `v*` → prod；PR → preview worker（关闭自动清理）。
+- **部署模型**：CI 自动部署。push `main` → **prod**；push `dev` → dev；PR → preview worker（关闭自动清理）。tag `v*` 不再触发部署，仅作 git 归档。
+- **`main = prod`**：任何合到 main 的 commit 立刻上线。强烈建议在 GitHub `Settings → Branches` 给 `main` 配 branch protection（要求 PR + review + 通过 CI），再加 `Settings → Environments → prod → Required reviewers` 二次把关。
 - **Hotfix**：本机 `pnpm deploy:dev` / `pnpm deploy`（prod 会要求二次确认）。
 - **环境变量**：[wrangler.jsonc](wrangler.jsonc) 的 `vars` 是单一真理来源；构建期与 worker 运行期都从它注入。改 env → 改 [wrangler.jsonc](wrangler.jsonc) → push 触发重部署。
 

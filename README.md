@@ -50,7 +50,7 @@ Set `NEXT_PUBLIC_EMBED_FRAME_ANCESTORS` to the host origin(s) before going live
 
 完整部署文档：**[docs/deploy.md](./docs/deploy.md)**。
 
-CI 走 [.github/workflows/deploy.yml](./.github/workflows/deploy.yml)：push `main` → dev、tag `v*` → prod、PR → preview。本机 hotfix：
+CI 走 [.github/workflows/deploy.yml](./.github/workflows/deploy.yml)：push `main` → **prod**、push `dev` → dev、PR → preview、tag `v*` 仅归档不部署。本机 hotfix：
 
 ```bash
 pnpm deploy:dev    # → worker: dev-yesono-embed (safe default)

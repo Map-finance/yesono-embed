@@ -2,8 +2,8 @@ name: Deploy to Cloudflare Workers
 
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [main, dev]
+    # tag v* 仅作 release 归档，不再触发部署
   pull_request:
     types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
@@ -27,10 +27,11 @@ permissions:
 jobs:
   # ---------------------------------------------------------------------------
   # 触发矩阵：
-  #   tag v*           → prod (worker: yesono-embed)
-  #   push main        → dev  (worker: dev-yesono-embed)
-  #   PR (any branch)  → preview (worker: pr-<num>-yesono-embed)
-  #   workflow_dispatch→ 取 inputs.environment
+  #   push main         → prod    (worker: yesono-embed)
+  #   push dev          → dev     (worker: dev-yesono-embed)
+  #   PR (any → main)   → preview (worker: pr-<num>-yesono-embed)
+  #   tag v*            → 不部署，仅作 release 归档
+  #   workflow_dispatch → 取 inputs.environment 手工选
   # ---------------------------------------------------------------------------
   resolve:
     # PR 关闭走清理分支，不走部署
@@ -48,11 +49,11 @@ jobs:
             echo "worker_name=pr-${{ github.event.pull_request.number }}-yesono-embed" >> "$GITHUB_OUTPUT"
             # PR preview 复用 dev 的 vars（dev API 是只读的，PR 走它最安全）
             echo "wrangler_args=--env dev --name pr-${{ github.event.pull_request.number }}-yesono-embed" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "target=prod"                  >> "$GITHUB_OUTPUT"
             echo "worker_name=yesono-embed"     >> "$GITHUB_OUTPUT"
             echo "wrangler_args="               >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/dev" ]; then
             echo "target=dev"                   >> "$GITHUB_OUTPUT"
             echo "worker_name=dev-yesono-embed" >> "$GITHUB_OUTPUT"
             echo "wrangler_args=--env dev"      >> "$GITHUB_OUTPUT"
