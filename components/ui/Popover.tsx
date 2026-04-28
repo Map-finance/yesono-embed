@@ -39,7 +39,7 @@ export function Popover({
   const [actualPlacement, setActualPlacement] = React.useState(placement || "auto")
   const triggerRef = React.useRef<HTMLDivElement>(null)
   const contentRef = React.useRef<HTMLDivElement>(null)
-  const timeoutRef = React.useRef<NodeJS.Timeout>()
+  const timeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined)
 
   const isControlled = controlledOpen !== undefined
   const isOpen = isControlled ? controlledOpen : internalOpen
@@ -348,11 +348,11 @@ export function Popover({
             ref={contentRef}
             className={`
               fixed
-              bg-[var(--bg-primary)]
-              border border-[var(--border)]
+              bg-(--bg-primary)
+              border border-(--border)
               rounded-md
               shadow-md
-              z-[9999]
+              z-9999
               animate-in fade-in-0 zoom-in-95
               ${contentClassName}
             `}

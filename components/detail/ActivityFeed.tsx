@@ -269,7 +269,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
         <div className="relative">
           <button
             onClick={() => setActivityFilterOpen(!activityFilterOpen)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] hover:border-[var(--border-light)]"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-(--border) bg-(--bg-card) text-sm text-(--text-primary) hover:border-(--border-light)"
           >
             {labelFor(activityFilterOptions, activityFilter)}
             <ChevronDown
@@ -280,7 +280,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
             />
           </button>
           {activityFilterOpen && (
-            <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-lg z-10 min-w-[100px]">
+            <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-(--border) bg-(--bg-card) shadow-lg z-10 min-w-[100px]">
               {activityFilterOptions.map((option) => (
                 <button
                   key={option.value}
@@ -288,10 +288,10 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     setActivityFilter(option.value);
                     setActivityFilterOpen(false);
                   }}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg-hover)] ${
+                  className={`w-full px-4 py-2 text-left text-sm hover:bg-(--bg-hover) ${
                     activityFilter === option.value
-                      ? "text-[var(--accent)]"
-                      : "text-[var(--text-primary)]"
+                      ? "text-(--accent)"
+                      : "text-(--text-primary)"
                   }`}
                 >
                   {option.label}
@@ -305,7 +305,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
         <div className="relative">
           <button
             onClick={() => setMinAmountOpen(!minAmountOpen)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] hover:border-[var(--border-light)]"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-(--border) bg-(--bg-card) text-sm text-(--text-primary) hover:border-(--border-light)"
           >
             {labelFor(minAmountOptions, minAmount)}
             <ChevronDown
@@ -316,7 +316,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
             />
           </button>
           {minAmountOpen && (
-            <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-lg z-10 min-w-[120px]">
+            <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-(--border) bg-(--bg-card) shadow-lg z-10 min-w-[120px]">
               {minAmountOptions.map((option) => (
                 <button
                   key={option.value}
@@ -324,10 +324,10 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     setMinAmount(option.value);
                     setMinAmountOpen(false);
                   }}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg-hover)] ${
+                  className={`w-full px-4 py-2 text-left text-sm hover:bg-(--bg-hover) ${
                     minAmount === option.value
-                      ? "text-[var(--accent)]"
-                      : "text-[var(--text-primary)]"
+                      ? "text-(--accent)"
+                      : "text-(--text-primary)"
                   }`}
                 >
                   {option.label}
@@ -344,11 +344,11 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
           <div className="flex items-center justify-center py-12">
             <Loader2
               size={24}
-              className="animate-spin text-[var(--text-tertiary)]"
+              className="animate-spin text-(--text-tertiary)"
             />
           </div>
         ) : trades.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-[var(--text-tertiary)]">
+          <div className="flex items-center justify-center py-12 text-(--text-tertiary)">
             {t.market.activityText.noActivity}
           </div>
         ) : (
@@ -368,7 +368,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                   <div
                     key={`${trade.userId}-${trade.timestamp}-${index}`}
                     ref={isLast ? lastActivityRef : null}
-                    className="flex items-center gap-3 py-3 hover:bg-[var(--bg-hover)] rounded-lg px-2 -mx-2"
+                    className="flex items-center gap-3 py-3 hover:bg-(--bg-hover) rounded-lg px-2 -mx-2"
                   >
                     {/* 头像 */}
                     <Avatar
@@ -382,12 +382,12 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     {/* 活动内容 */}
                     <div className="flex-1 min-w-0">
                       <span className="text-sm">
-                        <span className="font-medium text-[var(--text-primary)]">
+                        <span className="font-medium text-(--text-primary)">
                           {trade.name ||
                             trade.userId?.slice(0, 12) ||
                             t.market.activityText.anonymous}
                         </span>
-                        <span className="text-[var(--text-secondary)]">
+                        <span className="text-(--text-secondary)">
                           {" "}
                           {isBuy
                             ? t.market.activityText.bought
@@ -396,8 +396,8 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                         <span
                           className={
                             trade.outcome === "YES"
-                              ? "text-[var(--green)] font-medium"
-                              : "text-[var(--red)] font-medium"
+                              ? "text-(--green) font-medium"
+                              : "text-(--red) font-medium"
                           }
                         >
                           {trade.size.toFixed(0)}{" "}
@@ -405,25 +405,25 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                         </span>
                         {trade.assetId &&
                           getMarketNameByAssetId(trade.assetId) && (
-                            <span className="text-[var(--text-secondary)]">
+                            <span className="text-(--text-secondary)">
                               {" "}
                               {t.market.activityText.for}{" "}
                             </span>
                           )}
                         {trade.assetId &&
                           getMarketNameByAssetId(trade.assetId) && (
-                            <span className="text-[var(--text-primary)] font-medium">
+                            <span className="text-(--text-primary) font-medium">
                               {getMarketNameByAssetId(trade.assetId)}
                             </span>
                           )}
-                        <span className="text-[var(--text-secondary)]">
+                        <span className="text-(--text-secondary)">
                           {" "}
                           {t.market.activityText.at}{" "}
                         </span>
-                        <span className="text-[var(--text-primary)]">
+                        <span className="text-(--text-primary)">
                           {displayPrice}¢
                         </span>
-                        <span className="text-[var(--text-tertiary)]">
+                        <span className="text-(--text-tertiary)">
                           {" "}
                           (${(trade.size * trade.price).toFixed(0)})
                         </span>
@@ -431,13 +431,13 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     </div>
 
                     {/* 时间和链接 */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs text-[var(--text-tertiary)]">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-(--text-tertiary)">
                         {formatTimestamp(trade.timestamp)}
                       </span>
                       <ExternalLink
                         size={14}
-                        className="text-[var(--text-tertiary)]"
+                        className="text-(--text-tertiary)"
                       />
                     </div>
                   </div>
@@ -449,14 +449,14 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
               <div className="flex items-center justify-center py-4">
                 <Loader2
                   size={20}
-                  className="animate-spin text-[var(--text-tertiary)]"
+                  className="animate-spin text-(--text-tertiary)"
                 />
               </div>
             )}
 
             {/* 没有更多数据 */}
             {!hasMore && trades.length > 0 && (
-              <div className="text-center py-4 text-[var(--text-tertiary)] text-xs">
+              <div className="text-center py-4 text-(--text-tertiary) text-xs">
                 {t.market.activityText.noMoreActivity}
               </div>
             )}

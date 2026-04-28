@@ -424,7 +424,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     return (
       <div 
         key={`${type}-${index}`}
-        className={`relative grid grid-cols-[56px_1fr_1fr_1fr] py-2 text-xs font-mono hover:bg-[var(--bg-hover)] transition-colors cursor-pointer ${
+        className={`relative grid grid-cols-[56px_1fr_1fr_1fr] py-2 text-xs font-mono hover:bg-(--bg-hover) transition-colors cursor-pointer ${
           isAnimating ? 'animate-pulse' : ''
         }`}
       >
@@ -462,12 +462,12 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
         </span>
         
         {/* 数量 */}
-        <span className="relative z-10 text-center text-[var(--text-primary)]">
+        <span className="relative z-10 text-center text-(--text-primary)">
           {formatSize(entry.size)}
         </span>
         
         {/* 总额 */}
-        <span className="relative z-10 text-right pr-3 text-[var(--text-secondary)]">
+        <span className="relative z-10 text-right pr-3 text-(--text-secondary)">
           ${entry.total.toLocaleString()}
         </span>
       </div>
@@ -500,8 +500,8 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
             onClick={() => { setActiveSide('yes'); onSideChange?.('yes'); }}
             className={`text-sm font-semibold transition-colors ${
               activeSide === 'yes'
-                ? 'text-[var(--text-primary)]'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                ? 'text-(--text-primary)'
+                : 'text-(--text-tertiary) hover:text-(--text-secondary)'
             }`}
           >
             {sideALabel}
@@ -510,8 +510,8 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
             onClick={() => { setActiveSide('no'); onSideChange?.('no'); }}
             className={`text-sm font-semibold transition-colors ${
               activeSide === 'no'
-                ? 'text-[var(--text-primary)]'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                ? 'text-(--text-primary)'
+                : 'text-(--text-tertiary) hover:text-(--text-secondary)'
             }`}
           >
             {sideBLabel}
@@ -520,11 +520,11 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
         
         <div className="flex items-center gap-2">
           {/* 显示模式切换 - 移动端隐藏 */}
-          <div className="hidden md:flex bg-[var(--bg-secondary)] rounded">
+          <div className="hidden md:flex bg-(--bg-secondary) rounded">
             <button
               onClick={() => setDisplayMode('both')}
               className={`px-2 py-1 text-xs rounded-l ${
-                displayMode === 'both' ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                displayMode === 'both' ? 'bg-(--bg-hover) text-(--text-primary)' : 'text-(--text-secondary)'
               }`}
             >
               <ArrowUpDown size={12} />
@@ -532,7 +532,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
             <button
               onClick={() => setDisplayMode('bids')}
               className={`px-2 py-1 text-xs ${
-                displayMode === 'bids' ? 'bg-[var(--bg-hover)]' : 'text-[var(--text-secondary)]'
+                displayMode === 'bids' ? 'bg-(--bg-hover)' : 'text-(--text-secondary)'
               }`}
               style={displayMode === 'bids' ? { color: '#22c55e' } : {}}
             >
@@ -541,7 +541,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
             <button
               onClick={() => setDisplayMode('asks')}
               className={`px-2 py-1 text-xs rounded-r ${
-                displayMode === 'asks' ? 'bg-[var(--bg-hover)]' : 'text-[var(--text-secondary)]'
+                displayMode === 'asks' ? 'bg-(--bg-hover)' : 'text-(--text-secondary)'
               }`}
               style={displayMode === 'asks' ? { color: '#ef4444' } : {}}
             >
@@ -567,7 +567,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
               // 保底：5s 后取消加载状态（正常情况 handleSnapshot 会更早设置）
               setTimeout(() => setIsLoading(false), 5000);
             }}
-            className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]"
+            className="p-1 rounded hover:bg-(--bg-hover) text-(--text-secondary)"
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
           </button>
@@ -576,7 +576,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
           <select 
             value={precision}
             onChange={(e) => setPrecision(Number(e.target.value))}
-            className="bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-xs px-2 py-1 rounded border border-gray-200 dark:border-[#333] cursor-pointer outline-none"
+            className="bg-(--bg-secondary) text-(--text-secondary) text-xs px-2 py-1 rounded border border-gray-200 dark:border-[#333] cursor-pointer outline-hidden"
           >
             {precisionOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -586,7 +586,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
       </div>
 
       {/* 表头 - 4列布局 */}
-      <div className="grid grid-cols-[56px_1fr_1fr_1fr] py-2 text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] border-b border-gray-200 dark:border-[#1a1a1a]">
+      <div className="grid grid-cols-[56px_1fr_1fr_1fr] py-2 text-[10px] uppercase tracking-wider text-(--text-tertiary) border-b border-gray-200 dark:border-[#1a1a1a]">
         <span className="pl-2 flex items-center gap-1">
           {activeSide === 'yes' ? sideALabel : sideBLabel}
           <ArrowUpDown size={10} />
@@ -599,7 +599,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
       {/* 订单列表 */}
       <div className="h-[320px] flex flex-col">
         {!orderbook ? (
-          <div className="flex flex-col items-center justify-center flex-1 text-[var(--text-secondary)] py-10">
+          <div className="flex flex-col items-center justify-center flex-1 text-(--text-secondary) py-10">
             <RefreshCw size={24} className={isLoading ? 'animate-spin' : ''} />
             <p className="mt-2 text-sm">{isLoading ? t.market.connecting : t.market.noOrderbookData}</p>
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
@@ -618,13 +618,13 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
             )}
 
             {/* Last / Spread 中间栏 */}
-            <div className="flex-shrink-0 border-y border-gray-200 dark:border-[#1a1a1a] py-2 px-3">
+            <div className="shrink-0 border-y border-gray-200 dark:border-[#1a1a1a] py-2 px-3">
               <div className="flex items-center gap-6 text-sm">
-                <span className="text-[var(--text-secondary)]">
-                  {t.market.last}: <span className="font-medium text-[var(--text-primary)]">{formatPrice(lastPrice)}</span>
+                <span className="text-(--text-secondary)">
+                  {t.market.last}: <span className="font-medium text-(--text-primary)">{formatPrice(lastPrice)}</span>
                 </span>
-                <span className="text-[var(--text-secondary)]">
-                  {t.market.spread}: <span className="font-medium text-[var(--text-primary)]">{formatPrice(orderbook.spread)}</span>
+                <span className="text-(--text-secondary)">
+                  {t.market.spread}: <span className="font-medium text-(--text-primary)">{formatPrice(orderbook.spread)}</span>
                 </span>
               </div>
             </div>

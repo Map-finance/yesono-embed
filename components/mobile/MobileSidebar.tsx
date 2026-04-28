@@ -27,26 +27,26 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/50 z-[150] transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 bg-black/50 z-150 transition-opacity duration-300 lg:hidden ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
       />
 
       <div
-        className={`fixed top-0 right-0 bottom-0 w-[280px] bg-[var(--bg-primary)] z-[200] transform transition-transform duration-300 ease-out lg:hidden overflow-y-auto ${
+        className={`fixed top-0 right-0 bottom-0 w-[280px] bg-(--bg-primary) z-200 transform transition-transform duration-300 ease-out lg:hidden overflow-y-auto ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <span className="text-lg font-semibold text-[var(--text-primary)]">
+        <div className="flex items-center justify-between p-4 border-b border-(--border)">
+          <span className="text-lg font-semibold text-(--text-primary)">
             {t.common.menu}
           </span>
           <button
             onClick={onClose}
-            className="p-2 rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+            className="p-2 rounded-md hover:bg-(--bg-secondary) transition-colors"
           >
-            <X size={20} className="text-[var(--text-secondary)]" />
+            <X size={20} className="text-(--text-secondary)" />
           </button>
         </div>
 
@@ -54,7 +54,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           <Link
             href="/trending"
             onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-(--text-primary) hover:bg-(--bg-secondary)"
           >
             <TrendingUp size={18} />
             {t.common.nav.trending ?? "Trending"}
@@ -62,7 +62,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           <Link
             href="/search"
             onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-(--text-primary) hover:bg-(--bg-secondary)"
           >
             <Search size={18} />
             {t.common.search ?? "Search"}

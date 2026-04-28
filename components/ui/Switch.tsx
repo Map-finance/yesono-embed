@@ -38,7 +38,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         className={`
           relative inline-flex h-[20px] w-[35px]  items-center rounded-full
           transition-colors
-          ${isChecked ? "bg-[var(--accent)]" : "bg-[var(--text-tertiary)]"}
+          ${isChecked ? "bg-(--accent)" : "bg-(--text-tertiary)"}
           ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
           ${className}
         `}

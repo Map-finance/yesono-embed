@@ -42,21 +42,21 @@ export default function Countdown({ targetTime }: CountdownProps) {
 
     return (
         <div className="flex items-center gap-2 font-semibold">
-            <div className="flex flex-col items-center bg-[--bg-secondary] px-3 py-2 rounded-md">
+            <div className="flex flex-col items-center bg-(--bg-secondary) px-3 py-2 rounded-md">
                 <NumberFlow value={timeLeft.days} />
-                <div className="uppercase text-xs text-[--text-secondary]">days</div>
+                <div className="uppercase text-xs text-(--text-secondary)">days</div>
             </div>
-            <div className="flex flex-col items-center bg-[--bg-secondary] px-3 py-2 rounded-md">
+            <div className="flex flex-col items-center bg-(--bg-secondary) px-3 py-2 rounded-md">
                 <NumberFlow value={timeLeft.hours} />
-                <div className="uppercase text-xs text-[--text-secondary]">hrs</div>
+                <div className="uppercase text-xs text-(--text-secondary)">hrs</div>
             </div>
-            <div className="flex flex-col items-center bg-[--bg-secondary] px-3 py-2 rounded-md">
+            <div className="flex flex-col items-center bg-(--bg-secondary) px-3 py-2 rounded-md">
                 <NumberFlow value={timeLeft.minutes} />
-                <div className="uppercase text-xs text-[--text-secondary]">min</div>
+                <div className="uppercase text-xs text-(--text-secondary)">min</div>
             </div>
-            <div className="flex flex-col items-center bg-[--bg-secondary] px-3 py-2 rounded-md">
+            <div className="flex flex-col items-center bg-(--bg-secondary) px-3 py-2 rounded-md">
                 <NumberFlow value={timeLeft.seconds} />
-                <div className="uppercase text-xs text-[--text-secondary]">sec</div>
+                <div className="uppercase text-xs text-(--text-secondary)">sec</div>
             </div>
         </div>
     );

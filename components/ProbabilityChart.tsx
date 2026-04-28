@@ -252,7 +252,7 @@ const ProbabilityChart: React.FC<ProbabilityChartProps> = ({
         <div className="relative" style={{ height: `${height}px` }}>
           {/* 
             CSS 样式：为折线和数据点添加发光阴影效果
-            可以通过修改 drop-shadow 的参数来调整阴影大小和强度
+            可以通过修改 drop-shadow-sm 的参数来调整阴影大小和强度
             drop-shadow(rgb(r, g, b) x-offset y-offset blur-radius)
           */}
           <style dangerouslySetInnerHTML={{

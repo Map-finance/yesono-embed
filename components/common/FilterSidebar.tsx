@@ -90,37 +90,37 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   // 默认样式
   const defaultStyles: FilterSidebarStyles = {
     desktopContainer:
-      "hidden lg:flex flex-col w-[260px] p-4 gap-4 bg-[var(--bg-primary)] border-[var(--border)] overflow-y-auto h-[calc(100vh-120px)] sticky top-[120px] scrollbar-hide",
-    mobileContainer: "lg:hidden w-full bg-[var(--bg-primary)] border-b border-[var(--border)]",
+      "hidden lg:flex flex-col w-[260px] p-4 gap-4 bg-(--bg-primary) border-(--border) overflow-y-auto h-[calc(100vh-120px)] sticky top-[120px] scrollbar-hide",
+    mobileContainer: "lg:hidden w-full bg-(--bg-primary) border-b border-(--border)",
     mobileScrollContainer:
       "flex overflow-x-auto py-2 px-4 gap-2 scrollbar-hide",
 
     desktopButton:
       "w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all group",
-    desktopButtonActive: "bg-[var(--bg-secondary)]",
-    desktopButtonHover: "hover:bg-[var(--bg-secondary)]",
+    desktopButtonActive: "bg-(--bg-secondary)",
+    desktopButtonHover: "hover:bg-(--bg-secondary)",
     mobileButton:
       "flex flex-col items-center justify-center min-w-[60px] h-[30px] rounded-lg border transition-all",
-    mobileButtonActive: "bg-[var(--bg-secondary)] border-transparent",
-    mobileButtonHover: "hover:bg-[var(--bg-secondary)]",
+    mobileButtonActive: "bg-(--bg-secondary) border-transparent",
+    mobileButtonHover: "hover:bg-(--bg-secondary)",
 
     desktopIcon: "w-5 h-5",
-    desktopIconActive: "text-[var(--text-primary)]",
-    desktopIconDefault: "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]",
-    mobileIcon: "w-6 h-6 text-[var(--text-primary)] mb-1",
+    desktopIconActive: "text-(--text-primary)",
+    desktopIconDefault: "text-(--text-secondary) group-hover:text-(--text-primary)",
+    mobileIcon: "w-6 h-6 text-(--text-primary) mb-1",
 
     desktopImageIcon: "w-5 h-5 rounded-full object-contain",
     mobileImageIcon: "w-8 h-8 rounded-full object-contain mb-1",
 
     desktopLabel: "text-[15px]",
-    desktopLabelActive: "font-bold text-[var(--text-primary)]",
-    desktopLabelDefault: "font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]",
-    mobileLabel: "text-[11px] font-bold text-[var(--text-primary)] truncate max-w-[70px]",
+    desktopLabelActive: "font-bold text-(--text-primary)",
+    desktopLabelDefault: "font-medium text-(--text-secondary) group-hover:text-(--text-primary)",
+    mobileLabel: "text-[11px] font-bold text-(--text-primary) truncate max-w-[70px]",
 
-    count: "text-[13px] text-[var(--text-tertiary)] font-bold",
+    count: "text-[13px] text-(--text-tertiary) font-bold",
 
-    desktopDivider: "h-px bg-[var(--border)] mx-1 my-2 flex-shrink-0",
-    mobileDivider: "w-px h-[30px] bg-[var(--border)] self-center mx-1 flex-shrink-0",
+    desktopDivider: "h-px bg-(--border) mx-1 my-2 shrink-0",
+    mobileDivider: "w-px h-[30px] bg-(--border) self-center mx-1 shrink-0",
   };
 
   // 合并自定义样式和默认样式
@@ -195,10 +195,10 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         <button
           key={item.id}
           onClick={() => onItemClick(item.id)}
-          className={`px-3 py-1.5 whitespace-nowrap text-xs rounded-lg border border-[var(--border)] transition-all shrink-0 ${
+          className={`px-3 py-1.5 whitespace-nowrap text-xs rounded-lg border border-(--border) transition-all shrink-0 ${
             isSelected
-              ? "font-semibold bg-[var(--accent)] text-[var(--bg-primary)] border-[var(--accent)]"
-              : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+              ? "font-semibold bg-(--accent) text-(--bg-primary) border-(--accent)"
+              : "text-(--text-secondary) hover:bg-(--bg-secondary)"
           }`}
         >
           {item.label}

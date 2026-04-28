@@ -168,7 +168,7 @@ const ActivityList: React.FC<ActivityListProps> = ({
         </div>
 
         {/* 数量和时间 */}
-        <div className="text-right flex-shrink-0">
+        <div className="text-right shrink-0">
           <div className="flex items-center gap-1 justify-end">
             {isBuy ? (
               <ArrowUpRight size={12} className="text-[#22c55e]" />

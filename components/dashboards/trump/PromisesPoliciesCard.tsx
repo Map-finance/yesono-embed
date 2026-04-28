@@ -26,7 +26,7 @@ export default function PromisesPoliciesCard({
 }: PromisesPoliciesCardProps) {
   return (
     <a href="/markets/1">
-      <div className="border border-[--border] rounded-md p-4 font-semibold hover:scale-[1.02] transition-transform">
+      <div className="border border-(--border) rounded-md p-4 font-semibold hover:scale-[1.02] transition-transform">
         <div className="flex items-center gap-3">
           <ProxyImage
             src={market.icon}
@@ -38,7 +38,7 @@ export default function PromisesPoliciesCard({
         <div className="mt-6 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="text-lg">{market.percentage}%</div>
-            <div className="text-[--text-secondary]">chance</div>
+            <div className="text-(--text-secondary)">chance</div>
           </div>
           <div className="flex items-center gap-1">
             {market.change >= 0 ? (
@@ -47,7 +47,7 @@ export default function PromisesPoliciesCard({
                 width="12"
                 height="12"
                 viewBox="0 0 12 12"
-                className="text-text-brand z-[1] text-[#69d290]"
+                className="text-text-brand z-1 text-[#69d290]"
                 style={{ transform: "rotate(180deg)" }}
               >
                 <g fill="currentColor">
@@ -63,7 +63,7 @@ export default function PromisesPoliciesCard({
                 width="12"
                 height="12"
                 viewBox="0 0 12 12"
-                className="text-text-brand z-[1] text-[#ff4d4f]"
+                className="text-text-brand z-1 text-[#ff4d4f]"
               >
                 <g fill="currentColor">
                   <path

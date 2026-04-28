@@ -40,7 +40,7 @@ export default function LiveGames() {
             </IconButton>
           </div>
           <div
-            className="flex items-center border border-[var(--border)] rounded-md px-3 py-2 gap-2 cursor-pointer hover:bg-[var(--bg-hover)] transition-all text-xs max-md:hidden"
+            className="flex items-center border border-(--border) rounded-md px-3 py-2 gap-2 cursor-pointer hover:bg-(--bg-hover) transition-all text-xs max-md:hidden"
             onClick={() => setShowSpreads(!showSpreads)}
           >
             <Switch checked={showSpreads} onCheckedChange={setShowSpreads} />

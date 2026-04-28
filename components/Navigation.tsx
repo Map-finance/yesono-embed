@@ -80,8 +80,8 @@ const Navigation: React.FC = () => {
               href={item.path}
               className={`flex items-center gap-2 px-4 py-2 rounded-md whitespace-nowrap transition-all ${
                 isActive
-                  ? "font-semibold text-[var(--accent)] bg-[rgba(255,214,8,0.1)]"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                  ? "font-semibold text-(--accent) bg-[rgba(255,214,8,0.1)]"
+                  : "text-(--text-secondary) hover:text-(--text-primary) hover:bg-(--bg-secondary)"
               }`}
             >
               {item.icon && iconMap[item.icon]}
@@ -96,7 +96,7 @@ const Navigation: React.FC = () => {
             {[1, 2, 3].map((i) => (
               <div
                 key={`skeleton-${i}`}
-                className="h-9 w-20 rounded-md bg-[var(--bg-secondary)] animate-pulse"
+                className="h-9 w-20 rounded-md bg-(--bg-secondary) animate-pulse"
               />
             ))}
           </>

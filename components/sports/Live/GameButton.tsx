@@ -23,8 +23,8 @@ export default function GameButton({
   ...props
 }: GameButtonProps) {
   const variants = {
-    primary: "bg-[var(--accent)] text-white",
-    secondary: "bg-[var(--bg-secondary)] text-[var(--text-primary)]",
+    primary: "bg-(--accent) text-white",
+    secondary: "bg-(--bg-secondary) text-(--text-primary)",
     success: "bg-green-500 text-white",
     danger: "bg-red-500 text-white",
   }
@@ -55,7 +55,7 @@ export default function GameButton({
         relative
         rounded-md
         font-semibold
-        border-2 border-[var(--border)]
+        border-2 border-(--border)
         transition-all
         duration-100
         flex items-center justify-center

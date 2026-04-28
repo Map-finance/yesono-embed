@@ -75,9 +75,9 @@ function MarketSection(props: MarketSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="border border-[--border] rounded-xl overflow-hidden">
+    <div className="border border-(--border) rounded-xl overflow-hidden">
       <div
-        className="flex items-center justify-between p-4 hover:bg-[--bg-secondary] transition-colors cursor-pointer max-md:flex-col max-md:gap-3 max-md:items-start"
+        className="flex items-center justify-between p-4 hover:bg-(--bg-secondary) transition-colors cursor-pointer max-md:flex-col max-md:gap-3 max-md:items-start"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <MarketHeader title={props.title} volume={props.volume} />
@@ -144,7 +144,7 @@ function MarketHeader(props: MarketHeaderProps) {
   return (
     <div>
       <div className="font-semibold">{props.title}</div>
-      <div className="mt-1 text-sm text-[--text-secondary]">
+      <div className="mt-1 text-sm text-(--text-secondary)">
         ${formatVolume(props.volume)} {t.sports.game.vol}.
       </div>
     </div>
@@ -223,14 +223,14 @@ function LineSelector(props: LineSelectorProps) {
   };
 
   return (
-    <div className="border-t border-[--border]">
+    <div className="border-t border-(--border)">
       <div className="relative top-[2px]">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="12"
           height="12"
           viewBox="0 0 12 12"
-          className="absolute left-1/2 -translate-x-1/2 -top-1 text-text-brand z-[1] text-blue"
+          className="absolute left-1/2 -translate-x-1/2 -top-1 text-text-brand z-1 text-blue"
         >
           <g fill="currentColor">
             <path
@@ -242,7 +242,7 @@ function LineSelector(props: LineSelectorProps) {
       </div>
 
       <div className="flex items-center justify-between h-12 relative">
-        <div className="bg-[--bg-primary] z-10 pl-2">
+        <div className="bg-(--bg-primary) z-10 pl-2">
           <IconButton onClick={handleBackClick}>
             <ChevronLeft />
           </IconButton>
@@ -261,8 +261,8 @@ function LineSelector(props: LineSelectorProps) {
               }}
               className={`h-full px-3 font-semibold ${
                 selectedLine === line.id
-                  ? "text-[--text-primary]"
-                  : "text-[--text-secondary]"
+                  ? "text-(--text-primary)"
+                  : "text-(--text-secondary)"
               }`}
               key={line.id}
               onClick={() => setSelectedLine(line.id)}
@@ -271,7 +271,7 @@ function LineSelector(props: LineSelectorProps) {
             </button>
           ))}
         </div>
-        <div className="bg-[--bg-primary] z-10 pr-2">
+        <div className="bg-(--bg-primary) z-10 pr-2">
           <IconButton onClick={handleForwardClick}>
             <ChevronRightIcon />
           </IconButton>

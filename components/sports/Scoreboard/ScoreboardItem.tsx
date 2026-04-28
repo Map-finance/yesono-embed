@@ -20,11 +20,11 @@ export interface ScoreboardItemProps {
 
 export default function ScoreboardItem(props: ScoreboardItemProps) {
   return (
-    <div className="text-sm font-semibold cursor-pointer flex group relative border-r border-[var(--border)] whitespace-nowrap">
+    <div className="text-sm font-semibold cursor-pointer flex group relative border-r border-(--border) whitespace-nowrap">
       <div className="flex flex-col gap-3 p-2">
         <div className="flex justify-between items-center gap-3">
-          <div className="px-[5px] bg-[var(--bg-secondary)] rounded-sm">{props.time || '5:00 PM'}</div>
-          <div className="text-[var(--text-secondary)]">{props.volume || '$126.03 Vol.'}</div>
+          <div className="px-[5px] bg-(--bg-secondary) rounded-sm">{props.time || '5:00 PM'}</div>
+          <div className="text-(--text-secondary)">{props.volume || '$126.03 Vol.'}</div>
         </div>
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center">
@@ -39,7 +39,7 @@ export default function ScoreboardItem(props: ScoreboardItemProps) {
               </div>
               <div>{props.team1?.name || 'WCA'}</div>
             </div>
-            <div className="text-[var(--text-secondary)]">{props.team1?.price || '63'}<span className="text-[10px]">¢</span></div>
+            <div className="text-(--text-secondary)">{props.team1?.price || '63'}<span className="text-[10px]">¢</span></div>
           </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -53,11 +53,11 @@ export default function ScoreboardItem(props: ScoreboardItemProps) {
               </div>
               <div>{props.team2?.name || 'WCA'}</div>
             </div>
-            <div className="text-[var(--text-secondary)]">{props.team2?.price || '23'}<span className="text-[10px]">¢</span></div>
+            <div className="text-(--text-secondary)">{props.team2?.price || '23'}<span className="text-[10px]">¢</span></div>
           </div>
         </div>
       </div>
-      <div className={`flex flex-col bg-[var(--bg-secondary)] justify-around overflow-hidden transition-all ${
+      <div className={`flex flex-col bg-(--bg-secondary) justify-around overflow-hidden transition-all ${
         props.isSelect ? 'w-[40px] px-1' : 'w-0 group-hover:w-[40px] group-hover:px-1'
       }`}>
           <IconButton>
@@ -83,7 +83,7 @@ export default function ScoreboardItem(props: ScoreboardItemProps) {
 
 function IconButton({ children }: { children: React.ReactNode }) {
   return (
-    <button className="hover:bg-[var(--bg-hover)] px-1 rounded-sm flex items-center justify-center h-[22px]">
+    <button className="hover:bg-(--bg-hover) px-1 rounded-sm flex items-center justify-center h-[22px]">
       {children}
     </button>
   )

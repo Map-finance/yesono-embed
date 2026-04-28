@@ -234,9 +234,9 @@ export default function Scoreboard() {
   };
 
   return (
-    <div className="flex border-b border-[var(--border)]">
+    <div className="flex border-b border-(--border)">
       <div 
-        className="bg-[var(--bg-secondary)] flex items-center cursor-pointer px-1 hover:bg-[var(--bg-hover)]"
+        className="bg-(--bg-secondary) flex items-center cursor-pointer px-1 hover:bg-(--bg-hover)"
         onClick={() => handleScroll('left')}
       >
         <ChevronLeft />
@@ -247,7 +247,7 @@ export default function Scoreboard() {
         </div>
       </div>
       <div 
-        className="bg-[var(--bg-secondary)] flex items-center cursor-pointer px-1 hover:bg-[var(--bg-hover)]"
+        className="bg-(--bg-secondary) flex items-center cursor-pointer px-1 hover:bg-(--bg-hover)"
         onClick={() => handleScroll('right')}
       >
         <ChevronRight />

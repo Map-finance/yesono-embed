@@ -451,11 +451,11 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
           />
         </div>
         {/* 右侧交易面板 - 桌面端 */}
-        <div className="w-80 flex-shrink-0 hidden lg:block sticky top-[calc(120px+0.5rem)] self-start max-h-[calc(100vh-120px)] overflow-y-auto scrollbar-hide">
+        <div className="w-80 shrink-0 hidden lg:block sticky top-[calc(120px+0.5rem)] self-start max-h-[calc(100vh-120px)] overflow-y-auto scrollbar-hide">
           {selectedMarket && selectedEvent ? (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] w-full shadow-sm">
+            <div className="rounded-lg border border-(--border) w-full shadow-sm">
               {/* 交易面板头部 */}
-              <div className="p-4 border-b border-[var(--border)]">
+              <div className="p-4 border-b border-(--border)">
                 <div className="flex items-center gap-2">
                   <ProxyImage
                     src={selectedEvent.icon || selectedEvent.image || ""}
@@ -464,21 +464,21 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                     fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSIxNiIgZmlsbD0iIzNhM2EzYSIvPjwvc3ZnPg=="
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-[var(--text-primary)]">
+                    <div className="text-sm font-medium text-(--text-primary)">
                       {selectedEvent.title}
                     </div>
                     <div className="mt-1 flex items-center">
-                      <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md px-2 py-0.5 truncate">
+                      <div className="text-xs text-(--text-secondary) bg-(--bg-secondary) rounded-md px-2 py-0.5 truncate">
                         {selectedMarket.marketTitle}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-[var(--text-tertiary)] py-4 text-center">Trading disabled in embedded view</div>
+              <div className="text-xs text-(--text-tertiary) py-4 text-center">Trading disabled in embedded view</div>
             </div>
           ) : (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-8 text-center text-[var(--text-tertiary)] text-sm">
+            <div className="rounded-lg border border-(--border) p-8 text-center text-(--text-tertiary) text-sm">
               {t.sports.market.moneyline}
             </div>
           )}
@@ -491,15 +491,15 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
               className="absolute inset-0 bg-black/50"
               onClick={() => setShowMobileTrading(false)}
             />
-            <div className="absolute pb-14 bottom-0 left-0 right-0 bg-[var(--bg-card)] rounded-t-2xl overflow-y-auto animate-slide-up max-h-[85vh]">
+            <div className="absolute pb-14 bottom-0 left-0 right-0 bg-(--bg-card) rounded-t-2xl overflow-y-auto animate-slide-up max-h-[85vh]">
               <div className="flex justify-center py-3">
-                <div className="w-10 h-1 bg-[var(--border)] rounded-full" />
+                <div className="w-10 h-1 bg-(--border) rounded-full" />
               </div>
               <button
                 onClick={() => setShowMobileTrading(false)}
-                className="absolute top-3 right-3 p-2 rounded-full hover:bg-[var(--bg-hover)]"
+                className="absolute top-3 right-3 p-2 rounded-full hover:bg-(--bg-hover)"
               >
-                <X size={20} className="text-[var(--text-secondary)]" />
+                <X size={20} className="text-(--text-secondary)" />
               </button>
               <div className="px-4 pb-2">
                 <div className="flex items-center gap-2 mb-2">
@@ -511,14 +511,14 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                   />
                   <div className="flex-1 min-w-0">
                     <div className="mt-1 flex items-center">
-                      <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md px-2 py-0.5 truncate">
+                      <div className="text-xs text-(--text-secondary) bg-(--bg-secondary) rounded-md px-2 py-0.5 truncate">
                         {selectedMarket.marketTitle}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-[var(--text-tertiary)] py-4 text-center">Trading disabled in embedded view</div>
+              <div className="text-xs text-(--text-tertiary) py-4 text-center">Trading disabled in embedded view</div>
             </div>
           </div>
         )}
@@ -533,23 +533,23 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
       <div className="flex-1 min-w-0">
         {/* 标题栏 */}
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">
+          <h1 className="text-xl sm:text-2xl font-bold text-(--text-primary)">
             {displayName}
           </h1>
-          {/* <button className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+          {/* <button className="p-2 rounded-lg hover:bg-(--bg-secondary) text-(--text-secondary)">
             <Settings className="w-5 h-5" />
           </button> */}
         </div>
 
         {/* Games / Props 标签 */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex items-center gap-1 bg-[var(--bg-secondary)] rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-(--bg-secondary) rounded-lg p-0.5">
             <button
               onClick={() => handleTabClick("games")}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 activeTab === "games"
-                  ? "bg-[var(--accent)] text-black"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "bg-(--accent) text-black"
+                  : "text-(--text-secondary) hover:text-(--text-primary)"
               }`}
             >
               {t.sports.tabs.games}
@@ -558,15 +558,15 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
               onClick={() => handleTabClick("props")}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 activeTab === "props"
-                  ? "bg-[var(--accent)] text-black"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "bg-(--accent) text-black"
+                  : "text-(--text-secondary) hover:text-(--text-primary)"
               }`}
             >
               {t.sports.tabs.props}
             </button>
           </div>
 
-          {/* <button className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+          {/* <button className="p-2 rounded-lg hover:bg-(--bg-secondary) text-(--text-secondary)">
             <Search className="w-4 h-4" />
           </button> */}
         </div>
@@ -576,10 +576,10 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
           <>
             {gamesLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-[var(--accent)]" />
+                <Loader2 className="w-6 h-6 animate-spin text-(--accent)" />
               </div>
             ) : gamesEvents.length === 0 ? (
-              <div className="text-center py-12 text-[var(--text-tertiary)]">
+              <div className="text-center py-12 text-(--text-tertiary)">
                 {t.sports.game.noEvents}
               </div>
             ) : (
@@ -588,10 +588,10 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                   <div key={group.date}>
                     {/* 日期分组标题 + 每组的 MONEYLINE/SPREAD/TOTAL 列头 */}
                     <div className="flex items-baseline justify-between mb-3">
-                      <h3 className="text-base font-bold text-[var(--text-primary)]">
+                      <h3 className="text-base font-bold text-(--text-primary)">
                         {group.date}
                       </h3>
-                      <div className="hidden md:flex items-center text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                      <div className="hidden md:flex items-center text-[10px] font-medium text-(--text-tertiary) uppercase tracking-wider">
                         <span className="w-28 text-center">
                           {t.sports.market.moneyline}
                         </span>
@@ -634,7 +634,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                     <button
                       onClick={gamesLoadMore}
                       disabled={gamesLoadingMore}
-                      className="px-6 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50 text-sm"
+                      className="px-6 py-2 rounded-lg bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-tertiary) transition-colors disabled:opacity-50 text-sm"
                     >
                       {gamesLoadingMore ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -649,7 +649,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
 
             {/* 评论区：使用 event 级别的稳定 marketId，避免切换 market 时重新加载 */}
             {gamesEvents.length > 0 && (
-              <div className="mt-8 border-t border-[var(--border)] pt-6">
+              <div className="mt-8 border-t border-(--border) pt-6">
                 <CommentSection
                   entityId={
                     selectedEvent?.market?.moneyline?.[0]?.marketId ||
@@ -669,7 +669,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
           <>
             {propsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-[var(--accent)]" />
+                <Loader2 className="w-6 h-6 animate-spin text-(--accent)" />
               </div>
             ) : (
               <>
@@ -685,7 +685,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                     <button
                       onClick={propsLoadMore}
                       disabled={propsLoadingMore}
-                      className="px-6 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50 text-sm"
+                      className="px-6 py-2 rounded-lg bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-tertiary) transition-colors disabled:opacity-50 text-sm"
                     >
                       {propsLoadingMore ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -703,11 +703,11 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
 
       {/* 右侧交易面板 - 仅 Games 视图桌面端显示 */}
       {activeTab === "games" && (
-        <div className="w-80 flex-shrink-0 hidden lg:block sticky top-[calc(120px+0.5rem)] self-start max-h-[calc(100vh-120px)] overflow-y-auto scrollbar-hide">
+        <div className="w-80 shrink-0 hidden lg:block sticky top-[calc(120px+0.5rem)] self-start max-h-[calc(100vh-120px)] overflow-y-auto scrollbar-hide">
           {selectedMarket && selectedEvent ? (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] w-full shadow-sm">
+            <div className="rounded-lg border border-(--border) w-full shadow-sm">
               {/* 交易面板头部 */}
-              <div className="p-4 border-b border-[var(--border)]">
+              <div className="p-4 border-b border-(--border)">
                 <div className="flex items-center gap-2">
                   <ProxyImage
                     src={selectedEvent.icon || selectedEvent.image || ""}
@@ -716,21 +716,21 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                     fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSIxNiIgZmlsbD0iIzNhM2EzYSIvPjwvc3ZnPg=="
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-[var(--text-primary)]">
+                    <div className="text-sm font-medium text-(--text-primary)">
                       {selectedEvent.title}
                     </div>
                     <div className="mt-1 flex items-center">
-                      <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md px-2 py-0.5 truncate">
+                      <div className="text-xs text-(--text-secondary) bg-(--bg-secondary) rounded-md px-2 py-0.5 truncate">
                         {selectedMarket.marketTitle}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-[var(--text-tertiary)] py-4 text-center">Trading disabled in embedded view</div>
+              <div className="text-xs text-(--text-tertiary) py-4 text-center">Trading disabled in embedded view</div>
             </div>
           ) : (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-8 text-center text-[var(--text-tertiary)] text-sm">
+            <div className="rounded-lg border border-(--border) p-8 text-center text-(--text-tertiary) text-sm">
               {t.sports.market.moneyline}
             </div>
           )}
@@ -744,15 +744,15 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowMobileTrading(false)}
           />
-          <div className="absolute pb-14 bottom-0 left-0 right-0 bg-[var(--bg-card)] rounded-t-2xl overflow-y-auto animate-slide-up max-h-[85vh]">
+          <div className="absolute pb-14 bottom-0 left-0 right-0 bg-(--bg-card) rounded-t-2xl overflow-y-auto animate-slide-up max-h-[85vh]">
             <div className="flex justify-center py-3">
-              <div className="w-10 h-1 bg-[var(--border)] rounded-full" />
+              <div className="w-10 h-1 bg-(--border) rounded-full" />
             </div>
             <button
               onClick={() => setShowMobileTrading(false)}
-              className="absolute top-3 right-3 p-2 rounded-full hover:bg-[var(--bg-hover)]"
+              className="absolute top-3 right-3 p-2 rounded-full hover:bg-(--bg-hover)"
             >
-              <X size={20} className="text-[var(--text-secondary)]" />
+              <X size={20} className="text-(--text-secondary)" />
             </button>
             <div className="px-4 pb-2">
               <div className="flex items-center gap-2 mb-2">
@@ -764,14 +764,14 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                 />
                 <div className="flex-1 min-w-0">
                   <div className="mt-1 flex items-center">
-                    <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md px-2 py-0.5 truncate">
+                    <div className="text-xs text-(--text-secondary) bg-(--bg-secondary) rounded-md px-2 py-0.5 truncate">
                       {selectedMarket.marketTitle}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="text-xs text-[var(--text-tertiary)] py-4 text-center">Trading disabled in embedded view</div>
+            <div className="text-xs text-(--text-tertiary) py-4 text-center">Trading disabled in embedded view</div>
           </div>
         </div>
       )}

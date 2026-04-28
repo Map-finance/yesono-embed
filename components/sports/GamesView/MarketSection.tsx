@@ -50,16 +50,16 @@ function LineValueSwitcher({
 
   return (
     <div
-      className="relative mt-2 border-t border-[var(--border)]"
+      className="relative mt-2 border-t border-(--border)"
       onClick={(e) => e.stopPropagation()}
     >
       {/* 固定居中的黄色倒三角，紧贴上方 border 线 */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[1px] z-10 text-[var(--accent)] text-[10px] leading-none pointer-events-none">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-px z-10 text-(--accent) text-[10px] leading-none pointer-events-none">
         ▼
       </div>
       <div className="flex items-center justify-center pt-3">
         <button
-          className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex-shrink-0"
+          className="p-1 text-(--text-tertiary) hover:text-(--text-primary) shrink-0"
           onClick={() => onSelect(Math.max(0, activeIdx - 1))}
         >
           <ChevronLeft size={14} />
@@ -77,10 +77,10 @@ function LineValueSwitcher({
                   key={lv.idx}
                   data-line-idx={lv.idx}
                   onClick={() => onSelect(lv.idx)}
-                  className={`relative flex items-center justify-center h-6 px-2 flex-shrink-0 transition-all duration-200 ${
+                  className={`relative flex items-center justify-center h-6 px-2 shrink-0 transition-all duration-200 ${
                     isActive
-                      ? "text-[var(--text-primary)]"
-                      : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                      ? "text-(--text-primary)"
+                      : "text-(--text-tertiary) hover:text-(--text-secondary)"
                   }`}
                 >
                   <span
@@ -96,7 +96,7 @@ function LineValueSwitcher({
           </div>
         </div>
         <button
-          className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex-shrink-0"
+          className="p-1 text-(--text-tertiary) hover:text-(--text-primary) shrink-0"
           onClick={() => onSelect(Math.min(lines.length - 1, activeIdx + 1))}
         >
           <ChevronRight size={14} />
@@ -353,24 +353,24 @@ const MarketSection: React.FC<MarketSectionProps> = ({
 
   return (
     <div
-      className="border border-[var(--border)] rounded-lg overflow-hidden cursor-pointer"
+      className="border border-(--border) rounded-lg overflow-hidden cursor-pointer"
       onClick={() => setIsExpanded((p) => !p)}
     >
-      <div className="p-3 hover:bg-[var(--bg-secondary)]/30 transition-all">
+      <div className="p-3 hover:bg-(--bg-secondary)/30 transition-all">
         {/* 标题 + 按钮：桌面端同行，移动端上下排列 */}
         <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
-          <div className="flex-shrink-0 min-w-0">
-            <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
+          <div className="shrink-0 min-w-0">
+            <div className="text-sm font-semibold text-(--text-primary) truncate">
               {title}
             </div>
             {volume && (
-              <div className="text-xs text-[var(--text-tertiary)]">
+              <div className="text-xs text-(--text-tertiary)">
                 ${volume} {t.sports.game.vol}.
               </div>
             )}
           </div>
           {/* 按钮居右，移动端全宽 */}
-          <div className="flex-shrink-0 max-sm:w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="shrink-0 max-sm:w-full" onClick={(e) => e.stopPropagation()}>
             {renderButtons()}
           </div>
         </div>
@@ -413,7 +413,7 @@ const MarketSection: React.FC<MarketSectionProps> = ({
                     currentMarkets[0];
                   if (!obMarket) {
                     return (
-                      <div className="p-4 text-center text-[var(--text-tertiary)] text-sm">
+                      <div className="p-4 text-center text-(--text-tertiary) text-sm">
                         {t.sports.game.noEvents}
                       </div>
                     );
@@ -456,7 +456,7 @@ const MarketSection: React.FC<MarketSectionProps> = ({
                     currentMarkets[0];
                   if (!graphMarket) {
                     return (
-                      <div className="p-4 text-center text-[var(--text-tertiary)] text-sm">
+                      <div className="p-4 text-center text-(--text-tertiary) text-sm">
                         {t.sports.game.noEvents}
                       </div>
                     );

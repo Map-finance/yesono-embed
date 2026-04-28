@@ -108,14 +108,14 @@ export function Select<T = any>({
                   ${
                     option.disabled
                       ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-[--bg-secondary] cursor-pointer"
+                      : "hover:bg-(--bg-secondary) cursor-pointer"
                   }
-                  ${isSelected ? "bg-[--bg-secondary]" : ""}
+                  ${isSelected ? "bg-(--bg-secondary)" : ""}
                 `}
               >
                 <span className="flex-1">{optionContent}</span>
                 {isSelected && (
-                  <Check size={16} className="text-[--accent] shrink-0" />
+                  <Check size={16} className="text-(--accent) shrink-0" />
                 )}
               </button>
             )
@@ -129,14 +129,14 @@ export function Select<T = any>({
         disabled={disabled}
         className={`
           px-3 py-2
-          bg-[--bg-secondary]
-          border border-[--border]
+          bg-(--bg-secondary)
+          border border-(--border)
           rounded-md
-          text-[--text-primary]
+          text-(--text-primary)
           transition-colors
           flex items-center justify-between gap-2
-          hover:border-[var(--border-hover)]
-          focus:outline-none
+          hover:border-(--border-hover)
+          focus:outline-hidden
           focus:ring-2
           focus:ring-blue-500
           focus:border-transparent
@@ -144,7 +144,7 @@ export function Select<T = any>({
           disabled:cursor-not-allowed
           ${error ? "border-red-500 focus:ring-red-500" : ""}
           ${fullWidth ? "w-full" : ""}
-          ${!selectedOption ? "text-[--text-tertiary]" : ""}
+          ${!selectedOption ? "text-(--text-tertiary)" : ""}
           ${className}
         `}
       >

@@ -63,9 +63,9 @@ const PositionList: React.FC<PositionListProps> = ({ title, holders, highlight =
   return (
     <div className="min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[var(--border)]">
-        <span className="text-sm font-medium text-[var(--text-primary)]">{title}</span>
-        <div className="flex items-center gap-3 sm:gap-4 text-xs text-[var(--text-secondary)] uppercase">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-(--border)">
+        <span className="text-sm font-medium text-(--text-primary)">{title}</span>
+        <div className="flex items-center gap-3 sm:gap-4 text-xs text-(--text-secondary) uppercase">
           <span>{t.market.shares}</span>
           <span className="w-12 sm:w-14 text-right">{t.market.avgPrice}</span>
           <span className="w-12 sm:w-14 text-right">{t.market.profitLoss}</span>
@@ -74,7 +74,7 @@ const PositionList: React.FC<PositionListProps> = ({ title, holders, highlight =
       {/* List */}
       <div className="space-y-1">
         {holders.length === 0 ? (
-          <div className="text-center py-4 text-xs text-[var(--text-tertiary)]">
+          <div className="text-center py-4 text-xs text-(--text-tertiary)">
             {t.market.noPositionData}
           </div>
         ) : (
@@ -82,34 +82,34 @@ const PositionList: React.FC<PositionListProps> = ({ title, holders, highlight =
             const profitNum = Number(holder.profit ?? 0);
             const profitColor =
               profitNum > 0
-                ? "text-[var(--green)]"
+                ? "text-(--green)"
                 : profitNum < 0
-                ? "text-[var(--red)]"
-                : "text-[var(--text-secondary)]";
+                ? "text-(--red)"
+                : "text-(--text-secondary)";
             const profitSign = profitNum > 0 ? "+" : "";
 
             return (
               <div
                 key={holder.userId}
-                className="flex items-center gap-2 sm:gap-3 py-1.5 hover:bg-[var(--bg-hover)] rounded-lg px-2 -mx-2 cursor-pointer"
+                className="flex items-center gap-2 sm:gap-3 py-1.5 hover:bg-(--bg-hover) rounded-lg px-2 -mx-2 cursor-pointer"
               >
                 <UserProfile userId={holder.userId} displayName={holder.userName}>
                   <Avatar name={holder.userName} id={holder.userId} size="sm" />
                 </UserProfile>
                 <UserProfile userId={holder.userId} displayName={holder.userName}>
-                  <span className="text-sm text-[var(--text-primary)] truncate hover:underline cursor-pointer min-w-0 flex-1">
+                  <span className="text-sm text-(--text-primary) truncate hover:underline cursor-pointer min-w-0 flex-1">
                     {holder.userName}
                   </span>
                 </UserProfile>
-                <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+                <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                   <span
                     className={`text-sm font-medium tabular-nums ${
-                      highlight === "green" ? "text-[var(--green)]" : "text-[var(--red)]"
+                      highlight === "green" ? "text-(--green)" : "text-(--red)"
                     }`}
                   >
                     {Number(holder.size).toLocaleString()}
                   </span>
-                  <span className="w-12 sm:w-14 text-right text-sm tabular-nums text-[var(--text-secondary)]">
+                  <span className="w-12 sm:w-14 text-right text-sm tabular-nums text-(--text-secondary)">
                     {holder.avgPrice ? `$${Number(holder.avgPrice).toFixed(2)}` : "—"}
                   </span>
                   <span className={`w-12 sm:w-14 text-right text-sm font-medium tabular-nums ${profitColor}`}>
@@ -162,10 +162,10 @@ const Positions: React.FC<PositionsProps> = ({ markets }) => {
                       setSelectedMarketId(option.value);
                       close();
                     }}
-                    className={`w-full text-left p-2 rounded-sm transition-[--transition-fast] bg-transparent hover:bg-[--bg-hover] ${
+                    className={`w-full text-left p-2 rounded-sm transition-(--transition-fast) bg-transparent hover:bg-(--bg-hover) ${
                       selectedMarketId === option.value
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--text-primary)]"
+                        ? "text-(--accent)"
+                        : "text-(--text-primary)"
                     }`}
                   >
                     {option.label}
@@ -175,7 +175,7 @@ const Positions: React.FC<PositionsProps> = ({ markets }) => {
             )}
           >
             {({ isOpen }) => (
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] hover:border-[var(--border-light)]">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-(--border) bg-(--bg-card) text-sm text-(--text-primary) hover:border-(--border-light)">
                 {marketOptions.find(o => o.value === selectedMarketId)?.label || ""}
                 <ChevronDown
                   size={16}
@@ -190,7 +190,7 @@ const Positions: React.FC<PositionsProps> = ({ markets }) => {
       {/* 加载状态 */}
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-5 h-5 animate-spin text-[var(--text-tertiary)]" />
+          <Loader2 className="w-5 h-5 animate-spin text-(--text-tertiary)" />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">

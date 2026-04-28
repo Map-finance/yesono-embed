@@ -8,8 +8,8 @@ export default async function TrendingPage({
     params,
     searchParams,
 }: {
-    params?: { category?: string[] | string };
-    searchParams?: Record<string, string | string[] | undefined>;
+    params?: Promise<{ category?: string[] | string }>;
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
     // const categoryParam = params?.category || ([] as string[]);
     // const category = categoryParam[0] ?? "trending";

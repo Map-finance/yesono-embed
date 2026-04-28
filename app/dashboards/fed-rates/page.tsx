@@ -41,7 +41,7 @@ export default function FedRatesPage() {
     <div>
       <div>
         <h1 className="text-2xl font-semibold">{t.dashboards.fedRates.title}</h1>
-        <p className="mt-2 text-[--text-secondary]">
+        <p className="mt-2 text-(--text-secondary)">
           {t.dashboards.fedRates.subtitle}
         </p>
       </div>
@@ -52,9 +52,9 @@ export default function FedRatesPage() {
           onClick={setValue}
         ></ButtonSwitch>
       </div>
-      <div className="mt-6 flex items-center border border-[--border] p-8 rounded-lg justify-between max-md:hidden">
+      <div className="mt-6 flex items-center border border-(--border) p-8 rounded-lg justify-between max-md:hidden">
         <div>
-          <div className="text-[--text-secondary]">{t.dashboards.fedRates.expectedDecision}</div>
+          <div className="text-(--text-secondary)">{t.dashboards.fedRates.expectedDecision}</div>
           <div className="font-semibold text-2xl mt-1">{t.dashboards.fedRates.noChange}</div>
         </div>
         <div>
@@ -72,13 +72,13 @@ export default function FedRatesPage() {
       </div>
       {/* mobile view start */}
       <div className="max-md:block md:hidden mt-4">
-        <div className="flex justify-between items-center border border-[--border] p-2 px-4 rounded-lg">
+        <div className="flex justify-between items-center border border-(--border) p-2 px-4 rounded-lg">
           <div className="font-semibold">{t.dashboards.fedRates.meetingIn}</div>
           <Countdown targetTime="2026-01-28T00:00:00" />
         </div>
-        <div className="flex justify-between items-center border border-[--border] p-2 px-4 rounded-lg mt-4">
+        <div className="flex justify-between items-center border border-(--border) p-2 px-4 rounded-lg mt-4">
           <div>
-            <div className="text-[--text-secondary]">{t.dashboards.fedRates.expectedDecision}</div>
+            <div className="text-(--text-secondary)">{t.dashboards.fedRates.expectedDecision}</div>
             <div className="font-semibold text-2xl mt-1">{t.dashboards.fedRates.noChange}</div>
           </div>
           <div className="w-40 -translate-y-5">
@@ -92,9 +92,9 @@ export default function FedRatesPage() {
         </div>
       </div>
       {/* mobile view end */}
-      <div className="mt-4 border border-[--border] p-5 rounded-lg">
+      <div className="mt-4 border border-(--border) p-5 rounded-lg">
         <h2 className="text-xl font-semibold">{t.dashboards.fedRates.fedDecision}</h2>
-        <p className="font-semibold text-[--text-secondary] mt-1">
+        <p className="font-semibold text-(--text-secondary) mt-1">
           Wed Jan 28, 2026 {t.dashboards.fedRates.fomcMeeting}
         </p>
         <div className="flex flex-col gap-2 mt-5">
@@ -110,7 +110,7 @@ export default function FedRatesPage() {
       </div>
       <div className="mt-6">
         <h1>{t.dashboards.fedRates.oddsOverTime}</h1>
-        <div className="mt-4 border border-[--border] rounded-lg h-[206px] flex items-center justify-center">
+        <div className="mt-4 border border-(--border) rounded-lg h-[206px] flex items-center justify-center">
           todo chart
         </div>
       </div>

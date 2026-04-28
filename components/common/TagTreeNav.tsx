@@ -39,8 +39,8 @@ const HorizontalNav: React.FC<{
             href={href}
             className={`px-4 py-2 rounded-full whitespace-nowrap text-sm transition-all ${
               isActive
-                ? 'bg-[var(--accent)] text-black font-medium'
-                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+                ? 'bg-(--accent) text-black font-medium'
+                : 'bg-(--bg-secondary) text-(--text-secondary) hover:bg-(--bg-tertiary) hover:text-(--text-primary)'
             }`}
           >
             {tag.name}
@@ -91,12 +91,12 @@ const VerticalNav: React.FC<{
               {hasChildren && (
                 <button
                   onClick={() => toggleExpand(tag.id)}
-                  className="p-1 mr-1 rounded hover:bg-[var(--bg-secondary)]"
+                  className="p-1 mr-1 rounded hover:bg-(--bg-secondary)"
                 >
                   {isExpanded ? (
-                    <ChevronDown size={14} className="text-[var(--text-secondary)]" />
+                    <ChevronDown size={14} className="text-(--text-secondary)" />
                   ) : (
-                    <ChevronRight size={14} className="text-[var(--text-secondary)]" />
+                    <ChevronRight size={14} className="text-(--text-secondary)" />
                   )}
                 </button>
               )}
@@ -106,10 +106,10 @@ const VerticalNav: React.FC<{
                 href={href}
                 className={`flex-1 px-3 py-1.5 rounded text-sm transition-all ${
                   isActive
-                    ? 'bg-[var(--accent)] text-black font-medium'
+                    ? 'bg-(--accent) text-black font-medium'
                     : isParentActive
-                    ? 'text-[var(--accent)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'
+                    ? 'text-(--accent)'
+                    : 'text-(--text-secondary) hover:bg-(--bg-secondary) hover:text-(--text-primary)'
                 }`}
               >
                 {tag.name}
@@ -143,7 +143,7 @@ const LoadingSkeleton: React.FC<{ layout: 'horizontal' | 'vertical' }> = ({ layo
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className="h-9 w-20 rounded-full bg-[var(--bg-secondary)] animate-pulse"
+            className="h-9 w-20 rounded-full bg-(--bg-secondary) animate-pulse"
           />
         ))}
       </div>
@@ -155,7 +155,7 @@ const LoadingSkeleton: React.FC<{ layout: 'horizontal' | 'vertical' }> = ({ layo
       {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="h-8 rounded bg-[var(--bg-secondary)] animate-pulse"
+          className="h-8 rounded bg-(--bg-secondary) animate-pulse"
           style={{ width: `${100 - i * 10}%` }}
         />
       ))}

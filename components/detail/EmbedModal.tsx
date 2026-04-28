@@ -280,21 +280,21 @@ export default function EmbedModal({
 
   return (
     <div
-      className="fixed inset-0 z-[101] flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-101 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-[var(--bg-card)] rounded-2xl w-[900px] max-w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+        className="bg-(--bg-card) rounded-2xl w-[900px] max-w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">Embed</h2>
+            <h2 className="text-xl font-bold text-(--text-primary)">Embed</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors"
+            className="p-2 rounded-full hover:bg-(--bg-hover) text-(--text-secondary) transition-colors"
           >
             <X size={20} />
           </button>
@@ -303,15 +303,15 @@ export default function EmbedModal({
         {/* Content */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Panel */}
-          <div className="w-[260px] flex-shrink-0 border-r border-[var(--border)] px-6 pb-6 overflow-y-auto flex flex-col">
+          <div className="w-[260px] shrink-0 border-r border-(--border) px-6 pb-6 overflow-y-auto flex flex-col">
             {viewMode === "preview" ? (
               <>
                 {!isSports && eventMarkets && eventMarkets.length > 1 && (
                   <div className="flex items-center justify-between mb-6">
-                    <span className="text-sm text-[var(--text-primary)] font-medium">Market</span>
+                    <span className="text-sm text-(--text-primary) font-medium">Market</span>
                     <div className="relative">
                       <select
-                        className="appearance-none bg-transparent border border-[var(--border)] rounded-lg pl-3 pr-7 py-1.5 text-xs font-medium focus:outline-none focus:border-[var(--text-primary)] max-w-[120px]"
+                        className="appearance-none bg-transparent border border-(--border) rounded-lg pl-3 pr-7 py-1.5 text-xs font-medium focus:outline-hidden focus:border-(--text-primary) max-w-[120px]"
                         value={selectedMarketId}
                         onChange={(e) => setSelectedMarketId(e.target.value)}
                       >
@@ -322,7 +322,7 @@ export default function EmbedModal({
                           </option>
                         ))}
                       </select>
-                      <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
+                      <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-(--text-secondary) pointer-events-none" />
                     </div>
                   </div>
                 )}
@@ -338,16 +338,16 @@ export default function EmbedModal({
                     { key: "darkMode" as const, label: "Dark mode" },
                   ].map(({ key, label }) => (
                     <div key={key} className="flex items-center justify-between">
-                      <span className="text-sm text-[var(--text-primary)] font-medium">{label}</span>
+                      <span className="text-sm text-(--text-primary) font-medium">{label}</span>
                       <Switch checked={config[key]} onCheckedChange={() => handleConfigChange(key)} />
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-[var(--border)]">
+                <div className="mt-6 pt-4 border-t border-(--border)">
                   <button
                     onClick={() => setViewMode("code")}
-                    className="w-full flex items-center justify-center gap-2 bg-[var(--accent)] hover:opacity-90 text-[var(--text-inverse)] py-3 rounded-xl font-semibold transition-opacity"
+                    className="w-full flex items-center justify-center gap-2 bg-(--accent) hover:opacity-90 text-(--text-inverse) py-3 rounded-xl font-semibold transition-opacity"
                   >
                     <Code size={18} />
                     View Code
@@ -357,43 +357,43 @@ export default function EmbedModal({
             ) : (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-[var(--text-primary)] font-medium">Dimensions</span>
+                  <span className="text-sm text-(--text-primary) font-medium">Dimensions</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   <div>
-                    <label className="text-xs text-[var(--text-tertiary)] mb-1 block">Width</label>
-                    <div className="flex items-center border border-[var(--border)] rounded-lg overflow-hidden">
-                      <button onClick={() => handleDimensionChange("width", -10)} className="px-2 py-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"><Minus size={12}/></button>
+                    <label className="text-xs text-(--text-tertiary) mb-1 block">Width</label>
+                    <div className="flex items-center border border-(--border) rounded-lg overflow-hidden">
+                      <button onClick={() => handleDimensionChange("width", -10)} className="px-2 py-1.5 text-(--text-secondary) hover:bg-(--bg-hover)"><Minus size={12}/></button>
                       <input
                         type="number"
                         value={dimensions.width}
                         onChange={(e) => handleInputChange("width", e.target.value)}
-                        className="w-full bg-transparent text-center text-sm py-1.5 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full bg-transparent text-center text-sm py-1.5 focus:outline-hidden appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      <button onClick={() => handleDimensionChange("width", 10)} className="px-2 py-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"><Plus size={12}/></button>
+                      <button onClick={() => handleDimensionChange("width", 10)} className="px-2 py-1.5 text-(--text-secondary) hover:bg-(--bg-hover)"><Plus size={12}/></button>
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-[var(--text-tertiary)] mb-1 block">Height</label>
-                    <div className="flex items-center border border-[var(--border)] rounded-lg overflow-hidden">
-                      <button onClick={() => handleDimensionChange("height", -10)} className="px-2 py-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"><Minus size={12}/></button>
+                    <label className="text-xs text-(--text-tertiary) mb-1 block">Height</label>
+                    <div className="flex items-center border border-(--border) rounded-lg overflow-hidden">
+                      <button onClick={() => handleDimensionChange("height", -10)} className="px-2 py-1.5 text-(--text-secondary) hover:bg-(--bg-hover)"><Minus size={12}/></button>
                       <input
                         type="number"
                         value={dimensions.height}
                         onChange={(e) => handleInputChange("height", e.target.value)}
-                        className="w-full bg-transparent text-center text-sm py-1.5 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full bg-transparent text-center text-sm py-1.5 focus:outline-hidden appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      <button onClick={() => handleDimensionChange("height", 10)} className="px-2 py-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"><Plus size={12}/></button>
+                      <button onClick={() => handleDimensionChange("height", 10)} className="px-2 py-1.5 text-(--text-secondary) hover:bg-(--bg-hover)"><Plus size={12}/></button>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex-1" />
 
-                <div className="mt-6 pt-4 border-t border-[var(--border)] flex gap-3">
+                <div className="mt-6 pt-4 border-t border-(--border) flex gap-3">
                   <button
                     onClick={() => setViewMode("preview")}
-                    className="flex-shrink-0 flex items-center justify-center bg-transparent border border-[var(--border)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] px-4 py-3 rounded-xl font-semibold transition-colors"
+                    className="shrink-0 flex items-center justify-center bg-transparent border border-(--border) hover:bg-(--bg-hover) text-(--text-primary) px-4 py-3 rounded-xl font-semibold transition-colors"
                   >
                     <ChevronLeft size={20} />
                   </button>
@@ -402,7 +402,7 @@ export default function EmbedModal({
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all ${
                       copied
                         ? "bg-green-600 text-white"
-                        : "bg-[var(--accent)] hover:opacity-90 text-[var(--text-inverse)]"
+                        : "bg-(--accent) hover:opacity-90 text-(--text-inverse)"
                     }`}
                   >
                     {copied ? <Check size={18} /> : <Copy size={18} />}
@@ -414,32 +414,32 @@ export default function EmbedModal({
           </div>
 
           {/* Right Panel */}
-          <div className="flex-1 bg-[var(--bg-secondary)] flex items-center justify-center p-10 relative overflow-auto">
+          <div className="flex-1 bg-(--bg-secondary) flex items-center justify-center p-10 relative overflow-auto">
             {viewMode === "preview" ? (
               <div className="relative flex flex-col items-center justify-center">
                 {/* 包含了高度控制线和卡片的水平容器 */}
                 <div className="relative flex items-center">
                   {/* 调节器：高度（左侧） */}
-                  <div className="absolute right-[100%] top-0 bottom-0 mr-6 flex items-center">
-                    <div className="absolute right-0 top-0 bottom-0 w-[1px] bg-[var(--border)] opacity-50" />
+                  <div className="absolute right-full top-0 bottom-0 mr-6 flex items-center">
+                    <div className="absolute right-0 top-0 bottom-0 w-px bg-(--border) opacity-50" />
                     <div className="absolute right-[-14px] top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <span className="text-[10px] text-[var(--text-tertiary)] font-mono font-bold">H</span>
-                      <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-md shadow-sm z-10 hover:border-[var(--text-tertiary)] transition-colors">
-                        <button onClick={() => handleDimensionChange("height", 10)} className="absolute -top-5 left-0 right-0 h-5 flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-opacity"><Plus size={12}/></button>
+                      <span className="text-[10px] text-(--text-tertiary) font-mono font-bold">H</span>
+                      <div className="group relative bg-(--bg-card) border border-(--border) rounded-md shadow-sm z-10 hover:border-(--text-tertiary) transition-colors">
+                        <button onClick={() => handleDimensionChange("height", 10)} className="absolute -top-5 left-0 right-0 h-5 flex items-center justify-center text-(--text-tertiary) hover:text-(--text-primary) opacity-0 group-hover:opacity-100 transition-opacity"><Plus size={12}/></button>
                         <input
                           type="number"
                           value={dimensions.height}
                           onChange={(e) => handleInputChange("height", e.target.value)}
-                          className="w-10 h-7 bg-transparent text-center text-xs focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-10 h-7 bg-transparent text-center text-xs focus:outline-hidden appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
-                        <button onClick={() => handleDimensionChange("height", -10)} className="absolute -bottom-5 left-0 right-0 h-5 flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-opacity"><Minus size={12}/></button>
+                        <button onClick={() => handleDimensionChange("height", -10)} className="absolute -bottom-5 left-0 right-0 h-5 flex items-center justify-center text-(--text-tertiary) hover:text-(--text-primary) opacity-0 group-hover:opacity-100 transition-opacity"><Minus size={12}/></button>
                       </div>
                     </div>
                   </div>
 
                   {/* 预览容器 */}
                   <div
-                    className="relative transition-all duration-300 flex-shrink-0"
+                    className="relative transition-all duration-300 shrink-0"
                     style={{ width: actualWidth, height: actualHeight }}
                   >
                     <div
@@ -468,7 +468,7 @@ export default function EmbedModal({
                           <ProxyImage
                             src={previewMarket.icon || ""}
                             alt=""
-                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                            className="w-12 h-12 rounded-lg object-cover shrink-0"
                           />
                         )}
                         <div className="flex-1 flex flex-col min-w-0">
@@ -536,7 +536,7 @@ export default function EmbedModal({
                                   </LineChart>
                                 </ResponsiveContainer>
                               ) : (
-                                <div className="flex items-center justify-center h-full text-xs text-[var(--text-tertiary)]">
+                                <div className="flex items-center justify-center h-full text-xs text-(--text-tertiary)">
                                   Loading chart...
                                 </div>
                               )}
@@ -556,7 +556,7 @@ export default function EmbedModal({
 
                       {/* Volume 区域 */}
                       {config.volume && (
-                        <div className="flex items-center justify-between text-[10px] opacity-60 mt-3 font-medium flex-shrink-0">
+                        <div className="flex items-center justify-between text-[10px] opacity-60 mt-3 font-medium shrink-0">
                           <span>${Number(previewMarket.volume || 0).toLocaleString()} Vol.</span>
                           <span className="flex items-center cursor-pointer hover:opacity-100">
                             All time <ChevronDown size={12} className="ml-0.5" />
@@ -566,7 +566,7 @@ export default function EmbedModal({
 
                       {/* Buy Buttons */}
                       {config.buyButtons && (
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-current border-opacity-10 flex-shrink-0">
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-current border-opacity-10 shrink-0">
                           {isSports ? (
                             lines.map((line) => (
                               <button key={line.id} className="flex-1 py-2 rounded-lg font-semibold text-sm transition-colors flex justify-center gap-2 text-white" style={{ backgroundColor: line.color }}>
@@ -594,25 +594,25 @@ export default function EmbedModal({
 
                 {/* 调节器：宽度（底部） */}
                 <div className="relative mt-6 flex justify-center w-full max-w-full" style={{ width: actualWidth }}>
-                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-[var(--border)] opacity-50" />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-(--border) opacity-50" />
                   <div className="absolute top-[-14px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
-                    <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-md shadow-sm z-10 hover:border-[var(--text-tertiary)] transition-colors">
-                      <button onClick={() => handleDimensionChange("width", -10)} className="absolute top-0 bottom-0 -left-5 w-5 flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-opacity"><Minus size={12}/></button>
+                    <div className="group relative bg-(--bg-card) border border-(--border) rounded-md shadow-sm z-10 hover:border-(--text-tertiary) transition-colors">
+                      <button onClick={() => handleDimensionChange("width", -10)} className="absolute top-0 bottom-0 -left-5 w-5 flex items-center justify-center text-(--text-tertiary) hover:text-(--text-primary) opacity-0 group-hover:opacity-100 transition-opacity"><Minus size={12}/></button>
                       <input
                         type="number"
                         value={dimensions.width}
                         onChange={(e) => handleInputChange("width", e.target.value)}
-                        className="w-12 h-7 bg-transparent text-center text-xs focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-12 h-7 bg-transparent text-center text-xs focus:outline-hidden appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      <button onClick={() => handleDimensionChange("width", 10)} className="absolute top-0 bottom-0 -right-5 w-5 flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-opacity"><Plus size={12}/></button>
+                      <button onClick={() => handleDimensionChange("width", 10)} className="absolute top-0 bottom-0 -right-5 w-5 flex items-center justify-center text-(--text-tertiary) hover:text-(--text-primary) opacity-0 group-hover:opacity-100 transition-opacity"><Plus size={12}/></button>
                     </div>
-                    <span className="text-[10px] text-[var(--text-tertiary)] font-mono font-bold">W</span>
+                    <span className="text-[10px] text-(--text-tertiary) font-mono font-bold">W</span>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="w-full max-w-2xl text-left">
-                <p className="text-sm text-[var(--text-secondary)] font-medium mb-3">
+                <p className="text-sm text-(--text-secondary) font-medium mb-3">
                   Copy and paste this code into your website
                 </p>
                 <div className="bg-[#0d1117] text-[#c9d1d9] p-5 rounded-xl font-mono text-[13px] leading-relaxed overflow-x-auto relative border border-[#30363d]">
@@ -632,7 +632,7 @@ export default function EmbedModal({
                     ))}
                   </pre>
                 </div>
-                <p className="text-xs text-[var(--text-tertiary)] mt-3">
+                <p className="text-xs text-(--text-tertiary) mt-3">
                   The widget will display a live preview of market data with interactive chart and trading buttons.
                 </p>
               </div>

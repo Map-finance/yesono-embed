@@ -175,11 +175,11 @@ export default function TrumpPage() {
       <div className="flex justify-between items-center mt-8">
         <div>
           <h1 className="text-3xl font-semibold">{t.dashboards.trump.promisesPolicies}</h1>
-          <p className="text-[--text-secondary] mt-2 max-md:hidden">
+          <p className="text-(--text-secondary) mt-2 max-md:hidden">
             {t.dashboards.trump.promisesSubtitle}
           </p>
         </div>
-        <div className="bg-[--bg-secondary] pl-3 py-[5px] flex items-center rounded-sm cursor-pointer hover:bg-[--bg-hover] transition-colors max-md:hidden">
+        <div className="bg-(--bg-secondary) pl-3 py-[5px] flex items-center rounded-sm cursor-pointer hover:bg-(--bg-hover) transition-colors max-md:hidden">
           <div className="font-semibold">{t.dashboards.trump.viewAll}</div>
           <ChevronRight />
         </div>

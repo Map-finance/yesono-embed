@@ -57,9 +57,9 @@ export default function GameCard({ game }: GameCardProps) {
   };
 
   return (
-    <div className="border border-[var(--border)] rounded-lg overflow-hidden">
+    <div className="border border-(--border) rounded-lg overflow-hidden">
       <div
-        className="p-2 px-3 cursor-pointer hover:bg-[var(--bg-hover)] transition-all"
+        className="p-2 px-3 cursor-pointer hover:bg-(--bg-hover) transition-all"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex justify-between items-center">
@@ -76,19 +76,19 @@ export default function GameCard({ game }: GameCardProps) {
                 </div>
               </>
             ) : (
-              <div className="text-[var(--text-secondary)]  bg-[var(--bg-secondary)] px-2 rounded-sm">
+              <div className="text-(--text-secondary)  bg-(--bg-secondary) px-2 rounded-sm">
                 {game.startTime}
               </div>
             )}
-            <div className="text-[var(--text-secondary)]">
+            <div className="text-(--text-secondary)">
               $ {game.volume} {t.sports.game.vol}
             </div>
           </div>
           <div
-            className="flex items-center bg-[var(--bg-hover)] rounded-sm overflow-hidden text-xs pl-2 py-1 gap-2 hover:bg-[var(--bg-secondary)] transition-all"
+            className="flex items-center bg-(--bg-hover) rounded-sm overflow-hidden text-xs pl-2 py-1 gap-2 hover:bg-(--bg-secondary) transition-all"
             onClick={handleToGameView}
           >
-            <div className="bg-[var(--bg-primary)] px-1 py-[1px] rounded-sm text-xs border border-[var(--border)] text-[var(--text-secondary)]">
+            <div className="bg-(--bg-primary) px-1 py-px rounded-sm text-xs border border-(--border) text-(--text-secondary)">
               {game.marketCount}
             </div>
             <div className="font-semibold">{t.sports.game.gameView}</div>
@@ -99,7 +99,7 @@ export default function GameCard({ game }: GameCardProps) {
           <div className="space-y-3">
             {/* Team A (Away) */}
             <div className="flex items-center gap-4">
-              <div className="px-2 bg-[var(--bg-secondary)] rounded-sm py-[1px]">
+              <div className="px-2 bg-(--bg-secondary) rounded-sm py-px">
                 {game.awayTeam.seed}
               </div>
                 {/**
@@ -114,13 +114,13 @@ export default function GameCard({ game }: GameCardProps) {
                   className="h-6 w-auto object-contain"
                 />
               <div className="text-sm">{game.awayTeam.name}</div>
-              <div className="text-xs text-[var(--text-secondary)]">
+              <div className="text-xs text-(--text-secondary)">
                 {game.awayTeam.record}
               </div>
             </div>
             {/* Team B (Home) */}
             <div className="flex items-center gap-4">
-              <div className="px-2 bg-[var(--bg-secondary)] rounded-sm py-[1px]">
+              <div className="px-2 bg-(--bg-secondary) rounded-sm py-px">
                 {game.homeTeam.seed}
               </div>
                 <ProxyImage
@@ -129,7 +129,7 @@ export default function GameCard({ game }: GameCardProps) {
                   className="h-6 w-auto object-contain"
                 />
               <div className="text-sm">{game.homeTeam.name}</div>
-              <div className="text-xs text-[var(--text-secondary)]">
+              <div className="text-xs text-(--text-secondary)">
                 {game.homeTeam.record}
               </div>
             </div>

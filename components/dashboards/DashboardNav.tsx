@@ -65,7 +65,7 @@ export default function DashboardNav() {
   return (
     <div className="flex flex-col gap-4 max-md:flex-row">
       <div>
-        <h3 className="px-3 py-1.5 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wide flex items-center gap-1 m-0 max-md:hidden">
+        <h3 className="px-3 py-1.5 text-[10px] font-semibold text-(--text-tertiary) uppercase tracking-wide flex items-center gap-1 m-0 max-md:hidden">
           {t.dashboards.nav.title}
         </h3>
         <ul className="flex flex-col gap-1 list-none p-0 mt-4 max-md:mt-0 max-md:flex-row">
@@ -102,8 +102,8 @@ export const MenuLink = memo(function MenuLink({
         href={newPath}
         className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all max-md:flex-col ${
           active
-            ? "bg-[var(--bg-secondary)] text-[var(--accent)]"
-            : "hover:bg-[var(--bg-hover)]"
+            ? "bg-(--bg-secondary) text-(--accent)"
+            : "hover:bg-(--bg-hover)"
         }`}
       >
         <span className="size-5 flex items-center justify-center">{icon}</span>

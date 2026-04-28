@@ -63,7 +63,7 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
   return (
     <div className={"flex flex-col flex-1 " + className}>
       {/* Tab Headers */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] relative">
+      <div className="flex items-center justify-between border-b border-(--border) relative">
         <div className={`flex items-center font-semibold ${size === 'small' ? 'px-4 gap-3' : 'px-4 gap-4'}`}>
           {items.map((item) => (
             <button
@@ -75,8 +75,8 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
                 ${size === 'small' ? '' : 'py-1 h-12 text-[15px]'} 
                 ${
                   activeTab === item.value
-                    ? 'text-[var(--text-primary)]'
-                    : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100 hover:text-[var(--text-primary)]'
+                    ? 'text-(--text-primary)'
+                    : 'text-(--text-secondary) opacity-60 hover:opacity-100 hover:text-(--text-primary)'
                 }
               `}
             >
@@ -89,7 +89,7 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
         )}
         {/* 滑动指示器 */}
         <div
-          className="absolute bottom-0 h-[2px] bg-[--accent] transition-all duration-300 ease-out"
+          className="absolute bottom-0 h-[2px] bg-(--accent) transition-all duration-300 ease-out"
           style={{
             left: `${indicatorStyle.left}px`,
             width: `${indicatorStyle.width}px`,

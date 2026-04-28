@@ -208,11 +208,11 @@ export default function LivePriceHeader({
         {/* Price to beat */}
         <div className="flex flex-col opacity-100 min-w-0">
           <div className="flex items-center gap-1 justify-between">
-            <span className="text-xs font-semibold text-[var(--text-secondary)]/80">
+            <span className="text-xs font-semibold text-(--text-secondary)/80">
               {livePriceHeaderText.priceToBeat}
             </span>
           </div>
-          <span className="mt-1 tracking-wide font-[620] text-[var(--text-secondary)] text-xl sm:text-2xl leading-none">
+          <span className="mt-1 tracking-wide font-[620] text-(--text-secondary) text-xl sm:text-2xl leading-none">
             {priceToBeat !== null
               ? `$${priceToBeat.toLocaleString(locale, {
                   minimumFractionDigits: 2,
@@ -223,14 +223,14 @@ export default function LivePriceHeader({
         </div>
 
         {/* Vertical Divider */}
-        <div className="w-px h-8 border-r border-[var(--border)] my-auto mx-2 sm:mx-3 lg:mx-5"></div>
+        <div className="w-px h-8 border-r border-(--border) my-auto mx-2 sm:mx-3 lg:mx-5"></div>
 
         {/* Current / Final price */}
         <div className="flex flex-col opacity-100 min-w-0">
           <div className="flex items-center gap-1 justify-between">
             <span
               className={`text-xs font-semibold ${
-                !isLive ? "text-[var(--text-primary)]/80" : ""
+                !isLive ? "text-(--text-primary)/80" : ""
               }`}
               style={isLive ? { color: assetColor, opacity: 0.85 } : {}}
             >
@@ -246,7 +246,7 @@ export default function LivePriceHeader({
           </div>
           <div
             className={`mt-1 tracking-wide font-[620] text-xl sm:text-2xl leading-none flex items-center ${
-              !isLive ? "text-[var(--text-primary)]" : ""
+              !isLive ? "text-(--text-primary)" : ""
             }`}
             style={isLive ? { color: assetColor } : {}}
           >
@@ -270,7 +270,7 @@ export default function LivePriceHeader({
                 })}
               </span>
             ) : (
-              <span className="text-[var(--text-secondary)]">—</span>
+              <span className="text-(--text-secondary)">—</span>
             )}
           </div>
         </div>
@@ -288,7 +288,7 @@ export default function LivePriceHeader({
                     format={{ minimumIntegerDigits: 2 }}
                   />
                 </span>
-                <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">
+                <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
                   {countdownText.days}
                 </span>
               </div>
@@ -301,7 +301,7 @@ export default function LivePriceHeader({
                     format={{ minimumIntegerDigits: 2 }}
                   />
                 </span>
-                <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">
+                <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
                   {countdownText.hours}
                 </span>
               </div>
@@ -313,7 +313,7 @@ export default function LivePriceHeader({
                   format={{ minimumIntegerDigits: 2 }}
                 />
               </span>
-              <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">
+              <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
                 {countdownText.minutes}
               </span>
             </div>
@@ -324,7 +324,7 @@ export default function LivePriceHeader({
                   format={{ minimumIntegerDigits: 2 }}
                 />
               </span>
-              <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">
+              <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
                 {countdownText.seconds}
               </span>
             </div>

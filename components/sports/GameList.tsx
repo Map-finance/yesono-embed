@@ -59,7 +59,7 @@ export default function GameList({ games, showTimeDivider }: GameProps) {
         <div key={date}>
           {/* 日期分隔 */}
           {showTimeDivider && (
-            <div className="mb-4 text-sm font-semibold text-[var(--text-secondary)]">
+            <div className="mb-4 text-sm font-semibold text-(--text-secondary)">
               {formatGameDate(date, locale)}
             </div>
           )}
@@ -68,13 +68,13 @@ export default function GameList({ games, showTimeDivider }: GameProps) {
               <div key={sport} className="flex flex-col gap-2">
                 <div className="flex gap-4 pr-3 max-md:hidden">
                   <div className="text-sm font-semibold">{sport}</div>
-                  <div className="ml-auto uppercase text-xs text-[var(--text-secondary)] w-32 text-center">
+                  <div className="ml-auto uppercase text-xs text-(--text-secondary) w-32 text-center">
                     {t.sports.market.moneyline}
                   </div>
-                  <div className="uppercase text-xs text-[var(--text-secondary)] w-32 text-center">
+                  <div className="uppercase text-xs text-(--text-secondary) w-32 text-center">
                     {t.sports.market.spread}
                   </div>
-                  <div className="uppercase text-xs text-[var(--text-secondary)] w-32 text-center">
+                  <div className="uppercase text-xs text-(--text-secondary) w-32 text-center">
                     {t.sports.market.total}
                   </div>
                 </div>

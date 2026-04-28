@@ -234,7 +234,7 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
           <button
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="px-6 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50"
+            className="px-6 py-2 rounded-lg bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-tertiary) transition-colors disabled:opacity-50"
           >
             {isLoadingMore ? t.market.common.loading : t.market.common.loadMore}
           </button>

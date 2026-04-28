@@ -33,8 +33,8 @@ export const NavItem = memo(function NavItem(props: NavItemProps) {
 
   const baseClassName = `flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-all max-md:min-w-[60px] max-md:justify-center max-md:px-2 max-md:py-1.5 ${
     active
-      ? "bg-[var(--bg-secondary)] text-[var(--accent)]"
-      : "hover:bg-[var(--bg-hover)] max-md:hover:bg-transparent"
+      ? "bg-(--bg-secondary) text-(--accent)"
+      : "hover:bg-(--bg-hover) max-md:hover:bg-transparent"
   } ${className}`;
 
   const content = (
@@ -50,7 +50,7 @@ export const NavItem = memo(function NavItem(props: NavItemProps) {
       {badge !== undefined && (
         <span
           className={`text-xs max-md:absolute max-md:top-0 max-md:right-0 max-md:text-white max-md:bg-red max-md:rounded-md max-md:px-1 ${
-            active ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"
+            active ? "text-(--accent)" : "text-(--text-secondary)"
           }`}
         >
           {badge}

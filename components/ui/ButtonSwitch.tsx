@@ -19,7 +19,7 @@ export default function ButtonSwitch({ options, value, className = '', onClick }
                 <div
                     key={option.value}
                     className={`min-w-[56px] h-[38px] flex items-center justify-center rounded-md transition-colors ${
-                        value === option.value ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        value === option.value ? 'bg-(--bg-secondary) text-(--text-primary)' : 'text-(--text-secondary) hover:text-(--text-primary)'
                     }`}
                     onClick={(e) => {
                         if (onClick) {

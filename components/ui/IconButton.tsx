@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes, forwardRef } from 'react';
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     size?: 'sm' | 'md' | 'lg';
-    variant?: 'default' | 'ghost' | 'outline';
+    variant?: 'default' | 'ghost' | 'outline-solid';
 }
 
 const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
@@ -14,9 +14,9 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         };
 
         const variantClasses = {
-            default: 'bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)]',
-            ghost: 'hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]',
-            outline: 'border border-[var(--border-color)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]',
+            default: 'bg-(--bg-secondary) hover:bg-(--bg-hover) text-(--text-primary)',
+            ghost: 'hover:bg-(--bg-hover) text-(--text-secondary)',
+            outline: 'border border-(--border-color) hover:bg-(--bg-hover) text-(--text-secondary)',
         };
 
         return (

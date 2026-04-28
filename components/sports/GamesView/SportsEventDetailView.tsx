@@ -265,14 +265,14 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-[var(--accent)]" />
+        <Loader2 className="w-6 h-6 animate-spin text-(--accent)" />
       </div>
     );
   }
 
   if (!eventData) {
     return (
-      <div className="text-center py-12 text-[var(--text-tertiary)]">
+      <div className="text-center py-12 text-(--text-tertiary)">
         {t.sports.game.noEvents}
       </div>
     );
@@ -281,14 +281,14 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
   return (
     <div>
       {/* 面包屑 */}
-      <div className="flex items-center gap-1.5 text-xs text-[var(--text-tertiary)] mb-2">
-        <button onClick={onBack} className="hover:text-[var(--text-primary)] transition-colors">
+      <div className="flex items-center gap-1.5 text-xs text-(--text-tertiary) mb-2">
+        <button onClick={onBack} className="hover:text-(--text-primary) transition-colors">
           {t.common.nav.sports || "Sports"}
         </button>
         <span>›</span>
         {tagName && (
           <>
-            <button onClick={onBack} className="hover:text-[var(--text-primary)] transition-colors">
+            <button onClick={onBack} className="hover:text-(--text-primary) transition-colors">
               {tagName}
             </button>
             <span>›</span>
@@ -298,19 +298,19 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
 
       {/* 标题 + 图标 */}
       <div className="flex items-start justify-between mb-3 gap-2">
-        <h1 className="text-base sm:text-lg font-bold text-[var(--text-primary)] min-w-0">
+        <h1 className="text-base sm:text-lg font-bold text-(--text-primary) min-w-0">
           {teams.home} vs {teams.away || ""}
         </h1>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {/* <button className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hidden sm:block">
+        <div className="flex items-center gap-1 shrink-0">
+          {/* <button className="p-1.5 rounded hover:bg-(--bg-secondary) text-(--text-secondary) hidden sm:block">
             <Settings size={16} />
           </button> */}
-          {/* <button className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hidden sm:block">
+          {/* <button className="p-1.5 rounded hover:bg-(--bg-secondary) text-(--text-secondary) hidden sm:block">
             <Code size={16} />
           </button> */}
           <button
-            className={`p-1.5 rounded hover:bg-[var(--bg-secondary)] transition-colors ${
-              isFavorite ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"
+            className={`p-1.5 rounded hover:bg-(--bg-secondary) transition-colors ${
+              isFavorite ? "text-(--accent)" : "text-(--text-secondary)"
             }`}
             onClick={async () => {
               if (!eventData) return;
@@ -334,7 +334,7 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
             <Bookmark size={16} fill={isFavorite ? "currentColor" : "none"} />
           </button>
           <button
-            className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
+            className="p-1.5 rounded hover:bg-(--bg-secondary) text-(--text-secondary)"
             onClick={() => {
               trackEvent("market_share_click", { event_id: eventData.id, event_title: eventData.title, channel: "copy_link" });
               navigator.clipboard.writeText(window.location.href).then(() => {
@@ -350,7 +350,7 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
       </div>
 
       {/* 赛事头部信息：队伍图标 + 时间 + 交易量 */}
-      <div className="flex items-center justify-center gap-4 sm:gap-8 mb-4 py-3 sm:py-4 border border-[var(--border)] rounded-lg bg-[var(--bg-card)]">
+      <div className="flex items-center justify-center gap-4 sm:gap-8 mb-4 py-3 sm:py-4 border border-(--border) rounded-lg bg-(--bg-card)">
         {/* 主队 */}
         <div className="flex flex-col items-center gap-1">
           <ProxyImage
@@ -365,7 +365,7 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
         {/* 中间信息 */}
         <div className="text-center">
           <div className="text-sm font-semibold">{endInfo.time}</div>
-          <div className="text-xs text-[var(--text-secondary)]">{endInfo.date}</div>
+          <div className="text-xs text-(--text-secondary)">{endInfo.date}</div>
         </div>
 
         {/* 客队 */}
@@ -381,7 +381,7 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
       </div>
 
       {/* 交易量 */}
-      <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] mb-4">
+      <div className="flex items-center gap-2 text-xs text-(--text-secondary) mb-4">
         <span>
           {eventData.volume != null
             ? `$${eventData.volume} ${t.sports.game.vol}.`
@@ -401,20 +401,20 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
       )}
 
       {/* Game Lines 标签 */}
-      <div className="flex items-center gap-2 sm:gap-4 border-b border-[var(--border)] mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
+      <div className="flex items-center gap-2 sm:gap-4 border-b border-(--border) mb-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
         {gameLineTabs.map((tab, idx) => (
           <button
             key={tab.key}
             onClick={() => setActiveGameLineTab(idx)}
             className={`pb-2 text-sm font-medium whitespace-nowrap transition-colors relative ${
               activeGameLineTab === idx
-                ? "text-[var(--text-primary)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "text-(--text-primary)"
+                : "text-(--text-secondary) hover:text-(--text-primary)"
             }`}
           >
             {tab.label}
             {activeGameLineTab === idx && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-(--accent)" />
             )}
           </button>
         ))}
@@ -457,23 +457,23 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
             return (
               <div
                 key={item.marketId}
-                className="border border-[var(--border)] rounded-lg p-3 flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch"
+                className="border border-(--border) rounded-lg p-3 flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch"
               >
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  <div className="text-sm font-semibold text-(--text-primary) truncate">
                     {label}
                   </div>
-                  <div className="text-xs text-[var(--text-tertiary)]">
+                  <div className="text-xs text-(--text-tertiary)">
                     $0 {t.sports.game.vol}.
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => handleOutcomeClick(item, 0)}
-                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-colors min-w-[90px] border-2 border-[var(--border)] ${
+                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-colors min-w-[90px] border-2 border-(--border) ${
                       active0
                         ? "bg-[#3bab68] text-white border-[#3bab68]"
-                        : "bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                        : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
                     }`}
                     style={active0 ? undefined : { boxShadow: "0 4px 0 0 rgba(0,0,0,0.1)" }}
                   >
@@ -484,10 +484,10 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
                   </button>
                   <button
                     onClick={() => handleOutcomeClick(item, 1)}
-                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-colors min-w-[90px] border-2 border-[var(--border)] ${
+                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-colors min-w-[90px] border-2 border-(--border) ${
                       active1
                         ? "bg-[#e13737] text-white border-[#e13737]"
-                        : "bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                        : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
                     }`}
                     style={active1 ? undefined : { boxShadow: "0 4px 0 0 rgba(0,0,0,0.1)" }}
                   >
@@ -512,14 +512,14 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
             const cardTitle = halftimeResultMarkets[0].marketTitle.replace(/\s*\(.*?\)/, "").trim()
               .replace(/halftime result/i, t.sports.detail.halftimeResult || "Halftime Result");
             return (
-              <div className="border border-[var(--border)] rounded-lg p-3 flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
+              <div className="border border-(--border) rounded-lg p-3 flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  <div className="text-sm font-semibold text-(--text-primary) truncate">
                     {cardTitle}
                   </div>
-                  <div className="text-xs text-[var(--text-tertiary)]">$0 {t.sports.game.vol}.</div>
+                  <div className="text-xs text-(--text-tertiary)">$0 {t.sports.game.vol}.</div>
                 </div>
-                <div className="flex gap-2 flex-wrap flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <div className="flex gap-2 flex-wrap shrink-0" onClick={(e) => e.stopPropagation()}>
                   {halftimeResultMarkets.map((item) => {
                     const isActive = selectedMarketId === item.marketId;
                     const outcome0 = item.outcomes?.find((o) => o.originalIndex === 0);
@@ -533,10 +533,10 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
                       <button
                         key={item.marketId}
                         onClick={() => handleOutcomeClick(item, 0)}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors border-2 border-[var(--border)] min-w-[80px] ${
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors border-2 border-(--border) min-w-[80px] ${
                           isActive
                             ? "bg-[#d4a017] text-white border-[#d4a017]"
-                            : "bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                            : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
                         }`}
                         style={isActive ? undefined : { boxShadow: "0 4px 0 0 rgba(0,0,0,0.1)" }}
                       >
@@ -554,20 +554,20 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
 
       {/* 底部标签页：Comments / Top Holders / Positions / Activity */}
       <div className="mt-8">
-        <div className="flex items-center gap-6 border-b border-[var(--border)] mb-4">
+        <div className="flex items-center gap-6 border-b border-(--border) mb-4">
           {bottomTabs.map((tab, idx) => (
             <button
               key={idx}
               onClick={() => setActiveBottomTab(idx)}
               className={`pb-3 text-sm font-medium transition-colors relative ${
                 activeBottomTab === idx
-                  ? "text-[var(--text-primary)]"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "text-(--text-primary)"
+                  : "text-(--text-secondary) hover:text-(--text-primary)"
               }`}
             >
               {tab}
               {activeBottomTab === idx && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-(--accent)" />
               )}
             </button>
           ))}
@@ -605,7 +605,7 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
         <div className="flex justify-center mt-6">
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[var(--bg-hover)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-1 px-4 py-2 rounded-lg bg-(--bg-hover) text-sm text-(--text-secondary) hover:text-(--text-primary) transition-colors"
           >
             {t.common.backToTop} <ChevronUp size={16} />
           </button>

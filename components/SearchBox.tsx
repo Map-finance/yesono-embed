@@ -201,7 +201,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({
       {/* 搜索输入框 */}
       <div className="relative">
         <Search 
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" 
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-(--text-secondary)" 
           size={16} 
         />
         <input
@@ -210,7 +210,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          className="w-full py-2 pl-10 pr-8 rounded-md bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border)] focus:outline-none focus:border-[var(--accent)] text-sm"
+          className="w-full py-2 pl-10 pr-8 rounded-md bg-(--bg-secondary) text-(--text-primary) border border-(--border) focus:outline-hidden focus:border-(--accent) text-sm"
           placeholder={t.common.search}
         />
         {searchValue && (
@@ -220,7 +220,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({
               setSearchResults([]);
               inputRef.current?.focus();
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-(--bg-hover) text-(--text-secondary) hover:text-(--text-primary) transition-colors"
           >
             <X size={14} />
           </button>
@@ -229,14 +229,14 @@ const SearchBox: React.FC<SearchBoxProps> = ({
 
       {/* 下拉菜单 */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] shadow-xl z-[9999] max-h-[600px] overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 rounded-lg bg-(--bg-card) border border-(--border) shadow-xl z-9999 max-h-[600px] overflow-y-auto">
 
           {/* 搜索结果卡片列表 */}
           {hasSearchQuery && (
             <div className="p-2">
               {isSearching ? (
                 <div className="flex items-center justify-center py-6">
-                  <Loader2 size={20} className="animate-spin text-[var(--text-secondary)]" />
+                  <Loader2 size={20} className="animate-spin text-(--text-secondary)" />
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="flex flex-col gap-1">
@@ -246,10 +246,10 @@ const SearchBox: React.FC<SearchBoxProps> = ({
                       <button
                         key={event.id}
                         onClick={() => handleResultClick(event)}
-                        className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors text-left"
+                        className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-(--bg-hover) transition-colors text-left"
                       >
                         {/* 左侧图片 */}
-                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-secondary)]">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-(--bg-secondary)">
                           {event.image ? (
                             <ProxyImage
                               src={event.image}
@@ -257,7 +257,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[var(--text-tertiary)]">
+                            <div className="w-full h-full flex items-center justify-center text-(--text-tertiary)">
                               <Search size={16} />
                             </div>
                           )}
@@ -265,20 +265,20 @@ const SearchBox: React.FC<SearchBoxProps> = ({
 
                         {/* 中间标题 */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+                          <p className="text-sm font-medium text-(--text-primary) truncate">
                             {event.title}
                           </p>
                         </div>
 
                         {/* 右侧：百分比 + 第一个 market 标题 */}
-                        <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
+                        <div className="flex flex-col items-end shrink-0 gap-0.5">
                           {pct && (
-                            <span className="text-sm font-semibold text-[var(--accent)]">
+                            <span className="text-sm font-semibold text-(--accent)">
                               {pct}
                             </span>
                           )}
                           {marketTitle && (
-                            <span className="text-[11px] text-[var(--text-tertiary)] max-w-[120px] truncate">
+                            <span className="text-[11px] text-(--text-tertiary) max-w-[120px] truncate">
                               {marketTitle}
                             </span>
                           )}
@@ -288,7 +288,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({
                   })}
                 </div>
               ) : (
-                <div className="flex items-center justify-center py-6 text-sm text-[var(--text-secondary)]">
+                <div className="flex items-center justify-center py-6 text-sm text-(--text-secondary)">
                   {t.market.common.noData}
                 </div>
               )}
@@ -298,8 +298,8 @@ const SearchBox: React.FC<SearchBoxProps> = ({
           {/* BROWSE 部分 - 无搜索时显示 */}
           {!hasSearchQuery && (
             <>
-              <div className="p-4 border-b border-[var(--border)]">
-                <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
+              <div className="p-4 border-b border-(--border)">
+                <div className="text-xs font-semibold text-(--text-secondary) uppercase tracking-wider mb-3">
                   {t.common.browse}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -312,8 +312,8 @@ const SearchBox: React.FC<SearchBoxProps> = ({
                         onClick={() => handleBrowseClick(item)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
                           isSelected
-                            ? 'bg-[var(--accent)] text-[var(--bg-primary)] font-semibold'
-                            : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                            ? 'bg-(--accent) text-(--bg-primary) font-semibold'
+                            : 'bg-(--bg-secondary) text-(--text-secondary) hover:text-(--text-primary) hover:bg-(--bg-hover)'
                         }`}
                       >
                         <span>{item.label}</span>
@@ -325,7 +325,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({
 
               {/* TOPICS 部分 */}
               <div className="p-4">
-                <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
+                <div className="text-xs font-semibold text-(--text-secondary) uppercase tracking-wider mb-3">
                   {t.common.topics}
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -335,16 +335,16 @@ const SearchBox: React.FC<SearchBoxProps> = ({
                       <button
                         key={tag.id}
                         onClick={() => handleTopicClick(tag)}
-                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)] transition-colors group"
+                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-(--bg-secondary) hover:bg-(--bg-hover) transition-colors group"
                       >
                         <div className={`${color} group-hover:scale-110 transition-transform`}>
                           <Tag size={24} />
                         </div>
-                        <span className="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] text-center">
+                        <span className="text-xs text-(--text-secondary) group-hover:text-(--text-primary) text-center">
                           {tag.name}
                         </span>
                         {tag.count !== undefined && tag.count !== null && Number(tag.count) > 0 && (
-                          <span className="text-[10px] text-[var(--text-tertiary)]">
+                          <span className="text-[10px] text-(--text-tertiary)">
                             {tag.count} markets
                           </span>
                         )}

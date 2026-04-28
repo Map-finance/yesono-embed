@@ -49,7 +49,7 @@ export default function GamePage() {
             <div className="flex justify-between items-center">
                 <div className="flex gap-2 items-center cursor-pointer group" onClick={handleBackClick}>
                     <ArrowLeft size={20} className="group-hover:-translate-x-1 group-hover:scale-[1.02] transition-transform" />
-                    <div className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">{t.sports.game.backTo} <span className="uppercase">{selectedMenu?.split(':').pop()}</span></div>
+                    <div className="text-(--text-secondary) group-hover:text-(--text-primary) transition-colors">{t.sports.game.backTo} <span className="uppercase">{selectedMenu?.split(':').pop()}</span></div>
                 </div>
                 <div className="flex">
                     <IconButton>

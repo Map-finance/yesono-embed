@@ -52,7 +52,7 @@ const CaretDownIcon = () => (
     width="12px"
     height="12px"
     viewBox="0 0 12 12"
-    className="text-[var(--text-primary)] transition-transform duration-200"
+    className="text-(--text-primary) transition-transform duration-200"
   >
     <polyline
       points="1.75 4.25 6 8.5 10.25 4.25"
@@ -417,7 +417,7 @@ const CapsuleTooltip: React.FC<CapsuleTooltipProps> = ({
       {/* 状态行 */}
       <div className="flex items-center justify-between mb-2">
         {isEnded ? (
-          <span className="flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
+          <span className="flex items-center gap-1.5 text-sm text-(--text-secondary)">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -445,34 +445,34 @@ const CapsuleTooltip: React.FC<CapsuleTooltipProps> = ({
               {t.market.event.live}
             </span>
             {timeLeft && (
-              <span className="text-sm text-[var(--text-secondary)]">
+              <span className="text-sm text-(--text-secondary)">
                 {timeLeft}
               </span>
             )}
           </>
         ) : (
-          <span className="text-sm font-semibold text-[var(--text-primary)]">
+          <span className="text-sm font-semibold text-(--text-primary)">
             {timeLeft}
           </span>
         )}
       </div>
 
       {/* Resolution Time */}
-      <div className="text-xs text-[var(--text-tertiary)] mb-1.5">
+      <div className="text-xs text-(--text-tertiary) mb-1.5">
         {t.market.chart.resolutionTime}
       </div>
       <div className="space-y-1 text-sm">
         <div className="flex justify-between">
           <span className="text-blue-400 font-medium">ET</span>
-          <span className="text-[var(--text-secondary)]">{tz.etDate}</span>
-          <span className="text-[var(--text-primary)] font-semibold">
+          <span className="text-(--text-secondary)">{tz.etDate}</span>
+          <span className="text-(--text-primary) font-semibold">
             {tz.etTime}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-green-400 font-medium">UTC</span>
-          <span className="text-[var(--text-secondary)]">{tz.utcDate}</span>
-          <span className="text-[var(--text-primary)] font-semibold">
+          <span className="text-(--text-secondary)">{tz.utcDate}</span>
+          <span className="text-(--text-primary) font-semibold">
             {tz.utcTime}
           </span>
         </div>
@@ -797,9 +797,9 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
       {/* 1. Past 区域 */}
       {pastItems.length > 0 && (
         <div className="shrink-0">
-          <div className="flex items-center bg-[var(--bg-secondary)] rounded-full px-1 py-1 h-8">
+          <div className="flex items-center bg-(--bg-secondary) rounded-full px-1 py-1 h-8">
             <button
-              className="flex items-center gap-1.5 px-3 h-full text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-full transition-colors"
+              className="flex items-center gap-1.5 px-3 h-full text-sm font-medium text-(--text-primary) hover:bg-(--bg-hover) rounded-full transition-colors"
               onClick={() => {
                 setShowPast(!showPast);
                 setShowMore(false);
@@ -818,7 +818,7 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
 
           {/* Past 下拉层 */}
           {false && showPast && (
-            <div className="absolute top-10 left-0 min-w-[200px] bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl py-2 max-h-[280px] overflow-y-auto scrollbar-hide">
+            <div className="absolute top-10 left-0 min-w-[200px] bg-(--bg-card) border border-(--border) rounded-xl shadow-xl py-2 max-h-[280px] overflow-y-auto scrollbar-hide">
               {pastItems.map((item) => {
                 const labelObj = pastLabels.get(item.slug);
                 if (!labelObj) return null;
@@ -826,20 +826,20 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
                   <Link
                     key={item.slug}
                     href={buildHref(item.slug)}
-                    className="w-full flex items-center justify-start px-4 py-2 hover:bg-[var(--bg-hover)] transition-colors text-left whitespace-nowrap"
+                    className="w-full flex items-center justify-start px-4 py-2 hover:bg-(--bg-hover) transition-colors text-left whitespace-nowrap"
                     onClick={() => handleNavClick(item.slug)}
                   >
                     <div className="flex items-center text-sm">
-                      <span className="font-semibold text-[var(--text-primary)]">
+                      <span className="font-semibold text-(--text-primary)">
                         {labelObj.timeLabel}
                       </span>
-                      <span className="font-semibold text-[var(--text-primary)] ml-1">
+                      <span className="font-semibold text-(--text-primary) ml-1">
                         ET
                       </span>
                       {labelObj.relativeDay && (
                         <>
-                          <span className="mx-1.5 w-[3px] h-[3px] rounded-full bg-[var(--text-tertiary)] shrink-0"></span>
-                          <span className="text-[var(--text-tertiary)] font-medium">
+                          <span className="mx-1.5 w-[3px] h-[3px] rounded-full bg-(--text-tertiary) shrink-0"></span>
+                          <span className="text-(--text-tertiary) font-medium">
                             {labelObj.relativeDay}
                           </span>
                         </>
@@ -868,8 +868,8 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
               onClick={() => handleNavClick(item.slug)}
               className={`flex items-center gap-2 h-8 px-4 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
                 isActive
-                  ? "bg-[var(--text-primary)] text-[var(--bg-primary)]"
-                  : "bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                  ? "bg-(--text-primary) text-(--bg-primary)"
+                  : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
               }`}
             >
               {isLive && (
@@ -889,7 +889,7 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
       {moreItems.length > 0 && (
         <div className="shrink-0">
           <button
-            className="flex items-center gap-1.5 h-8 px-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)] rounded-full text-sm font-medium text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-1.5 h-8 px-4 bg-(--bg-secondary) hover:bg-(--bg-hover) rounded-full text-sm font-medium text-(--text-primary) transition-colors"
             onClick={() => {
               setShowMore(!showMore);
               setShowPast(false);
@@ -907,7 +907,7 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
 
           {/* More 下拉层 */}
           {false && showMore && (
-            <div className="absolute top-10 right-0 min-w-[200px] bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl py-2 max-h-[280px] overflow-y-auto scrollbar-hide">
+            <div className="absolute top-10 right-0 min-w-[200px] bg-(--bg-card) border border-(--border) rounded-xl shadow-xl py-2 max-h-[280px] overflow-y-auto scrollbar-hide">
               {moreItems.map((item) => {
                 const labelObj = moreLabels.get(item.slug);
                 if (!labelObj) return null;
@@ -915,20 +915,20 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
                   <Link
                     key={item.slug}
                     href={buildHref(item.slug)}
-                    className="w-full flex justify-start px-4 py-2 hover:bg-[var(--bg-hover)] transition-colors text-left whitespace-nowrap"
+                    className="w-full flex justify-start px-4 py-2 hover:bg-(--bg-hover) transition-colors text-left whitespace-nowrap"
                     onClick={() => handleNavClick(item.slug)}
                   >
                     <div className="flex items-center text-sm">
-                      <span className="font-semibold text-[var(--text-primary)]">
+                      <span className="font-semibold text-(--text-primary)">
                         {labelObj.timeLabel}
                       </span>
-                      <span className="font-semibold text-[var(--text-primary)] ml-1">
+                      <span className="font-semibold text-(--text-primary) ml-1">
                         ET
                       </span>
                       {labelObj.relativeDay && (
                         <>
-                          <span className="mx-1.5 w-[3px] h-[3px] rounded-full bg-[var(--text-tertiary)] shrink-0"></span>
-                          <span className="text-[var(--text-tertiary)] font-medium">
+                          <span className="mx-1.5 w-[3px] h-[3px] rounded-full bg-(--text-tertiary) shrink-0"></span>
+                          <span className="text-(--text-tertiary) font-medium">
                             {labelObj.relativeDay}
                           </span>
                         </>
@@ -944,7 +944,7 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
         </div>
       </div>
       {showPast && (
-        <div className="absolute top-[calc(100%+8px)] left-0 z-30 w-max min-w-[200px] max-w-[calc(100vw-32px)] sm:top-10 sm:left-0 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl py-2 max-h-[280px] overflow-y-auto scrollbar-hide">
+        <div className="absolute top-[calc(100%+8px)] left-0 z-30 w-max min-w-[200px] max-w-[calc(100vw-32px)] sm:top-10 sm:left-0 bg-(--bg-card) border border-(--border) rounded-xl shadow-xl py-2 max-h-[280px] overflow-y-auto scrollbar-hide">
           {pastItems.map((item) => {
             const labelObj = pastLabels.get(item.slug);
             if (!labelObj) return null;
@@ -952,20 +952,20 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
               <Link
                 key={item.slug}
                 href={buildHref(item.slug)}
-                className="w-full flex items-center justify-start px-4 py-2 hover:bg-[var(--bg-hover)] transition-colors text-left whitespace-nowrap"
+                className="w-full flex items-center justify-start px-4 py-2 hover:bg-(--bg-hover) transition-colors text-left whitespace-nowrap"
                 onClick={() => handleNavClick(item.slug)}
               >
                 <div className="flex items-center text-sm">
-                  <span className="font-semibold text-[var(--text-primary)]">
+                  <span className="font-semibold text-(--text-primary)">
                     {labelObj.timeLabel}
                   </span>
-                  <span className="font-semibold text-[var(--text-primary)] ml-1">
+                  <span className="font-semibold text-(--text-primary) ml-1">
                     ET
                   </span>
                   {labelObj.relativeDay && (
                     <>
-                      <span className="mx-1.5 w-[3px] h-[3px] rounded-full bg-[var(--text-tertiary)] shrink-0"></span>
-                      <span className="text-[var(--text-tertiary)] font-medium">
+                      <span className="mx-1.5 w-[3px] h-[3px] rounded-full bg-(--text-tertiary) shrink-0"></span>
+                      <span className="text-(--text-tertiary) font-medium">
                         {labelObj.relativeDay}
                       </span>
                     </>
@@ -977,7 +977,7 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
         </div>
       )}
       {showMore && (
-        <div className="absolute top-[calc(100%+8px)] right-0 z-30 w-max min-w-[200px] max-w-[calc(100vw-32px)] sm:top-10 sm:right-0 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl py-2 max-h-[280px] overflow-y-auto scrollbar-hide">
+        <div className="absolute top-[calc(100%+8px)] right-0 z-30 w-max min-w-[200px] max-w-[calc(100vw-32px)] sm:top-10 sm:right-0 bg-(--bg-card) border border-(--border) rounded-xl shadow-xl py-2 max-h-[280px] overflow-y-auto scrollbar-hide">
           {moreItems.map((item) => {
             const labelObj = moreLabels.get(item.slug);
             if (!labelObj) return null;
@@ -985,20 +985,20 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
               <Link
                 key={item.slug}
                 href={buildHref(item.slug)}
-                className="w-full flex justify-start px-4 py-2 hover:bg-[var(--bg-hover)] transition-colors text-left whitespace-nowrap"
+                className="w-full flex justify-start px-4 py-2 hover:bg-(--bg-hover) transition-colors text-left whitespace-nowrap"
                 onClick={() => handleNavClick(item.slug)}
               >
                 <div className="flex items-center text-sm">
-                  <span className="font-semibold text-[var(--text-primary)]">
+                  <span className="font-semibold text-(--text-primary)">
                     {labelObj.timeLabel}
                   </span>
-                  <span className="font-semibold text-[var(--text-primary)] ml-1">
+                  <span className="font-semibold text-(--text-primary) ml-1">
                     ET
                   </span>
                   {labelObj.relativeDay && (
                     <>
-                      <span className="mx-1.5 w-[3px] h-[3px] rounded-full bg-[var(--text-tertiary)] shrink-0"></span>
-                      <span className="text-[var(--text-tertiary)] font-medium">
+                      <span className="mx-1.5 w-[3px] h-[3px] rounded-full bg-(--text-tertiary) shrink-0"></span>
+                      <span className="text-(--text-tertiary) font-medium">
                         {labelObj.relativeDay}
                       </span>
                     </>

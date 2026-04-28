@@ -90,7 +90,7 @@ export function Dialog({
   return createPortal(
     <div
       className={`
-        fixed inset-0 z-[100]
+        fixed inset-0 z-100
         flex items-center justify-center
         animate-in fade-in-0
         ${overlayClassName}
@@ -99,7 +99,7 @@ export function Dialog({
     >
       {/* 遮罩层 */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-xs"
         aria-hidden="true"
       />
 
@@ -109,8 +109,8 @@ export function Dialog({
         className={`
           relative
           w-full ${sizeClasses[size]}
-          bg-[var(--bg-primary)]
-          border border-[var(--border)]
+          bg-(--bg-primary)
+          border border-(--border)
           rounded-lg
           shadow-xl
           animate-in zoom-in-95 slide-in-from-bottom-4
@@ -128,9 +128,9 @@ export function Dialog({
             className="
               absolute right-4 top-4
               p-1 rounded-md
-              text-[var(--text-secondary)]
-              hover:text-[var(--text-primary)]
-              hover:bg-[var(--bg-secondary)]
+              text-(--text-secondary)
+              hover:text-(--text-primary)
+              hover:bg-(--bg-secondary)
               transition-colors
               z-10
             "
@@ -159,14 +159,14 @@ export function Dialog({
           <div className="px-6 pt-6 pb-2">
             <h2
               id="dialog-title"
-              className="text-xl font-semibold text-[var(--text-primary)]"
+              className="text-xl font-semibold text-(--text-primary)"
             >
               {title}
             </h2>
             {description && (
               <p
                 id="dialog-description"
-                className="mt-2 text-sm text-[var(--text-secondary)]"
+                className="mt-2 text-sm text-(--text-secondary)"
               >
                 {description}
               </p>
@@ -236,7 +236,7 @@ export function ConfirmDialog({
 
   const confirmButtonClass = confirmVariant === "danger"
     ? "text-red bg-[#312c39]"
-    : "bg-[--accent] hover:bg-[--accent-hover] text-black"
+    : "bg-(--accent) hover:bg-(--accent-hover) text-black"
 
   return (
     <Dialog
@@ -250,9 +250,9 @@ export function ConfirmDialog({
               disabled={loading}
               className="
                 px-4 py-2 rounded-md
-                text-[var(--text-primary)]
-                bg-[var(--bg-secondary)]
-                hover:bg-[var(--bg-tertiary)]
+                text-(--text-primary)
+                bg-(--bg-secondary)
+                hover:bg-(--bg-tertiary)
                 transition-colors
                 disabled:opacity-50 disabled:cursor-not-allowed
               "
@@ -275,7 +275,7 @@ export function ConfirmDialog({
         </div>
       }
     >
-      <div className="text-[var(--text-primary)]">{message}</div>
+      <div className="text-(--text-primary)">{message}</div>
     </Dialog>
   )
 }

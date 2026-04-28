@@ -598,10 +598,10 @@ const MarketChart: React.FC<MarketChartProps> = ({
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: colors[index % colors.length] }}
                 />
-                <span className="text-sm text-[var(--text-primary)]">
+                <span className="text-sm text-(--text-primary)">
                   {option.label}
                 </span>
-                <span className="text-[var(--text-tertiary)] text-sm">
+                <span className="text-(--text-tertiary) text-sm">
                   {currentPercentages[index] || "0"}%
                 </span>
               </div>
@@ -618,8 +618,8 @@ const MarketChart: React.FC<MarketChartProps> = ({
               onClick={() => setSelectedRange(range)}
               className={`h-7 px-3 rounded-full text-sm font-normal transition-all ${
                 selectedRange === range
-                  ? "bg-[var(--accent)] text-[var(--text-inverse)]"
-                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                  ? "bg-(--accent) text-(--text-inverse)"
+                  : "bg-(--bg-secondary) text-(--text-secondary) hover:bg-(--bg-hover)"
               }`}
             >
               {range}
@@ -641,14 +641,14 @@ const MarketChart: React.FC<MarketChartProps> = ({
         <style dangerouslySetInnerHTML={{ __html: glowStyles }} />
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-6 h-6 animate-spin text-[var(--text-secondary)]" />
+            <Loader2 className="w-6 h-6 animate-spin text-(--text-secondary)" />
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm">
+          <div className="flex items-center justify-center h-full text-(--text-secondary) text-sm">
             {t.common.error}
           </div>
         ) : chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm">
+          <div className="flex items-center justify-center h-full text-(--text-secondary) text-sm">
             {t.market.common.noData}
           </div>
         ) : (
@@ -724,7 +724,7 @@ const MarketChart: React.FC<MarketChartProps> = ({
             {/* 自定义 tooltip */}
             <div
               ref={tooltipRef}
-              className="absolute pointer-events-none z-20 border bg-[var(--bg-primary)] border-[var(--border)] rounded-lg p-3 shadow-xl min-w-[160px]"
+              className="absolute pointer-events-none z-20 border bg-(--bg-primary) border-(--border) rounded-lg p-3 shadow-xl min-w-[160px]"
               style={{ display: "none" }}
             />
           </>
@@ -733,7 +733,7 @@ const MarketChart: React.FC<MarketChartProps> = ({
 
       {/* 数据点数量提示 */}
       {!loading && chartData.length > 0 && (
-        <div className="text-[10px] text-[var(--text-tertiary)] mt-1">
+        <div className="text-[10px] text-(--text-tertiary) mt-1">
           {displayData.length}
           {displayData.length < chartData.length
             ? ` / ${chartData.length}`
@@ -743,26 +743,26 @@ const MarketChart: React.FC<MarketChartProps> = ({
       )}
 
       {/* 底部工具栏 */}
-      <div className="flex items-center justify-end mt-2 pt-2 border-t border-[var(--border)] relative z-0">
-        <div className="flex gap-1 relative z-10 bg-[var(--bg-primary)] shadow-[-10px_0_10px_var(--bg-primary)]">
+      <div className="flex items-center justify-end mt-2 pt-2 border-t border-(--border) relative z-0">
+        <div className="flex gap-1 relative z-10 bg-(--bg-primary) shadow-[-10px_0_10px_var(--bg-primary)]">
        
           <button
             onClick={() => setActiveModal("embed")}
-            className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]"
+            className="p-1.5 rounded hover:bg-(--bg-hover) text-(--text-secondary)"
             title={"Embed"}
           >
             <Share2 size={14} />
           </button>
           <button
             onClick={() => setActiveModal("options")}
-            className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]"
+            className="p-1.5 rounded hover:bg-(--bg-hover) text-(--text-secondary)"
             title={t.market.common.options}
           >
             <SlidersHorizontal size={14} />
           </button>
           <button
             onClick={() => setSettingsOpen(true)}
-            className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]"
+            className="p-1.5 rounded hover:bg-(--bg-hover) text-(--text-secondary)"
             title={t.market.common.settings}
           >
             <Settings size={14} />
@@ -789,10 +789,10 @@ const MarketChart: React.FC<MarketChartProps> = ({
           onClick={() => setActiveModal(null)}
         >
           <div
-            className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 w-[300px]"
+            className="bg-(--bg-card) border border-(--border) rounded-xl p-4 w-[300px]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-sm font-medium text-[var(--text-primary)] mb-3">
+            <div className="text-sm font-medium text-(--text-primary) mb-3">
               {t.market.common.options}
             </div>
             {market.options.map((opt, i) => {
@@ -811,8 +811,8 @@ const MarketChart: React.FC<MarketChartProps> = ({
                   }}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-lg mb-1 cursor-pointer transition-colors ${
                     isSelected
-                      ? "bg-[var(--bg-hover)] border border-[var(--accent)]"
-                      : "border border-transparent hover:bg-[var(--bg-hover)]"
+                      ? "bg-(--bg-hover) border border-(--accent)"
+                      : "border border-transparent hover:bg-(--bg-hover)"
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -820,12 +820,12 @@ const MarketChart: React.FC<MarketChartProps> = ({
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: colors[i % colors.length] }}
                     />
-                    <span className="text-sm text-[var(--text-primary)]">
+                    <span className="text-sm text-(--text-primary)">
                       {opt.label}
                     </span>
                   </div>
                   {isSelected && (
-                    <X size={14} className="text-[var(--text-secondary)]" />
+                    <X size={14} className="text-(--text-secondary)" />
                   )}
                 </div>
               );
@@ -841,10 +841,10 @@ const MarketChart: React.FC<MarketChartProps> = ({
           onClick={() => setSettingsOpen(false)}
         >
           <div
-            className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 w-[260px]"
+            className="bg-(--bg-card) border border-(--border) rounded-xl p-4 w-[260px]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-sm font-medium text-[var(--text-primary)] mb-3">
+            <div className="text-sm font-medium text-(--text-primary) mb-3">
               {t.market.common.settings}
             </div>
             {[
@@ -859,7 +859,7 @@ const MarketChart: React.FC<MarketChartProps> = ({
                 key={item.key}
                 className="flex items-center justify-between py-2"
               >
-                <span className="text-sm text-[var(--text-secondary)]">
+                <span className="text-sm text-(--text-secondary)">
                   {item.label}
                 </span>
                 <button
@@ -872,7 +872,7 @@ const MarketChart: React.FC<MarketChartProps> = ({
                   className={`w-10 h-5 rounded-full transition-colors relative ${
                     settings[item.key as keyof typeof settings]
                       ? "bg-[#3b82f6]"
-                      : "bg-[var(--bg-secondary)]"
+                      : "bg-(--bg-secondary)"
                   }`}
                 >
                   <div

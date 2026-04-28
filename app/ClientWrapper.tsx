@@ -135,7 +135,7 @@ export default function ClientWrapper({
               }}
             >
               <App>
-                <div className="min-h-screen bg-[var(--bg-primary)] pb-14 lg:pb-0">
+                <div className="min-h-screen bg-(--bg-primary) pb-14 lg:pb-0">
                   <Header />
                   {children}
                   <MobileBottomNav />

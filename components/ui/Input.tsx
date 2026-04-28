@@ -18,19 +18,19 @@ const Input = React.forwardRef<HTMLInputElement | HTMLTextAreaElement, Props>(
   ({ className = "", error = false, fullWidth = false, as = "input", ...props }, ref) => {
     const baseStyles = `
       px-3 py-2
-      bg-[--bg-secondary]
-      border border-[--border]
+      bg-(--bg-secondary)
+      border border-(--border)
       rounded-md
-      text-[--text-primary]
-      placeholder:text-[--text-tertiary]
+      text-(--text-primary)
+      placeholder:text-(--text-tertiary)
       transition-colors
-      focus:outline-none
+      focus:outline-hidden
       focus:ring-2
       focus:ring-blue-500
       focus:border-transparent
       disabled:opacity-50
       disabled:cursor-not-allowed
-      hover:border-[var(--border-hover)]
+      hover:border-(--border-hover)
       ${error ? "border-red-500 focus:ring-red-500" : ""}
       ${fullWidth ? "w-full" : ""}
       ${as === "textarea" ? "resize-none" : ""}

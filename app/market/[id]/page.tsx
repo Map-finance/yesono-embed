@@ -255,7 +255,7 @@ export default function MarketDetailPage() {
   // 加载市场数据（使用多重 guard 防止重复加载）
   const isLoadingRef = useRef(false); // 防止并发加载
   const loadedSlugRef = useRef<string | null>(null); // 记录已成功加载的 slug
-  const loadMarketRef = useRef<(force?: boolean) => Promise<void>>();
+  const loadMarketRef = useRef<((force?: boolean) => Promise<void>) | undefined>(undefined);
   loadMarketRef.current = async (force = false) => {
     const id = params.id as string;
     // 防止并发加载
@@ -347,8 +347,8 @@ export default function MarketDetailPage() {
     return (
       <div className="max-w-[1400px] mx-auto px-4 py-8">
         <div className="animate-pulse">
-          <div className="h-8 bg-[var(--bg-secondary)] rounded w-1/3 mb-4"></div>
-          <div className="h-64 bg-[var(--bg-secondary)] rounded mb-4"></div>
+          <div className="h-8 bg-(--bg-secondary) rounded w-1/3 mb-4"></div>
+          <div className="h-64 bg-(--bg-secondary) rounded mb-4"></div>
         </div>
       </div>
     );
@@ -357,7 +357,7 @@ export default function MarketDetailPage() {
   if (!market) {
     return (
       <div className="max-w-[1400px] mx-auto px-4 py-8">
-        <div className="text-center text-[var(--text-secondary)]">
+        <div className="text-center text-(--text-secondary)">
           {t.common.notFound}
         </div>
       </div>
@@ -369,7 +369,7 @@ export default function MarketDetailPage() {
       {/* 返回按钮 */}
       {/* <button
         onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-3 lg:mb-4 transition-colors"
+        className="flex items-center gap-1.5 text-(--text-secondary) hover:text-(--text-primary) mb-3 lg:mb-4 transition-colors"
       >
         <ArrowLeft size={18} className="lg:w-5 lg:h-5" />
         <span className="text-sm lg:text-base">{t.common.back}</span>
@@ -384,13 +384,13 @@ export default function MarketDetailPage() {
               src={market.icon}
               fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIGZpbGw9IiMyYTJhMmEiLz48L3N2Zz4="
               alt=""
-              className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg object-cover flex-shrink-0"
+              className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg object-cover shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <h1 className="text-base lg:text-xl font-semibold text-[var(--text-primary)] mb-1 lg:mb-2 line-clamp-2">
+              <h1 className="text-base lg:text-xl font-semibold text-(--text-primary) mb-1 lg:mb-2 line-clamp-2">
                 {market.title}
               </h1>
-              <div className="flex items-center gap-3 lg:gap-4 text-xs lg:text-sm text-[var(--text-secondary)] flex-wrap">
+              <div className="flex items-center gap-3 lg:gap-4 text-xs lg:text-sm text-(--text-secondary) flex-wrap">
                 <span className="flex items-center gap-1">
                   💰 {market.volume} {t.common.volume}
                 </span>
@@ -410,7 +410,7 @@ export default function MarketDetailPage() {
                       <span className="text-3xl font-bold text-[#FF453A] leading-none mb-1 tabular-nums">
                         {String(mobileLiveCountdown.days).padStart(2, "0")}
                       </span>
-                      <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">
+                      <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
                         {mobileCountdownLabels.days}
                       </span>
                     </div>
@@ -420,7 +420,7 @@ export default function MarketDetailPage() {
                       <span className="text-3xl font-bold text-[#FF453A] leading-none mb-1 tabular-nums">
                         {String(mobileLiveCountdown.hours).padStart(2, "0")}
                       </span>
-                      <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">
+                      <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
                         {mobileCountdownLabels.hours}
                       </span>
                     </div>
@@ -429,7 +429,7 @@ export default function MarketDetailPage() {
                     <span className="text-3xl font-bold text-[#FF453A] leading-none mb-1 tabular-nums">
                       {String(mobileLiveCountdown.minutes).padStart(2, "0")}
                     </span>
-                    <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">
+                    <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
                       {mobileCountdownLabels.minutes}
                     </span>
                   </div>
@@ -437,7 +437,7 @@ export default function MarketDetailPage() {
                     <span className="text-3xl font-bold text-[#FF453A] leading-none mb-1 tabular-nums">
                       {String(mobileLiveCountdown.seconds).padStart(2, "0")}
                     </span>
-                    <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">
+                    <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
                       {mobileCountdownLabels.seconds}
                     </span>
                   </div>
@@ -446,7 +446,7 @@ export default function MarketDetailPage() {
               <button
                 aria-label={t.common.share}
                 title={t.common.share}
-                className={`p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors ${
+                className={`p-2 rounded-lg hover:bg-(--bg-hover) text-(--text-secondary) hover:text-(--text-primary) transition-colors ${
                   showMobileLiveCountdown ? "hidden sm:inline-flex" : ""
                 }`}
                 onClick={() => {
@@ -471,10 +471,10 @@ export default function MarketDetailPage() {
                 aria-label={t.common.bookmark}
                 title={t.common.bookmark}
                 onClick={handleFavoriteClick}
-                className={`p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors ${
+                className={`p-2 rounded-lg hover:bg-(--bg-hover) transition-colors ${
                   market.isFavorite
-                    ? "text-[var(--accent)]"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    ? "text-(--accent)"
+                    : "text-(--text-secondary) hover:text-(--text-primary)"
                 } ${showMobileLiveCountdown ? "hidden sm:inline-flex" : ""}`}
               >
                 <Bookmark
@@ -488,7 +488,7 @@ export default function MarketDetailPage() {
           {/* 日期过滤器（仅 probability 模式下展示） */}
           {/* {activeChart === "probability" && (
             <div className="flex items-center gap-2 mb-4">
-              <button className="px-3 py-1.5 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              <button className="px-3 py-1.5 rounded-lg text-sm bg-(--bg-secondary) text-(--text-secondary) hover:text-(--text-primary) transition-colors">
                 {t.market.past} ▾
               </button>
               {DATE_FILTERS.map((date) => {
@@ -510,8 +510,8 @@ export default function MarketDetailPage() {
                     title={longDisplay}
                     className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                       selectedDateFilter === date
-                        ? "bg-[var(--accent)] text-[var(--text-inverse)]"
-                        : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        ? "bg-(--accent) text-(--text-inverse)"
+                        : "bg-(--bg-secondary) text-(--text-secondary) hover:text-(--text-primary)"
                     }`}
                   >
                     {display}
@@ -577,25 +577,25 @@ export default function MarketDetailPage() {
           />
 
           {/* Market Context */}
-          {/* <div className="mt-6 p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+          {/* <div className="mt-6 p-4 rounded-xl border border-(--border) bg-(--bg-card)">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-medium text-[var(--text-primary)]">
+              <h3 className="text-base font-medium text-(--text-primary)">
                 {t.market.marketContext}
               </h3>
-              <button className="text-sm text-[var(--accent)] hover:underline">
+              <button className="text-sm text-(--accent) hover:underline">
                 {t.common.generate}
               </button>
             </div>
           </div> */}
 
           {/* Rules */}
-          <div className="mt-3 lg:mt-4 p-3 lg:p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-            <h3 className="text-sm lg:text-base font-medium text-[var(--text-primary)] mb-1.5 lg:mb-2">
+          <div className="mt-3 lg:mt-4 p-3 lg:p-4 rounded-xl border border-(--border) bg-(--bg-card)">
+            <h3 className="text-sm lg:text-base font-medium text-(--text-primary) mb-1.5 lg:mb-2">
               {t.market.rules}
             </h3>
             <p
               className={
-                "text-sm text-[var(--text-secondary)] leading-relaxed" +
+                "text-sm text-(--text-secondary) leading-relaxed" +
                 (showFullDescription ? "" : " line-clamp-2")
               }
             >
@@ -603,7 +603,7 @@ export default function MarketDetailPage() {
             </p>
             {!showFullDescription && (
               <button
-                className="mt-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
+                className="mt-2 text-sm text-(--text-secondary) hover:text-(--text-primary) flex items-center gap-1"
                 onClick={() => setShowFullDescription(true)}
               >
                 {t.common.showMore} <span>▾</span>
@@ -623,10 +623,10 @@ export default function MarketDetailPage() {
         </div>
 
         {/* 右侧面板 - 移动端隐藏 */}
-        <div className="w-80 flex-shrink-0 space-y-4 hidden lg:block sticky top-[calc(120px+1.5rem)] max-h-[calc(100vh-120px)] scrollbar-hide overflow-y-auto">
+        <div className="w-80 shrink-0 space-y-4 hidden lg:block sticky top-[calc(120px+1.5rem)] max-h-[calc(100vh-120px)] scrollbar-hide overflow-y-auto">
           {/* 已解决市场显示 Outcome 卡片，未解决显示交易面板 */}
           {selectedMarketInfo?.isResolved ? (
-            <div className="p-6 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] flex flex-col items-center">
+            <div className="p-6 rounded-xl border border-(--border) bg-(--bg-card) flex flex-col items-center">
               {/* 勾选图标 */}
               <div className="w-16 h-16 rounded-full bg-[#3b82f6] flex items-center justify-center mb-4">
                 <svg
@@ -648,7 +648,7 @@ export default function MarketDetailPage() {
                 {selectedMarketInfo.resolvedOutcome || t.market.common.yes}
               </div>
               {/* 标题 */}
-              <div className="text-sm text-[var(--text-secondary)] text-center">
+              <div className="text-sm text-(--text-secondary) text-center">
                 {selectedMarketInfo.title}
               </div>
             </div>

@@ -159,7 +159,7 @@ export default function OutcomeDetailPage() {
       }
     };
     loadMarket();
-  }, [marketId, outcomeIndex, setStoreMarket, setStoreEvent]);
+  }, [marketId, outcomeIndex]);
 
   useEffect(() => {
     setActiveChartState("price");
@@ -546,10 +546,10 @@ export default function OutcomeDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] px-4 py-6">
+      <div className="min-h-screen bg-(--bg-primary) px-4 py-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-[var(--bg-secondary)] rounded w-1/3 mb-4"></div>
-          <div className="h-52 bg-[var(--bg-secondary)] rounded mb-4"></div>
+          <div className="h-6 bg-(--bg-secondary) rounded w-1/3 mb-4"></div>
+          <div className="h-52 bg-(--bg-secondary) rounded mb-4"></div>
         </div>
       </div>
     );
@@ -557,8 +557,8 @@ export default function OutcomeDetailPage() {
 
   if (!market || !option) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] px-4 py-6">
-        <div className="text-center text-[var(--text-secondary)]">
+      <div className="min-h-screen bg-(--bg-primary) px-4 py-6">
+        <div className="text-center text-(--text-secondary)">
           {t.common.notFound}
         </div>
       </div>
@@ -566,21 +566,21 @@ export default function OutcomeDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
+    <div className="min-h-screen bg-(--bg-primary)">
       {/* 顶部导航栏 */}
       <div className="flex items-center justify-between px-3 py-2.5">
         <button
           onClick={() => router.back()}
-          className="p-1.5 -ml-1.5 rounded-full hover:bg-[var(--bg-hover)]"
+          className="p-1.5 -ml-1.5 rounded-full hover:bg-(--bg-hover)"
         >
-          <ArrowLeft size={18} className="text-[var(--text-primary)]" />
+          <ArrowLeft size={18} className="text-(--text-primary)" />
         </button>
-        <div className="text-xs text-[var(--text-secondary)]">
+        <div className="text-xs text-(--text-secondary)">
           ${formatNumber(realVolume)} Vol.
         </div>
         <div className="flex items-center gap-0.5">
           <button
-            className="p-1.5 rounded-full hover:bg-[var(--bg-hover)]"
+            className="p-1.5 rounded-full hover:bg-(--bg-hover)"
             onClick={() => {
               navigator.clipboard
                 .writeText(window.location.href)
@@ -595,7 +595,7 @@ export default function OutcomeDetailPage() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className="text-[var(--text-secondary)]"
+              className="text-(--text-secondary)"
             >
               <circle cx="18" cy="5" r="3" />
               <circle cx="6" cy="12" r="3" />
@@ -618,7 +618,7 @@ export default function OutcomeDetailPage() {
             className="w-9 h-9 rounded-lg object-cover"
           />
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-semibold text-[var(--text-primary)] line-clamp-2">
+            <h1 className="text-base font-semibold text-(--text-primary) line-clamp-2">
               {option.label}
             </h1>
           </div>
@@ -629,7 +629,7 @@ export default function OutcomeDetailPage() {
                   <span className="text-2xl font-bold leading-none text-[#FF453A] tabular-nums">
                     {String(mobileLiveCountdown.days).padStart(2, "0")}
                   </span>
-                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-(--text-secondary)">
                     {mobileCountdownLabels.days}
                   </span>
                 </div>
@@ -639,7 +639,7 @@ export default function OutcomeDetailPage() {
                   <span className="text-2xl font-bold leading-none text-[#FF453A] tabular-nums">
                     {String(mobileLiveCountdown.hours).padStart(2, "0")}
                   </span>
-                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-(--text-secondary)">
                     {mobileCountdownLabels.hours}
                   </span>
                 </div>
@@ -648,7 +648,7 @@ export default function OutcomeDetailPage() {
                 <span className="text-2xl font-bold leading-none text-[#FF453A] tabular-nums">
                   {String(mobileLiveCountdown.minutes).padStart(2, "0")}
                 </span>
-                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-(--text-secondary)">
                   {mobileCountdownLabels.minutes}
                 </span>
               </div>
@@ -656,7 +656,7 @@ export default function OutcomeDetailPage() {
                 <span className="text-2xl font-bold leading-none text-[#FF453A] tabular-nums">
                   {String(mobileLiveCountdown.seconds).padStart(2, "0")}
                 </span>
-                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-(--text-secondary)">
                   {mobileCountdownLabels.seconds}
                 </span>
               </div>
@@ -670,7 +670,7 @@ export default function OutcomeDetailPage() {
             {currentValue.toFixed(1)}% {t.market.chance}
           </span>
           {change !== undefined && change !== 0 && (
-            <span className={`text-xs ${change >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+            <span className={`text-xs ${change >= 0 ? "text-(--green)" : "text-(--red)"}`}>
               {change >= 0 ? "▲" : "▼"}{Math.abs(change)}%
             </span>
           )}
@@ -689,10 +689,10 @@ export default function OutcomeDetailPage() {
             />
             {chartLoading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="w-5 h-5 border-2 border-[var(--text-secondary)] border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-(--text-secondary) border-t-transparent rounded-full animate-spin" />
               </div>
             ) : displayData.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-xs">
+              <div className="flex items-center justify-center h-full text-(--text-secondary) text-xs">
                 {t.market.common.noData}
               </div>
             ) : (
@@ -765,7 +765,7 @@ export default function OutcomeDetailPage() {
                 />
                 <div
                   ref={tooltipRef}
-                  className="absolute pointer-events-none z-20 border bg-[var(--bg-primary)] border-[var(--border)] rounded-lg p-2 shadow-xl min-w-[120px]"
+                  className="absolute pointer-events-none z-20 border bg-(--bg-primary) border-(--border) rounded-lg p-2 shadow-xl min-w-[120px]"
                   style={{ display: "none" }}
                 />
               </>
@@ -821,8 +821,8 @@ export default function OutcomeDetailPage() {
                 onClick={() => setSelectedRange(range)}
                 className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                   selectedRange === range
-                    ? "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                    : "text-[var(--text-secondary)]"
+                    ? "bg-(--bg-secondary) text-(--text-primary)"
+                    : "text-(--text-secondary)"
                 }`}
               >
                 {range}
@@ -831,23 +831,23 @@ export default function OutcomeDetailPage() {
           </div>
         )}
 
-        <div className="border border-[var(--border)] rounded-xl mb-3">
+        <div className="border border-(--border) rounded-xl mb-3">
           <button
             onClick={() => setOrderBookExpanded(!orderBookExpanded)}
             className="w-full flex items-center justify-between p-3"
           >
-            <span className="text-sm font-medium text-[var(--text-primary)]">
+            <span className="text-sm font-medium text-(--text-primary)">
               {t.market.orderBook}
             </span>
             {orderBookExpanded ? (
-              <ChevronUp size={18} className="text-[var(--text-secondary)]" />
+              <ChevronUp size={18} className="text-(--text-secondary)" />
             ) : (
-              <ChevronDown size={18} className="text-[var(--text-secondary)]" />
+              <ChevronDown size={18} className="text-(--text-secondary)" />
             )}
           </button>
 
           {orderBookExpanded && eventMarket && (
-            <div className="px-3 pb-3 border-t border-[var(--border)]">
+            <div className="px-3 pb-3 border-t border-(--border)">
               <SpotOrderbook
                 ticker={`${marketId}-${option?.label}`}
                 basePrice={percentage / 100}
@@ -863,12 +863,12 @@ export default function OutcomeDetailPage() {
         {/* Rules - 使用真实 API 数据 */}
         {eventData?.description && (
           <div className="mb-3">
-            <h3 className="text-sm font-medium text-[var(--text-primary)] mb-1.5">
+            <h3 className="text-sm font-medium text-(--text-primary) mb-1.5">
               {t.market.rules}
             </h3>
             <p
               className={
-                "text-xs text-[var(--text-secondary)] leading-relaxed" +
+                "text-xs text-(--text-secondary) leading-relaxed" +
                 (showFullDescription ? "" : " line-clamp-2")
               }
             >
@@ -876,7 +876,7 @@ export default function OutcomeDetailPage() {
             </p>
             {!showFullDescription && eventData?.description && (
               <button
-                className="mt-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-0.5"
+                className="mt-1 text-xs text-(--text-secondary) hover:text-(--text-primary) flex items-center gap-0.5"
                 onClick={() => setShowFullDescription(true)}
               >
                 {t.common.showMore} <ChevronDown size={12} />
@@ -899,7 +899,7 @@ export default function OutcomeDetailPage() {
       </div>
 
       {/* 底部固定买入按钮 / 已解决状态 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[var(--bg-card)] border-t border-[var(--border)] p-3 safe-area-bottom z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-(--bg-card) border-t border-(--border) p-3 safe-area-bottom z-40">
         {isResolved ? (
           <div className="py-2.5 rounded-lg text-center text-sm font-semibold bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)]">
             {t.market.resolved}: {resolvedOutcome || t.market.common.yes}

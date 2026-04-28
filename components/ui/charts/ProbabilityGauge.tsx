@@ -34,7 +34,7 @@ export default function ProbabilityGauge({
           {value}%
         </div>
         <div
-          className="absolute text-xs text-[--text-secondary] font-semibold"
+          className="absolute text-xs text-(--text-secondary) font-semibold"
           style={{
             letterSpacing: 1,
           }}
@@ -53,7 +53,7 @@ export default function ProbabilityGauge({
         startAngle={180}
         endAngle={0}
         data={data}
-        className="outline-none"
+        className="outline-hidden"
       >
         {/* 隐藏刻度 */}
         <PolarAngleAxis

@@ -30,7 +30,7 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[var(--bg-primary)] border-t border-[var(--border)]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-100 bg-(--bg-primary) border-t border-(--border)">
       <div className="flex items-center justify-around h-14">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -40,8 +40,8 @@ export default function MobileBottomNav() {
               href={item.path}
               className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
                 item.isActive
-                  ? "text-[var(--accent)]"
-                  : "text-[var(--text-secondary)]"
+                  ? "text-(--accent)"
+                  : "text-(--text-secondary)"
               }`}
             >
               <Icon size={20} className="mb-0.5" />

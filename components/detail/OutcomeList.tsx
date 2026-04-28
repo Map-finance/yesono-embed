@@ -364,13 +364,13 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
       {/* 标题 */}
       <div className="flex items-center gap-2 mb-4">
         <div className="w-3 h-3 rounded-full bg-[#ED6432]" />
-        <span className="text-sm text-[var(--text-primary)]">{label || t.market.outcome}</span>
-        <span className="text-[var(--text-tertiary)] text-sm">
+        <span className="text-sm text-(--text-primary)">{label || t.market.outcome}</span>
+        <span className="text-(--text-tertiary) text-sm">
           {currentValue.toFixed(1)}%
         </span>
         {change !== undefined && (
           <span
-            className={`text-sm ${change >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+            className={`text-sm ${change >= 0 ? "text-(--green)" : "text-(--red)"}`}
           >
             {change >= 0 ? "▲" : "▼"}
             {Math.abs(change)}%
@@ -385,8 +385,8 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
             key={range}
             onClick={() => setSelectedRange(range)}
             className={`h-7 px-3 rounded-full text-sm font-normal transition-all ${selectedRange === range
-              ? "bg-[var(--accent)] text-[var(--text-inverse)]"
-              : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+              ? "bg-(--accent) text-(--text-inverse)"
+              : "bg-(--bg-secondary) text-(--text-secondary) hover:bg-(--bg-hover)"
               }`}
           >
             {range}
@@ -407,14 +407,14 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
         )}
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-6 h-6 animate-spin text-[var(--text-secondary)]" />
+            <Loader2 className="w-6 h-6 animate-spin text-(--text-secondary)" />
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm">
+          <div className="flex items-center justify-center h-full text-(--text-secondary) text-sm">
             {t.common.error}
           </div>
         ) : chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm">
+          <div className="flex items-center justify-center h-full text-(--text-secondary) text-sm">
             {t.market.common.noData}
           </div>
         ) : (
@@ -474,7 +474,7 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
             />
             <div
               ref={tooltipRef}
-              className="absolute pointer-events-none z-20 border bg-[var(--bg-primary)] border-[var(--border)] rounded-lg p-3 shadow-xl min-w-[140px]"
+              className="absolute pointer-events-none z-20 border bg-(--bg-primary) border-(--border) rounded-lg p-3 shadow-xl min-w-[140px]"
               style={{ display: 'none' }}
             />
           </>
@@ -483,17 +483,17 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
 
       {/* 数据点数量提示 */}
       {!loading && chartData.length > 0 && (
-        <div className="text-[10px] text-[var(--text-tertiary)] mt-1">
+        <div className="text-[10px] text-(--text-tertiary) mt-1">
           {displayData.length}{displayData.length < chartData.length ? ` / ${chartData.length}` : ''} {t.market.chart.dataPoints}
         </div>
       )}
 
       {/* 底部工具栏 */}
-      <div className="flex items-center justify-end mt-2 pt-2 border-t border-[var(--border)]">
+      <div className="flex items-center justify-end mt-2 pt-2 border-t border-(--border)">
         <div className="flex gap-1">
           <button
             onClick={() => setSettingsOpen(true)}
-            className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]"
+            className="p-1.5 rounded hover:bg-(--bg-hover) text-(--text-secondary)"
             title={t.market.common.settings}
           >
             <Settings size={14} />
@@ -508,10 +508,10 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
           onClick={() => setSettingsOpen(false)}
         >
           <div
-            className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 w-[260px]"
+            className="bg-(--bg-card) border border-(--border) rounded-xl p-4 w-[260px]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-sm font-medium text-[var(--text-primary)] mb-3">
+            <div className="text-sm font-medium text-(--text-primary) mb-3">
               {t.market.common.settings}
             </div>
             {[
@@ -526,7 +526,7 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
                 key={item.key}
                 className="flex items-center justify-between py-2"
               >
-                <span className="text-sm text-[var(--text-secondary)]">
+                <span className="text-sm text-(--text-secondary)">
                   {item.label}
                 </span>
                 <button
@@ -537,7 +537,7 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
                         !prev[item.key as keyof typeof prev],
                     }))
                   }
-                  className={`w-10 h-5 rounded-full transition-colors relative ${settings[item.key as keyof typeof settings] ? "bg-[#3b82f6]" : "bg-[var(--bg-secondary)]"}`}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${settings[item.key as keyof typeof settings] ? "bg-[#3b82f6]" : "bg-(--bg-secondary)"}`}
                 >
                   <div
                     className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${settings[item.key as keyof typeof settings] ? "left-5" : "left-0.5"}`}
@@ -742,8 +742,8 @@ const OutcomeRow = memo(({
   return (
     <div
       className={`rounded-xl border transition-all ${isExpanded
-        ? "border-[var(--accent)] bg-[var(--bg-card)]"
-        : "border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--border-light)]"
+        ? "border-(--accent) bg-(--bg-card)"
+        : "border-(--border) bg-(--bg-card) hover:border-(--border-light)"
         }`}
     >
       {/* Desktop Layout */}
@@ -752,10 +752,10 @@ const OutcomeRow = memo(({
         className="hidden lg:flex items-center justify-between p-4 cursor-pointer"
       >
         <div className="flex-1">
-          <div className="font-medium text-[var(--text-primary)]">
+          <div className="font-medium text-(--text-primary)">
             {option.label}
           </div>
-          <div className="text-xs text-[var(--text-secondary)] mt-1">
+          <div className="text-xs text-(--text-secondary) mt-1">
             {formatNumber(Number(volume))} {t.common.volume}
           </div>
         </div>
@@ -763,12 +763,12 @@ const OutcomeRow = memo(({
         <div className="w-24 text-center">
           {!option.isResolved && (
             <>
-              <span className="text-lg font-semibold text-[var(--text-primary)]">
+              <span className="text-lg font-semibold text-(--text-primary)">
                 {formatPercentage(option.percentage)}
               </span>
               {option.change !== undefined && (
                 <span
-                  className={`ml-2 text-xs ${option.change >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                  className={`ml-2 text-xs ${option.change >= 0 ? "text-(--green)" : "text-(--red)"}`}
                 >
                   {option.change >= 0 ? "▲" : "▼"}
                   {Math.abs(option.change)}%
@@ -802,9 +802,9 @@ const OutcomeRow = memo(({
             </>
           )}
           {isExpanded ? (
-            <ChevronUp size={20} className="text-[var(--text-secondary)]" />
+            <ChevronUp size={20} className="text-(--text-secondary)" />
           ) : (
-            <ChevronDown size={20} className="text-[var(--text-secondary)]" />
+            <ChevronDown size={20} className="text-(--text-secondary)" />
           )}
         </div>
       </div>
@@ -816,15 +816,15 @@ const OutcomeRow = memo(({
       >
         <div className="flex items-start justify-between mb-1">
           <div className="flex-1">
-            <div className="font-semibold text-lg text-[var(--text-primary)]">
+            <div className="font-semibold text-lg text-(--text-primary)">
               {option.label}
             </div>
-            <div className="text-sm text-[var(--text-secondary)] mt-0.5">
+            <div className="text-sm text-(--text-secondary) mt-0.5">
               {formatNumber(Number(volume))} {t.common.volume}
             </div>
           </div>
           {!option.isResolved && (
-            <span className="text-2xl font-bold text-[var(--text-primary)]">
+            <span className="text-2xl font-bold text-(--text-primary)">
               {formatPercentage(option.percentage)}
             </span>
           )}
@@ -864,7 +864,7 @@ const OutcomeRow = memo(({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="px-4 pb-4 border-t border-[var(--border)]">
+        <div className="px-4 pb-4 border-t border-(--border)">
           <div className="flex items-center justify-between py-3">
             <div className="flex gap-4">
               {tabs
@@ -874,8 +874,8 @@ const OutcomeRow = memo(({
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`text-sm font-medium transition-colors ${activeTab === tab.id
-                      ? "text-[var(--text-primary)]"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      ? "text-(--text-primary)"
+                      : "text-(--text-secondary) hover:text-(--text-primary)"
                       }`}
                   >
                     {tab.label}
@@ -908,7 +908,7 @@ const OutcomeRow = memo(({
           )}
 
           {activeTab === "resolution" && (
-            <div className="py-4 text-sm text-[var(--text-secondary)]">
+            <div className="py-4 text-sm text-(--text-secondary)">
               <p>{t.market.chart.resolutionSource}</p>
               <p className="mt-2">
                 {t.market.chart.resolutionDesc}
@@ -1247,7 +1247,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
   return (
     <div className="mt-4">
       {/* 表头 */}
-      <div className="flex items-center justify-between px-4 py-2 text-xs text-[var(--text-secondary)] uppercase">
+      <div className="flex items-center justify-between px-4 py-2 text-xs text-(--text-secondary) uppercase">
         <span className="flex-1">{t.market.outcome}</span>
         <span className="w-24 text-center">{`% ${t.common.chance} ⇅`}</span>
         <span className="w-48"></span>
@@ -1275,7 +1275,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
           <div className="pt-2">
             <button
               onClick={() => setShowResolved(!showResolved)}
-              className="w-full py-3 px-4 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)] text-sm text-[var(--text-primary)] font-medium transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-lg border border-(--border) bg-(--bg-secondary) hover:bg-(--bg-hover) text-sm text-(--text-primary) font-medium transition-colors flex items-center justify-center gap-2"
             >
               {showResolved ? (
                 <>

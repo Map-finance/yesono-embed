@@ -231,7 +231,7 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
         {change !== undefined && (
           <span
             className={`text-sm ${
-              change >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
+              change >= 0 ? "text-(--green)" : "text-(--red)"
             }`}
           >
             {change >= 0 ? "▲" : "▼"}
@@ -313,10 +313,10 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
           onClick={() => setSettingsOpen(false)}
         >
           <div
-            className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 w-[260px]"
+            className="bg-(--bg-card) border border-(--border) rounded-xl p-4 w-[260px]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-sm font-medium text-[var(--text-primary)] mb-3">
+            <div className="text-sm font-medium text-(--text-primary) mb-3">
               {t.market.common.settings}
             </div>
             {[
@@ -331,7 +331,7 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
                 key={item.key}
                 className="flex items-center justify-between py-2"
               >
-                <span className="text-sm text-[var(--text-secondary)]">
+                <span className="text-sm text-(--text-secondary)">
                   {item.label}
                 </span>
                 <button
@@ -344,7 +344,7 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
                   className={`w-10 h-5 rounded-full transition-colors relative ${
                     settings[item.key as keyof typeof settings]
                       ? "bg-[#3b82f6]"
-                      : "bg-[var(--bg-secondary)]"
+                      : "bg-(--bg-secondary)"
                   }`}
                 >
                   <div
@@ -464,18 +464,18 @@ export default function CryptoDetailPage() {
 
   if (!market) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
-        <div className="text-[var(--text-secondary)]">加载中...</div>
+      <div className="min-h-screen flex items-center justify-center bg-(--bg-primary)">
+        <div className="text-(--text-secondary)">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] pb-20 relative">
+    <div className="min-h-screen bg-(--bg-primary) pb-20 relative">
       <div className="max-w-[1280px] mx-auto grid grid-cols-12 gap-8 px-6">
         <div
           ref={sentinelRef}
-          className="absolute top-0 left-0 w-full h-[1px] pointer-events-none opacity-0 z-0"
+          className="absolute top-0 left-0 w-full h-px pointer-events-none opacity-0 z-0"
         />
         {/* 左侧主内容 */}
         <div className="col-span-12 lg:col-span-8">
@@ -484,7 +484,7 @@ export default function CryptoDetailPage() {
             <div
               className={`transition-all duration-100 ease-in-out border-b ${
                 isScrolled
-                  ? "bg-[var(--bg-primary)]/95 backdrop-blur-md py-3 border-[var(--border)] shadow-lg"
+                  ? "bg-(--bg-primary)/95 backdrop-blur-md py-3 border-(--border) shadow-lg"
                   : "pt-8 pb-6 bg-transparent border-transparent"
               }`}
             >
@@ -510,7 +510,7 @@ export default function CryptoDetailPage() {
                   </div>
                   {/* 市场标题 */}
                   <h1
-                    className={`!font-semibold !text-2xl text-pretty ${
+                    className={`font-semibold! text-2xl! text-pretty ${
                       isScrolled ? "text-[18px]" : "text-[32px]"
                     }`}
                   >
@@ -532,10 +532,10 @@ export default function CryptoDetailPage() {
                     { val: "51", label: "MINS" },
                   ].map((t, idx) => (
                     <div key={idx} className="flex flex-col items-center">
-                      <span className="text-[24px] font-bold text-[var(--text-primary)] leading-none">
+                      <span className="text-[24px] font-bold text-(--text-primary) leading-none">
                         {t.val}
                       </span>
-                      <span className="text-[9px] text-[var(--text-secondary)] font-black mt-1.5 tracking-[0.05em] uppercase">
+                      <span className="text-[9px] text-(--text-secondary) font-black mt-1.5 tracking-wider uppercase">
                         {t.label}
                       </span>
                     </div>
@@ -549,7 +549,7 @@ export default function CryptoDetailPage() {
                   isScrolled ? "opacity-0 max-h-0" : "opacity-100 max-h-10 mt-5"
                 }`}
               >
-                <div className="text-[var(--text-secondary)] text-[14px] font-medium pl-1">
+                <div className="text-(--text-secondary) text-[14px] font-medium pl-1">
                   {market.volume || "$152,218,277"} {t.common.volume}
                 </div>
               </div>
@@ -558,7 +558,7 @@ export default function CryptoDetailPage() {
 
           {/* 列表头部 */}
           <div className="mt-4">
-            <div className="flex items-center justify-between text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-widest px-2 py-3 border-b border-[var(--border)]">
+            <div className="flex items-center justify-between text-[11px] font-bold text-(--text-secondary) uppercase tracking-widest px-2 py-3 border-b border-(--border)">
               <span className="w-1/3">Outcome</span>
               <span className="flex-1 text-center flex items-center justify-center gap-1.5 mr-10">
                 % Chance <RotateCw className="w-3 h-3" />
@@ -567,7 +567,7 @@ export default function CryptoDetailPage() {
             </div>
 
             {/* 结果列表 - 可展开 */}
-            <div className="divide-y divide-[var(--border)]">
+            <div className="divide-y divide-(--border)">
               {mockOutcomes.map((o, idx) => {
                 const isExpanded = expandedIndex === idx;
                 return (
@@ -575,25 +575,25 @@ export default function CryptoDetailPage() {
                     {/* 列表项 - 可点击展开 */}
                     <div
                       onClick={() => setExpandedIndex(isExpanded ? null : idx)}
-                      className={`group flex items-center justify-between py-5 px-2 hover:bg-[var(--bg-secondary)] transition-all cursor-pointer ${
-                        isExpanded ? "bg-[var(--bg-secondary)]" : ""
+                      className={`group flex items-center justify-between py-5 px-2 hover:bg-(--bg-secondary) transition-all cursor-pointer ${
+                        isExpanded ? "bg-(--bg-secondary)" : ""
                       }`}
                     >
                       <div className="w-1/3 flex flex-col gap-1.5">
                         <div className="flex items-center gap-3">
-                          <span className="text-[var(--text-secondary)] text-[14px] font-bold">
+                          <span className="text-(--text-secondary) text-[14px] font-bold">
                             ↑
                           </span>
-                          <span className="text-[17px] font-bold text-[var(--text-primary)] border-b border-dashed border-[var(--border)] pb-0.5 group-hover:border-[var(--text-secondary)] transition-colors cursor-help">
+                          <span className="text-[17px] font-bold text-(--text-primary) border-b border-dashed border-(--border) pb-0.5 group-hover:border-(--text-secondary) transition-colors cursor-help">
                             {o.label}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] font-bold">
+                        <div className="flex items-center gap-1.5 text-[12px] text-(--text-secondary) font-bold">
                           <span>
                             {o.vol} {t.common.volume}
                           </span>
                           {o.hasGift && (
-                            <Gift className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                            <Gift className="w-3.5 h-3.5 text-(--text-tertiary)" />
                           )}
                         </div>
                       </div>
@@ -602,8 +602,8 @@ export default function CryptoDetailPage() {
                         <span
                           className={`text-[28px] font-bold tracking-tighter transition-colors ${
                             isExpanded
-                              ? "text-[var(--text-primary)]"
-                              : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
+                              ? "text-(--text-primary)"
+                              : "text-(--text-secondary) group-hover:text-(--text-primary)"
                           }`}
                         >
                           {o.prob}
@@ -642,7 +642,7 @@ export default function CryptoDetailPage() {
                         const percentage = parsePercentage(o.prob);
                         const orderBook = generateOrderBook(percentage);
                         return (
-                          <div className="bg-[var(--bg-card)] border-y border-[var(--border)] px-4 pb-4">
+                          <div className="bg-(--bg-card) border-y border-(--border) px-4 pb-4">
                             {/* 标签页导航 */}
                             <div className="flex items-center justify-between py-3">
                               <div className="flex gap-4">
@@ -665,15 +665,15 @@ export default function CryptoDetailPage() {
                                     onClick={() => setActiveTab(tab.key)}
                                     className={`text-sm font-medium transition-colors ${
                                       activeTab === tab.key
-                                        ? "text-[var(--text-primary)]"
-                                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                        ? "text-(--text-primary)"
+                                        : "text-(--text-secondary) hover:text-(--text-primary)"
                                     }`}
                                   >
                                     {tab.label}
                                   </button>
                                 ))}
                               </div>
-                              <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                              <div className="flex items-center gap-2 text-xs text-(--text-secondary)">
                                 <RefreshCw size={14} />
                                 <span>0.1¢</span>
                               </div>
@@ -683,15 +683,15 @@ export default function CryptoDetailPage() {
                             {activeTab === "orderbook" && (
                               <div>
                                 {/* Trade Yes 表格 */}
-                                <div className="text-xs text-[var(--text-secondary)] uppercase mb-2 flex items-center gap-2">
+                                <div className="text-xs text-(--text-secondary) uppercase mb-2 flex items-center gap-2">
                                   {t.market.buyYes}
-                                  <span className="text-[var(--text-tertiary)]">
+                                  <span className="text-(--text-tertiary)">
                                     ⊡
                                   </span>
                                 </div>
 
                                 {/* 表头 */}
-                                <div className="grid grid-cols-3 text-xs text-[var(--text-secondary)] py-1 border-b border-[var(--border)]">
+                                <div className="grid grid-cols-3 text-xs text-(--text-secondary) py-1 border-b border-(--border)">
                                   <span className="text-center">Price</span>
                                   <span className="text-right">Shares</span>
                                   <span className="text-right">Total</span>
@@ -712,13 +712,13 @@ export default function CryptoDetailPage() {
                                         )}%`,
                                       }}
                                     />
-                                    <span className="text-center text-[var(--green)] relative z-10">
+                                    <span className="text-center text-(--green) relative z-10">
                                       {entry.price}¢
                                     </span>
-                                    <span className="text-right text-[var(--text-primary)] relative z-10">
+                                    <span className="text-right text-(--text-primary) relative z-10">
                                       {entry.shares.toLocaleString()}
                                     </span>
-                                    <span className="text-right text-[var(--text-secondary)] relative z-10">
+                                    <span className="text-right text-(--text-secondary) relative z-10">
                                       ${entry.total.toLocaleString()}
                                     </span>
                                   </div>
@@ -726,13 +726,13 @@ export default function CryptoDetailPage() {
 
                                 {/* Asks 标签 */}
                                 <div className="flex items-center gap-2 py-2">
-                                  <span className="px-2 py-0.5 rounded text-[10px] bg-[rgba(239,68,68,0.2)] text-[var(--red)]">
+                                  <span className="px-2 py-0.5 rounded text-[10px] bg-[rgba(239,68,68,0.2)] text-(--red)">
                                     {t.market.asks}
                                   </span>
                                 </div>
 
                                 {/* Last / Spread */}
-                                <div className="flex justify-between text-xs text-[var(--text-secondary)] py-2 border-y border-[var(--border)]">
+                                <div className="flex justify-between text-xs text-(--text-secondary) py-2 border-y border-(--border)">
                                   <span>
                                     {t.market.last} {percentage.toFixed(1)}¢
                                   </span>
@@ -741,7 +741,7 @@ export default function CryptoDetailPage() {
 
                                 {/* Bids 标签 */}
                                 <div className="flex items-center gap-2 py-2">
-                                  <span className="px-2 py-0.5 rounded text-[10px] bg-[rgba(34,197,94,0.2)] text-[var(--green)]">
+                                  <span className="px-2 py-0.5 rounded text-[10px] bg-[rgba(34,197,94,0.2)] text-(--green)">
                                     {t.market.bids}
                                   </span>
                                 </div>
@@ -761,13 +761,13 @@ export default function CryptoDetailPage() {
                                         )}%`,
                                       }}
                                     />
-                                    <span className="text-center text-[var(--green)] relative z-10">
+                                    <span className="text-center text-(--green) relative z-10">
                                       {entry.price}¢
                                     </span>
-                                    <span className="text-right text-[var(--text-primary)] relative z-10">
+                                    <span className="text-right text-(--text-primary) relative z-10">
                                       {entry.shares.toLocaleString()}
                                     </span>
-                                    <span className="text-right text-[var(--text-secondary)] relative z-10">
+                                    <span className="text-right text-(--text-secondary) relative z-10">
                                       ${entry.total.toLocaleString()}
                                     </span>
                                   </div>
@@ -785,7 +785,7 @@ export default function CryptoDetailPage() {
 
                             {/* Resolution 内容 */}
                             {activeTab === "resolution" && (
-                              <div className="py-4 text-sm text-[var(--text-secondary)]">
+                              <div className="py-4 text-sm text-(--text-secondary)">
                                 <p>{t.market.chart.resolutionSource}</p>
                                 <p className="mt-2">
                                   {t.market.chart.resolutionDesc}
@@ -897,15 +897,15 @@ export default function CryptoDetailPage() {
         <div className="col-span-12 lg:col-span-4 pt-8">
           <div className="sticky top-[calc(120px+2rem)] max-h-[calc(100vh-var(--topbar-height))] overflow-y-auto flex flex-col gap-8 py-8 scrollbar-hide">
             {/* 相关推荐 */}
-            <div className="pt-4 border-t border-[var(--border)]">
+            <div className="pt-4 border-t border-(--border)">
               <div className="flex overflow-x-auto gap-3 mb-6 scrollbar-hide">
                 {["All", "Crypto", "Bitcoin", "Crypto Prices"].map((tab) => (
                   <button
                     key={tab}
                     className={`text-[12px] font-bold whitespace-nowrap px-4 py-2 rounded-full transition-all ${
                       tab === "All"
-                        ? "bg-[var(--bg-hover)] text-[var(--text-primary)]"
-                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                        ? "bg-(--bg-hover) text-(--text-primary)"
+                        : "text-(--text-secondary) hover:text-(--text-primary) hover:bg-(--bg-secondary)"
                     }`}
                   >
                     {tab}
@@ -935,7 +935,7 @@ export default function CryptoDetailPage() {
                     key={idx}
                     className="flex items-center gap-4 group cursor-pointer"
                   >
-                    <div className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 border border-[var(--border)] group-hover:border-[var(--text-secondary)] transition-all">
+                    <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-(--border) group-hover:border-(--text-secondary) transition-all">
                       <img
                         src={item.img}
                         className="w-full h-full object-cover"
@@ -943,11 +943,11 @@ export default function CryptoDetailPage() {
                       />
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-[14px] font-bold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] leading-tight line-clamp-2 transition-colors">
+                      <h4 className="text-[14px] font-bold text-(--text-secondary) group-hover:text-(--text-primary) leading-tight line-clamp-2 transition-colors">
                         {item.q}
                       </h4>
                     </div>
-                    <span className="text-[15px] font-black text-[var(--text-primary)]">
+                    <span className="text-[15px] font-black text-(--text-primary)">
                       {item.p}
                     </span>
                   </div>

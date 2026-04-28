@@ -99,12 +99,12 @@ export default function NavSports(props: NavSportsProps) {
         className="flex-col md:flex-row"
       />
 
-      <div className="h-6 w-[1px] bg-[--border] flex-shrink-0 md:h-[1px] md:w-full"></div>
+      <div className="h-6 w-px bg-(--border) shrink-0 md:h-px md:w-full"></div>
 
       {/* Popular 分组 */}
       {popularSports.length > 0 && (
         <>
-          <h3 className="px-3 py-1.5 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wide items-center gap-1 m-0 hidden md:flex">
+          <h3 className="px-3 py-1.5 text-[10px] font-semibold text-(--text-tertiary) uppercase tracking-wide items-center gap-1 m-0 hidden md:flex">
             <Flame className="w-3 h-3 text-orange-500" />
             {t.sports.nav.popular}
           </h3>
@@ -124,7 +124,7 @@ export default function NavSports(props: NavSportsProps) {
       )}
 
       {/* All Sports 分组 */}
-      <h3 className="px-3 py-1.5 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wide m-0 hidden md:block">
+      <h3 className="px-3 py-1.5 text-[10px] font-semibold text-(--text-tertiary) uppercase tracking-wide m-0 hidden md:block">
         {t.sports.nav.allSports}
       </h3>
       
@@ -190,8 +190,8 @@ export default function NavSports(props: NavSportsProps) {
                 }}
                 className={`block px-6 py-3 transition-colors ${
                   isMenuActive(undefined, sport.id)
-                    ? "bg-[var(--bg-secondary)] text-[var(--accent)]"
-                    : "hover:bg-[var(--bg-hover)]"
+                    ? "bg-(--bg-secondary) text-(--accent)"
+                    : "hover:bg-(--bg-hover)"
                 }`}
               >
                 {sport.name}

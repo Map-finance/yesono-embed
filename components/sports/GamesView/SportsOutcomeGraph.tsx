@@ -267,11 +267,11 @@ const SportsOutcomeGraph: React.FC<SportsOutcomeGraphProps> = ({
     <div className="rounded-xl p-4 max-sm:p-2">
       {/* 标题 */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <div className="w-3 h-3 rounded-full bg-[#ED6432] flex-shrink-0" />
-        <span className="text-sm text-[var(--text-primary)] truncate max-w-[60%]">
+        <div className="w-3 h-3 rounded-full bg-[#ED6432] shrink-0" />
+        <span className="text-sm text-(--text-primary) truncate max-w-[60%]">
           {label || "Price"}
         </span>
-        <span className="text-[var(--text-tertiary)] text-sm flex-shrink-0">
+        <span className="text-(--text-tertiary) text-sm shrink-0">
           {currentValue.toFixed(1)}%
         </span>
       </div>
@@ -287,8 +287,8 @@ const SportsOutcomeGraph: React.FC<SportsOutcomeGraphProps> = ({
             }}
             className={`h-7 px-2 sm:px-3 rounded-full text-xs sm:text-sm font-normal transition-all ${
               selectedRange === range
-                ? "bg-[var(--accent)] text-[var(--text-inverse)]"
-                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                ? "bg-(--accent) text-(--text-inverse)"
+                : "bg-(--bg-secondary) text-(--text-secondary) hover:bg-(--bg-hover)"
             }`}
           >
             {range}
@@ -301,14 +301,14 @@ const SportsOutcomeGraph: React.FC<SportsOutcomeGraphProps> = ({
         <style dangerouslySetInnerHTML={{ __html: glowStyles }} />
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-6 h-6 animate-spin text-[var(--text-secondary)]" />
+            <Loader2 className="w-6 h-6 animate-spin text-(--text-secondary)" />
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm">
+          <div className="flex items-center justify-center h-full text-(--text-secondary) text-sm">
             {t.common.error || "Error"}
           </div>
         ) : chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm">
+          <div className="flex items-center justify-center h-full text-(--text-secondary) text-sm">
             No data
           </div>
         ) : (
@@ -372,7 +372,7 @@ const SportsOutcomeGraph: React.FC<SportsOutcomeGraphProps> = ({
             />
             <div
               ref={tooltipRef}
-              className="absolute pointer-events-none z-20 border bg-[var(--bg-primary)] border-[var(--border)] rounded-lg p-3 shadow-xl min-w-[140px]"
+              className="absolute pointer-events-none z-20 border bg-(--bg-primary) border-(--border) rounded-lg p-3 shadow-xl min-w-[140px]"
               style={{ display: "none" }}
             />
           </>

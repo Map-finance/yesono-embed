@@ -635,14 +635,14 @@ export default function PartialPriceLineExampleChart({
   }, [mockMode, mockStopMs, sourcePreference, symbol]);
 
   return (
-    <section className="mt-3 lg:mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 lg:p-4">
+    <section className="mt-3 lg:mt-4 rounded-xl border border-(--border) bg-(--bg-card) p-3 lg:p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm lg:text-base font-medium text-[var(--text-primary)]">
+          <h3 className="text-sm lg:text-base font-medium text-(--text-primary)">
             Partial Price Line
           </h3>
         </div>
-        <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+        <span className="rounded-full bg-(--bg-secondary) px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-(--text-secondary)">
           {mockMode
             ? "Mock"
             : connectedSource === "official"
@@ -654,17 +654,17 @@ export default function PartialPriceLineExampleChart({
       </div>
 
       <div
-        className="relative overflow-hidden rounded-lg bg-[var(--bg-primary)]"
+        className="relative overflow-hidden rounded-lg bg-(--bg-primary)"
         style={{ height }}
       >
         {loading && !unsupported && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-primary)]/50 backdrop-blur-sm">
-            <Loader2 className="h-6 w-6 animate-spin text-[var(--text-secondary)]" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-(--bg-primary)/50 backdrop-blur-xs">
+            <Loader2 className="h-6 w-6 animate-spin text-(--text-secondary)" />
           </div>
         )}
 
         {unsupported && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-[var(--text-secondary)]">
+          <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-(--text-secondary)">
             Live price data unavailable
           </div>
         )}

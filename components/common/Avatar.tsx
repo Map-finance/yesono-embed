@@ -43,7 +43,7 @@ const Avatar: React.FC<AvatarProps> = ({ src, name, size = 32, className = "" })
   return (
     <div
       style={style}
-      className={`rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-semibold ${className}`}
+      className={`rounded-full bg-linear-to-br ${gradient} flex items-center justify-center text-white font-semibold ${className}`}
     >
       {letter}
     </div>

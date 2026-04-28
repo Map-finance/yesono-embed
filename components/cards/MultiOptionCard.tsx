@@ -111,26 +111,26 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
     const isYes = buyState.type === "yes";
 
     return (
-      <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+      <div className="p-4 rounded-xl border border-(--border) bg-(--bg-card)">
         {/* Header */}
         <div className="flex items-start gap-3 mb-6">
           <ProxyImage
             src={market.icon}
             alt=""
-            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+            className="w-8 h-8 rounded-full object-cover shrink-0"
             fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiMyYTJhMmEiLz48L3N2Zz4="
           />
           <div className="flex-1">
-            <h3 className="text-sm font-medium text-[var(--text-primary)] leading-snug">
+            <h3 className="text-sm font-medium text-(--text-primary) leading-snug">
               {market.title}
             </h3>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+            <p className="text-xs text-(--text-secondary) mt-0.5">
               {option.label}
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] text-lg leading-none"
+            className="text-(--text-tertiary) hover:text-(--text-primary) text-lg leading-none"
           >
             ×
           </button>
@@ -138,8 +138,8 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
 
         {/* Amount input row - 参考图片样式：输入框内含按钮 + Slider */}
         <div className="flex items-center gap-2 mb-6">
-          <div className="flex-1 flex items-center bg-[var(--bg-secondary)] rounded-lg px-3 py-1.5">
-            <span className="text-[var(--text-tertiary)]">$</span>
+          <div className="flex-1 flex items-center bg-(--bg-secondary) rounded-lg px-3 py-1.5">
+            <span className="text-(--text-tertiary)">$</span>
             <input
               type="number"
               min="1"
@@ -154,25 +154,25 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
                   ),
                 })
               }
-              className="flex-1 bg-transparent text-[var(--text-primary)] font-semibold text-base outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="flex-1 bg-transparent text-(--text-primary) font-semibold text-base outline-hidden min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <div className="flex items-center gap-0.5 ml-auto">
               <button
                 onClick={() => handleAmountChange(1)}
-                className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] text-[10px] font-medium hover:text-[var(--text-primary)] transition-colors"
+                className="px-1.5 py-0.5 rounded bg-(--bg-hover) text-(--text-secondary) text-[10px] font-medium hover:text-(--text-primary) transition-colors"
               >
                 +1
               </button>
               <button
                 onClick={() => handleAmountChange(10)}
-                className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] text-[10px] font-medium hover:text-[var(--text-primary)] transition-colors"
+                className="px-1.5 py-0.5 rounded bg-(--bg-hover) text-(--text-secondary) text-[10px] font-medium hover:text-(--text-primary) transition-colors"
               >
                 +10
               </button>
             </div>
           </div>
           {/* Slider */}
-          <div className="w-[100px] flex-shrink-0">
+          <div className="w-[100px] shrink-0">
             <input
               type="range"
               min="1"
@@ -209,17 +209,17 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
   // Default view
   return (
     <div
-      className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] cursor-pointer transition-all duration-200 hover:bg-[var(--bg-hover)] hover:-translate-y-1 hover:shadow-lg h-[180px] flex flex-col"
+      className="p-4 rounded-xl border border-(--border) bg-(--bg-card) cursor-pointer transition-all duration-200 hover:bg-(--bg-hover) hover:-translate-y-1 hover:shadow-lg h-[180px] flex flex-col"
     >
       {/* Header with icon and title */}
       <div className="flex items-start gap-3 mb-4">
         <ProxyImage
           src={market.icon}
           alt=""
-          className="w-10 h-10 rounded-md object-cover flex-shrink-0"
+          className="w-10 h-10 rounded-md object-cover shrink-0"
           fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiMyYTJhMmEiLz48L3N2Zz4="
         />
-        <h3 className="text-sm font-medium text-[var(--text-primary)] leading-snug flex-1 line-clamp-2">
+        <h3 className="text-sm font-medium text-(--text-primary) leading-snug flex-1 line-clamp-2">
           {market.title}
         </h3>
       </div>
@@ -236,11 +236,11 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
               key={index}
               className="flex items-center justify-between gap-2"
             >
-              <span className="text-sm text-[var(--text-secondary)] truncate flex-1">
+              <span className="text-sm text-(--text-secondary) truncate flex-1">
                 {option.label}
               </span>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-sm font-semibold text-[var(--text-primary)] min-w-[40px] text-right">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-semibold text-(--text-primary) min-w-[40px] text-right">
                   {formatPercentage(option.percentage)}
                 </span>
                 <div className="flex gap-1">
@@ -249,7 +249,7 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
                     //   e.stopPropagation();
                     //   handleBuyClick(index, "yes");
                     // }}
-                    className="group px-2 py-1 rounded text-[10px] font-semibold bg-[rgba(0,255,0,0.1)] text-[var(--green)] hover:bg-[rgba(0,255,0,0.2)] transition-colors min-w-[32px]"
+                    className="group px-2 py-1 rounded text-[10px] font-semibold bg-[rgba(0,255,0,0.1)] text-(--green) hover:bg-[rgba(0,255,0,0.2)] transition-colors min-w-[32px]"
                   >
                     <span className="relative block text-center">
                       <span className="group-hover:opacity-0 block">
@@ -265,7 +265,7 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
                     //   e.stopPropagation();
                     //   handleBuyClick(index, "no");
                     // }}
-                    className="group px-2 py-1 rounded text-[10px] font-semibold bg-[rgba(255,71,87,0.1)] text-[var(--red)] hover:bg-[rgba(255,71,87,0.2)] transition-colors min-w-[32px]"
+                    className="group px-2 py-1 rounded text-[10px] font-semibold bg-[rgba(255,71,87,0.1)] text-(--red) hover:bg-[rgba(255,71,87,0.2)] transition-colors min-w-[32px]"
                   >
                     <span className="relative block text-center">
                       <span className="group-hover:opacity-0 block">
@@ -284,16 +284,16 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-3  border-[var(--border)]">
-        <div className="text-xs text-[var(--text-secondary)]">
+      <div className="flex items-center justify-between pt-3  border-(--border)">
+        <div className="text-xs text-(--text-secondary)">
           {market.volume} {t.common.volume}
         </div>
         <button
           onClick={handleFavoriteClick}
           className={`p-1.5 rounded transition-colors ${
             market.isFavorite
-              ? "text-[var(--accent)] hover:text-[var(--accent)]"
-              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              ? "text-(--accent) hover:text-(--accent)"
+              : "text-(--text-secondary) hover:text-(--text-primary)"
           }`}
         >
           <Bookmark

@@ -393,20 +393,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   return (
     <div className="mt-6">
       {/* 标签页 */}
-      <div className="flex items-center gap-6 border-b border-[var(--border)] mb-4">
+      <div className="flex items-center gap-6 border-b border-(--border) mb-4">
         {tabs.map((tab, index) => (
           <button
             key={tab}
             onClick={() => setActiveTab(index)}
             className={`pb-3 text-sm font-medium transition-colors relative ${
               activeTab === index
-                ? "text-[var(--text-primary)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "text-(--text-primary)"
+                : "text-(--text-secondary) hover:text-(--text-primary)"
             }`}
           >
             {tab}
             {activeTab === index && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-(--accent)" />
             )}
           </button>
         ))}
@@ -416,20 +416,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       {activeTab === 0 && (
         <>
           {/* 评论输入框 */}
-          <div className="flex items-center gap-3 mb-4 p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+          <div className="flex items-center gap-3 mb-4 p-4 rounded-xl border border-(--border) bg-(--bg-card)">
             <input
               type="text"
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder={t.market.addComment}
-              className="flex-1 bg-transparent text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none text-sm"
+              className="flex-1 bg-transparent text-(--text-primary) placeholder-(--text-tertiary) outline-hidden text-sm"
             />
             <button
               disabled={!commentText.trim()}
               className={`text-sm font-medium transition-colors ${
                 commentText.trim()
-                  ? "text-[var(--accent)] hover:underline"
-                  : "text-[var(--text-tertiary)]"
+                  ? "text-(--accent) hover:underline"
+                  : "text-(--text-tertiary)"
               }`}
             >
               {t.market.post}
@@ -439,20 +439,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           {/* 过滤器 */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-(--border) text-sm text-(--text-secondary) hover:text-(--text-primary)">
                 {sortBy} <span>▾</span>
               </button>
-              <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <label className="flex items-center gap-2 text-sm text-(--text-secondary)">
                 <input
                   type="checkbox"
                   checked={holdersOnly}
                   onChange={(e) => setHoldersOnly(e.target.checked)}
-                  className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-secondary)] accent-[var(--accent)]"
+                  className="w-4 h-4 rounded border-(--border) bg-(--bg-secondary) accent-(--accent)"
                 />
                 {t.market.holdersOnly}
               </label>
             </div>
-            <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+            <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-(--border) text-sm text-(--text-secondary) hover:text-(--text-primary)">
               {t.market.bewareLinks}
             </button>
           </div>
@@ -463,7 +463,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               <div key={comment.id} className="flex gap-3">
                 {/* 头像 */}
                 <div
-                  className={`w-8 h-8 rounded-full flex-shrink-0 bg-gradient-to-br ${getAvatarGradient(
+                  className={`w-8 h-8 rounded-full shrink-0 bg-linear-to-br ${getAvatarGradient(
                     comment.username
                   )}`}
                 />
@@ -471,30 +471,30 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 {/* 评论内容 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm text-[var(--text-primary)]">
+                    <span className="font-medium text-sm text-(--text-primary)">
                       {comment.username}
                     </span>
                     {comment.position && (
-                      <span className="px-2 py-0.5 rounded text-xs bg-[var(--bg-hover)] text-[var(--accent)]">
+                      <span className="px-2 py-0.5 rounded text-xs bg-(--bg-hover) text-(--accent)">
                         {comment.position.amount} {comment.position.outcome} ▾
                       </span>
                     )}
-                    <span className="text-xs text-[var(--text-tertiary)]">
+                    <span className="text-xs text-(--text-tertiary)">
                       {comment.timestamp}
                     </span>
-                    <button className="ml-auto text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+                    <button className="ml-auto text-(--text-tertiary) hover:text-(--text-primary)">
                       <MoreHorizontal size={16} />
                     </button>
                   </div>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1 leading-relaxed">
+                  <p className="text-sm text-(--text-secondary) mt-1 leading-relaxed">
                     {comment.content}
                   </p>
                   <button
                     onClick={() => handleLike(comment.id)}
                     className={`flex items-center gap-1 mt-2 text-sm transition-colors ${
                       comment.isLiked
-                        ? "text-[var(--red)]"
-                        : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                        ? "text-(--red)"
+                        : "text-(--text-tertiary) hover:text-(--text-primary)"
                     }`}
                   >
                     <Heart
@@ -517,7 +517,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           <div className="mb-6 relative">
             <button
               onClick={() => setHolderFilterOpen(!holderFilterOpen)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] hover:border-[var(--border-light)]"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-(--border) bg-(--bg-card) text-sm text-(--text-primary) hover:border-(--border-light)"
             >
               {labelFor(holderFilterOptions, holderFilter)}
               <ChevronDown
@@ -528,7 +528,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               />
             </button>
             {holderFilterOpen && (
-              <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-lg z-10 min-w-[180px]">
+              <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-(--border) bg-(--bg-card) shadow-lg z-10 min-w-[180px]">
                 {holderFilterOptions.map((option) => (
                   <button
                     key={option.value}
@@ -536,10 +536,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                       setHolderFilter(option.value);
                       setHolderFilterOpen(false);
                     }}
-                    className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg-hover)] ${
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-(--bg-hover) ${
                       holderFilter === option.value
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--text-primary)]"
+                        ? "text-(--accent)"
+                        : "text-(--text-primary)"
                     }`}
                   >
                     {option.label}
@@ -553,11 +553,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           <div className="grid grid-cols-2 gap-8">
             {/* Yes Holders */}
             <div>
-              <div className="flex items-center justify-between mb-3 pb-2 border-b border-[var(--border)]">
-                <span className="text-sm font-medium text-[var(--text-primary)]">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-(--border)">
+                <span className="text-sm font-medium text-(--text-primary)">
                   {t.market.yesHolders}
                 </span>
-                <span className="text-xs text-[var(--text-secondary)] uppercase">
+                <span className="text-xs text-(--text-secondary) uppercase">
                   {t.market.shares}
                 </span>
               </div>
@@ -565,15 +565,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 {mockYesHolders.map((holder, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 py-1.5 hover:bg-[var(--bg-hover)] rounded-lg px-2 -mx-2 cursor-pointer"
+                    className="flex items-center gap-3 py-1.5 hover:bg-(--bg-hover) rounded-lg px-2 -mx-2 cursor-pointer"
                   >
                     <div
-                      className={`w-8 h-8 rounded-full bg-gradient-to-br ${holder.avatarColor}`}
+                      className={`w-8 h-8 rounded-full bg-linear-to-br ${holder.avatarColor}`}
                     />
-                    <span className="flex-1 text-sm text-[var(--text-primary)] truncate">
+                    <span className="flex-1 text-sm text-(--text-primary) truncate">
                       {holder.username}
                     </span>
-                    <span className="text-sm text-[var(--green)] font-medium">
+                    <span className="text-sm text-(--green) font-medium">
                       {holder.shares.toLocaleString()}
                     </span>
                   </div>
@@ -583,11 +583,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
             {/* No Holders */}
             <div>
-              <div className="flex items-center justify-between mb-3 pb-2 border-b border-[var(--border)]">
-                <span className="text-sm font-medium text-[var(--text-primary)]">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-(--border)">
+                <span className="text-sm font-medium text-(--text-primary)">
                   {t.market.noHolders}
                 </span>
-                <span className="text-xs text-[var(--text-secondary)] uppercase">
+                <span className="text-xs text-(--text-secondary) uppercase">
                   {t.market.shares}
                 </span>
               </div>
@@ -595,15 +595,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 {mockNoHolders.map((holder, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 py-1.5 hover:bg-[var(--bg-hover)] rounded-lg px-2 -mx-2 cursor-pointer"
+                    className="flex items-center gap-3 py-1.5 hover:bg-(--bg-hover) rounded-lg px-2 -mx-2 cursor-pointer"
                   >
                     <div
-                      className={`w-8 h-8 rounded-full bg-gradient-to-br ${holder.avatarColor}`}
+                      className={`w-8 h-8 rounded-full bg-linear-to-br ${holder.avatarColor}`}
                     />
-                    <span className="flex-1 text-sm text-[var(--text-primary)] truncate">
+                    <span className="flex-1 text-sm text-(--text-primary) truncate">
                       {holder.username}
                     </span>
-                    <span className="text-sm text-[var(--red)] font-medium">
+                    <span className="text-sm text-(--red) font-medium">
                       {holder.shares.toLocaleString()}
                     </span>
                   </div>
@@ -623,7 +623,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             <div className="relative">
               <button
                 onClick={() => setActivityFilterOpen(!activityFilterOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] hover:border-[var(--border-light)]"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-(--border) bg-(--bg-card) text-sm text-(--text-primary) hover:border-(--border-light)"
               >
                 {labelFor(activityFilterOptions, activityFilter)}
                 <ChevronDown
@@ -634,7 +634,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 />
               </button>
               {activityFilterOpen && (
-                <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-lg z-10 min-w-[100px]">
+                <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-(--border) bg-(--bg-card) shadow-lg z-10 min-w-[100px]">
                   {activityFilterOptions.map((option) => (
                     <button
                       key={option.value}
@@ -642,10 +642,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                         setActivityFilter(option.value);
                         setActivityFilterOpen(false);
                       }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg-hover)] ${
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-(--bg-hover) ${
                         activityFilter === option.value
-                          ? "text-[var(--accent)]"
-                          : "text-[var(--text-primary)]"
+                          ? "text-(--accent)"
+                          : "text-(--text-primary)"
                       }`}
                     >
                       {option.label}
@@ -659,7 +659,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             <div className="relative">
               <button
                 onClick={() => setMinAmountOpen(!minAmountOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] hover:border-[var(--border-light)]"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-(--border) bg-(--bg-card) text-sm text-(--text-primary) hover:border-(--border-light)"
               >
                 {labelFor(minAmountOptions, minAmount)}
                 <ChevronDown
@@ -670,7 +670,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 />
               </button>
               {minAmountOpen && (
-                <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-lg z-10 min-w-[120px]">
+                <div className="absolute top-full left-0 mt-1 py-1 rounded-lg border border-(--border) bg-(--bg-card) shadow-lg z-10 min-w-[120px]">
                   {minAmountOptions.map((option) => (
                     <button
                       key={option.value}
@@ -678,10 +678,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                         setMinAmount(option.value);
                         setMinAmountOpen(false);
                       }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg-hover)] ${
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-(--bg-hover) ${
                         minAmount === option.value
-                          ? "text-[var(--accent)]"
-                          : "text-[var(--text-primary)]"
+                          ? "text-(--accent)"
+                          : "text-(--text-primary)"
                       }`}
                     >
                       {option.label}
@@ -698,11 +698,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               <div className="flex items-center justify-center py-12">
                 <Loader2
                   size={24}
-                  className="animate-spin text-[var(--text-tertiary)]"
+                  className="animate-spin text-(--text-tertiary)"
                 />
               </div>
             ) : trades.length === 0 ? (
-              <div className="flex items-center justify-center py-12 text-[var(--text-tertiary)]">
+              <div className="flex items-center justify-center py-12 text-(--text-tertiary)">
                 {t.market.activityText.noActivity}
               </div>
             ) : (
@@ -723,10 +723,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                       <div
                         key={`${trade.userId}-${trade.timestamp}-${index}`}
                         ref={isLast ? lastActivityRef : null}
-                        className="flex items-center gap-3 py-3 hover:bg-[var(--bg-hover)] rounded-lg px-2 -mx-2"
+                        className="flex items-center gap-3 py-3 hover:bg-(--bg-hover) rounded-lg px-2 -mx-2"
                       >
                         {/* 头像 */}
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex-shrink-0 overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-purple-500 shrink-0 overflow-hidden">
                           {trade.profileImage && (
                             <ProxyImage
                               src={trade.profileImage}
@@ -743,12 +743,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                         {/* 活动内容 */}
                         <div className="flex-1 min-w-0">
                           <span className="text-sm">
-                            <span className="font-medium text-[var(--text-primary)]">
+                            <span className="font-medium text-(--text-primary)">
                               {trade.name ||
                                 trade.userId?.slice(0, 12) ||
                                 t.market.activityText.anonymous}
                             </span>
-                            <span className="text-[var(--text-secondary)]">
+                            <span className="text-(--text-secondary)">
                               {" "}
                               {isBuy
                                 ? t.market.activityText.bought
@@ -757,8 +757,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                             <span
                               className={
                                 trade.outcome === "YES"
-                                  ? "text-[var(--green)] font-medium"
-                                  : "text-[var(--red)] font-medium"
+                                  ? "text-(--green) font-medium"
+                                  : "text-(--red) font-medium"
                               }
                             >
                               {trade.size.toFixed(0)}{" "}
@@ -766,25 +766,25 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                             </span>
                             {trade.assetId &&
                               getMarketNameByAssetId(trade.assetId) && (
-                                <span className="text-[var(--text-secondary)]">
+                                <span className="text-(--text-secondary)">
                                   {" "}
                                   {t.market.activityText.for}{" "}
                                 </span>
                               )}
                             {trade.assetId &&
                               getMarketNameByAssetId(trade.assetId) && (
-                                <span className="text-[var(--text-primary)] font-medium">
+                                <span className="text-(--text-primary) font-medium">
                                   {getMarketNameByAssetId(trade.assetId)}
                                 </span>
                               )}
-                            <span className="text-[var(--text-secondary)]">
+                            <span className="text-(--text-secondary)">
                               {" "}
                               {t.market.activityText.at}{" "}
                             </span>
-                            <span className="text-[var(--text-primary)]">
+                            <span className="text-(--text-primary)">
                               {displayPrice}¢
                             </span>
-                            <span className="text-[var(--text-tertiary)]">
+                            <span className="text-(--text-tertiary)">
                               {" "}
                               (${(trade.size * trade.price).toFixed(0)})
                             </span>
@@ -792,13 +792,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                         </div>
 
                         {/* 时间和链接 */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs text-[var(--text-tertiary)]">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-(--text-tertiary)">
                             {formatTimestamp(trade.timestamp)}
                           </span>
                           <ExternalLink
                             size={14}
-                            className="text-[var(--text-tertiary)]"
+                            className="text-(--text-tertiary)"
                           />
                         </div>
                       </div>
@@ -810,14 +810,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                   <div className="flex items-center justify-center py-4">
                     <Loader2
                       size={20}
-                      className="animate-spin text-[var(--text-tertiary)]"
+                      className="animate-spin text-(--text-tertiary)"
                     />
                   </div>
                 )}
 
                 {/* 没有更多数据 */}
                 {!hasMore && trades.length > 0 && (
-                  <div className="text-center py-4 text-[var(--text-tertiary)] text-xs">
+                  <div className="text-center py-4 text-(--text-tertiary) text-xs">
                     {t.market.activityText.noMoreActivity}
                   </div>
                 )}
@@ -829,7 +829,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
       {/* 返回顶部 */}
       <div className="flex justify-center mt-6">
-        <button className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[var(--bg-hover)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+        <button className="flex items-center gap-1 px-4 py-2 rounded-lg bg-(--bg-hover) text-sm text-(--text-secondary) hover:text-(--text-primary) transition-colors">
           {t.common.backToTop} <ChevronUp size={16} />
         </button>
       </div>

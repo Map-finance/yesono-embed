@@ -13,7 +13,7 @@ import ProxyImage from "@/components/common/ProxyImage";
 export default function MacroDashboardCard() {
   return (
     <a href="/market/1">
-      <div className="border rounded-md border-[--border] py-6 px-4 hover:scale-[1.02] transition-transform">
+      <div className="border rounded-md border-(--border) py-6 px-4 hover:scale-[1.02] transition-transform">
         <div>
           <div className="flex items-center gap-4">
             <ProxyImage

@@ -283,22 +283,22 @@ export default function FilterBarSimple({
       <div className="relative">
         <button
           onClick={() => setOpenDropdown(isOpen ? null : dropdownKey)}
-          className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-[var(--border)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-(--border) rounded-md hover:bg-(--bg-secondary) transition-colors"
         >
-          <span className="text-[var(--text-secondary)]">{label}:</span>
-          <span className="text-[var(--text-primary)] font-medium">
+          <span className="text-(--text-secondary)">{label}:</span>
+          <span className="text-(--text-primary) font-medium">
             {selectedOption?.label}
           </span>
           <ChevronDown
             size={12}
-            className={`text-[var(--text-secondary)] transition-transform sm:w-3.5 sm:h-3.5 ${
+            className={`text-(--text-secondary) transition-transform sm:w-3.5 sm:h-3.5 ${
               isOpen ? "rotate-180" : ""
             }`}
           />
         </button>
 
         {isOpen && (
-          <div className="absolute top-full left-0 mt-1 min-w-[140px] bg-[var(--bg-card)] border border-[var(--border)] rounded-md shadow-lg z-50 py-1">
+          <div className="absolute top-full left-0 mt-1 min-w-[140px] bg-(--bg-card) border border-(--border) rounded-md shadow-lg z-50 py-1">
             {options.map((option) => (
               <button
                 key={option.value}
@@ -306,10 +306,10 @@ export default function FilterBarSimple({
                   onChange(option.value);
                   setOpenDropdown(null);
                 }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors flex items-center gap-2 ${
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-(--bg-secondary) transition-colors flex items-center gap-2 ${
                   value === option.value
-                    ? "text-[var(--accent)]"
-                    : "text-[var(--text-primary)]"
+                    ? "text-(--accent)"
+                    : "text-(--text-primary)"
                 }`}
               >
                 {option.icon && <span>{option.icon}</span>}
@@ -333,20 +333,20 @@ export default function FilterBarSimple({
     checked: boolean;
     onChange: (checked: boolean) => void;
   }) => (
-    <label className="flex items-center gap-2 px-3 py-1.5 text-sm border border-[var(--border)] rounded-md cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors">
+    <label className="flex items-center gap-2 px-3 py-1.5 text-sm border border-(--border) rounded-md cursor-pointer hover:bg-(--bg-secondary) transition-colors">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 bg-transparent"
+        className="w-4 h-4 rounded border-(--border) text-(--accent) focus:ring-(--accent) focus:ring-offset-0 bg-transparent"
       />
-      <span className="text-[var(--text-secondary)]">{label}</span>
+      <span className="text-(--text-secondary)">{label}</span>
     </label>
   );
 
   const shouldUseWideSearch = isSidebarVariant && !showCategories && showSearch;
   const actionButtonsContainerClass = shouldUseWideSearch
-    ? "flex items-center gap-2 ml-auto flex-shrink-0"
+    ? "flex items-center gap-2 ml-auto shrink-0"
     : "flex items-center gap-2";
 
   return (
@@ -354,7 +354,7 @@ export default function FilterBarSimple({
       {/* PC 端单行布局：分类标签居左，搜索/按钮居右；移动端两行：搜索在上，分类在下 */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:gap-3">
       {/* Row 1: Search input + filter/bookmark icons (mobile: always expanded search) */}
-      <div className="flex items-center gap-2 lg:order-2 lg:flex-shrink-0">
+      <div className="flex items-center gap-2 lg:order-2 lg:shrink-0">
         {/* Search input - always visible on mobile, collapsible on desktop */}
         {showSearch && (
           <div
@@ -365,18 +365,18 @@ export default function FilterBarSimple({
             }`}
           >
             {/* 移动端：始终显示输入框（用 lg:hidden 控制） */}
-            <div className="flex lg:hidden items-center gap-1 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border)] pr-1 w-full">
+            <div className="flex lg:hidden items-center gap-1 bg-(--bg-secondary) rounded-lg border border-(--border) pr-1 w-full">
               <div className="relative flex-1 min-w-0">
                 <Search
                   size={14}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-(--text-secondary)"
                 />
                 <input
                   type="text"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   placeholder={t.common.search}
-                  className="w-full py-2 pl-8 pr-2 bg-transparent text-[var(--text-primary)] focus:outline-none text-sm placeholder:text-[var(--text-secondary)]"
+                  className="w-full py-2 pl-8 pr-2 bg-transparent text-(--text-primary) focus:outline-hidden text-sm placeholder:text-(--text-secondary)"
                 />
               </div>
               {searchValue && (
@@ -385,7 +385,7 @@ export default function FilterBarSimple({
                     setSearchValue("");
                     onSearchChange?.("");
                   }}
-                  className="p-0.5 rounded hover:bg-[var(--bg-primary)] text-[var(--text-secondary)]"
+                  className="p-0.5 rounded hover:bg-(--bg-primary) text-(--text-secondary)"
                 >
                   <X size={14} />
                 </button>
@@ -395,11 +395,11 @@ export default function FilterBarSimple({
             {/* 桌面端：可折叠的搜索框 */}
             <div className="hidden lg:flex items-center">
               {isSearchExpanded || !showCategories ? (
-                <div className="flex items-center gap-1 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border)] pr-1">
+                <div className="flex items-center gap-1 bg-(--bg-secondary) rounded-lg border border-(--border) pr-1">
                   <div className="relative">
                     <Search
                       size={14}
-                      className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 text-(--text-secondary)"
                     />
                     <input
                       ref={searchInputRef}
@@ -409,7 +409,7 @@ export default function FilterBarSimple({
                       placeholder={t.common.search}
                       className={`${
                         shouldUseWideSearch ? "w-full" : "w-[140px]"
-                      } py-2 pl-8 pr-2 bg-transparent text-[var(--text-primary)] focus:outline-none text-sm placeholder:text-[var(--text-secondary)]`}
+                      } py-2 pl-8 pr-2 bg-transparent text-(--text-primary) focus:outline-hidden text-sm placeholder:text-(--text-secondary)`}
                       onBlur={() => {
                         if (!searchValue && !shouldUseWideSearch && showCategories) {
                           setIsSearchExpanded(false);
@@ -432,7 +432,7 @@ export default function FilterBarSimple({
                         onSearchChange?.("");
                         searchInputRef.current?.focus();
                       }}
-                      className="p-0.5 rounded hover:bg-[var(--bg-primary)] text-[var(--text-secondary)]"
+                      className="p-0.5 rounded hover:bg-(--bg-primary) text-(--text-secondary)"
                     >
                       <X size={14} />
                     </button>
@@ -441,7 +441,7 @@ export default function FilterBarSimple({
               ) : (
                 <button
                   onClick={() => setIsSearchExpanded(true)}
-                  className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  className="p-1.5 rounded hover:bg-(--bg-secondary) text-(--text-secondary) hover:text-(--text-primary) transition-colors"
                 >
                   <Search size={18} />
                 </button>
@@ -457,8 +457,8 @@ export default function FilterBarSimple({
               onClick={() => setIsAdvancedFilterOpen(!isAdvancedFilterOpen)}
               className={`p-1.5 rounded transition-colors ${
                 isAdvancedFilterOpen
-                  ? "bg-[var(--accent)] text-[var(--bg-primary)]"
-                  : "hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "bg-(--accent) text-(--bg-primary)"
+                  : "hover:bg-(--bg-secondary) text-(--text-secondary) hover:text-(--text-primary)"
               }`}
             >
               <SlidersHorizontal size={18} />
@@ -471,8 +471,8 @@ export default function FilterBarSimple({
               onClick={handleBookmarkClick}
               className={`p-1.5 rounded transition-colors ${
                 isCollected
-                  ? "text-[var(--accent)] hover:text-[var(--accent)]"
-                  : "hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "text-(--accent) hover:text-(--accent)"
+                  : "hover:bg-(--bg-secondary) text-(--text-secondary) hover:text-(--text-primary)"
               }`}
             >
               <Bookmark
@@ -491,7 +491,7 @@ export default function FilterBarSimple({
           {/* Left arrow */}
           <button
             onClick={() => scrollCategories("left")}
-            className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex-shrink-0"
+            className="p-1 rounded hover:bg-(--bg-secondary) text-(--text-secondary) hover:text-(--text-primary) transition-colors shrink-0"
           >
             <ChevronLeft size={20} />
           </button>
@@ -506,8 +506,8 @@ export default function FilterBarSimple({
                 key={index}
                 className={`px-2.5 sm:px-3 py-1 sm:py-1.5 whitespace-nowrap text-xs sm:text-sm transition-all ${
                   activeCategory === category
-                    ? "font-semibold bg-[var(--accent)] text-[var(--bg-primary)] rounded-md"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    ? "font-semibold bg-(--accent) text-(--bg-primary) rounded-md"
+                    : "text-(--text-secondary) hover:text-(--text-primary)"
                 }`}
                 onClick={() => handleCategoryClick(category)}
               >
@@ -519,7 +519,7 @@ export default function FilterBarSimple({
           {/* Right arrow */}
           <button
             onClick={() => scrollCategories("right")}
-            className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex-shrink-0"
+            className="p-1 rounded hover:bg-(--bg-secondary) text-(--text-secondary) hover:text-(--text-primary) transition-colors shrink-0"
           >
             <ChevronRight size={20} />
           </button>
@@ -529,7 +529,7 @@ export default function FilterBarSimple({
 
       {/* Advanced filter panel */}
       {isAdvancedFilterOpen && (
-        <div className="mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-[var(--border)]">
+        <div className="mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-(--border)">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {/* Sort by dropdown */}
             <DropdownSelect
@@ -600,7 +600,7 @@ export default function FilterBarSimple({
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-(--text-secondary) hover:text-(--text-primary) transition-colors"
               >
                 {t.common.clearFilters}
               </button>

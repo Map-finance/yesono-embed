@@ -659,12 +659,12 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
         liveMarketSlug={liveMarketSlug}
       />
       <div
-        className="relative w-full rounded-xl bg-[var(--bg-primary)] overflow-hidden"
+        className="relative w-full rounded-xl bg-(--bg-primary) overflow-hidden"
         style={{ height: `${height}px` }}
       >
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-[var(--bg-primary)]/50 backdrop-blur-sm">
-            <Loader2 className="w-8 h-8 animate-spin text-[var(--text-secondary)]" />
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-(--bg-primary)/50 backdrop-blur-xs">
+            <Loader2 className="w-8 h-8 animate-spin text-(--text-secondary)" />
           </div>
         )}
         <div
@@ -673,7 +673,7 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
         />
         {tradeTapeItems.length > 0 && (
           <div
-            className="absolute left-2 bottom-12 sm:left-3 sm:bottom-3 z-[6] pointer-events-none w-[74px] sm:w-[92px]"
+            className="absolute left-2 bottom-12 sm:left-3 sm:bottom-3 z-6 pointer-events-none w-[74px] sm:w-[92px]"
             style={{
               height: `${TRADE_TAPE_ROW_HEIGHT * TRADE_TAPE_MAX_ITEMS}px`,
             }}

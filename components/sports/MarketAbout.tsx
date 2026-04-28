@@ -26,18 +26,18 @@ export default function MarketAbout() {
       </p>
       <p className="font-semibold">{t.sports.marketAbout.sources}</p>
       <div className="flex gap-4">
-        <div className="flex gap-4 items-center border border-[--border] p-4 rounded-xl flex-1 shrink-0">
+        <div className="flex gap-4 items-center border border-(--border) p-4 rounded-xl flex-1 shrink-0">
           <div className="bg-slate-700 size-10 rounded-full flex items-center justify-center">
             <Link size={16} />
           </div>
           <div className="flex-1 shrink-0">
-            <div className="text-[--text-secondary]">{t.sports.marketAbout.resolutionSource}</div>
+            <div className="text-(--text-secondary)">{t.sports.marketAbout.resolutionSource}</div>
             <a className="mt-1 block text-sky-500 truncate" href="https://liquipedia.net/leagueoflegends/Main_Page">
               https://liquipedia.net/leagueofleg...
             </a>
           </div>
         </div>
-        <div className="flex gap-4 items-center border border-[--border] p-4 rounded-xl flex-1 shrink-0">
+        <div className="flex gap-4 items-center border border-(--border) p-4 rounded-xl flex-1 shrink-0">
           <div>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -68,7 +68,7 @@ export default function MarketAbout() {
             </svg>
           </div>
           <div className="flex-1 shrink-0">
-            <div className="text-[--text-secondary]">{t.sports.marketAbout.resolver}</div>
+            <div className="text-(--text-secondary)">{t.sports.marketAbout.resolver}</div>
             <a className="mt-1 block text-sky-500 truncate" href="https://explorer-mainnet.maticvigil.com/address/0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7">
               0x65070BE91...
             </a>
@@ -77,8 +77,8 @@ export default function MarketAbout() {
       </div>
       <p className="font-semibold">{t.sports.marketAbout.resolution}</p>
       <div className="flex items-center justify-between">
-        <a href="#" className="border border-[--border] px-3 py-1 rounded-full text-sm">{t.sports.marketAbout.proposeResolution}</a>
-        <a href="#" className="flex items-center gap-2 text-[--text-secondary]">
+        <a href="#" className="border border-(--border) px-3 py-1 rounded-full text-sm">{t.sports.marketAbout.proposeResolution}</a>
+        <a href="#" className="flex items-center gap-2 text-(--text-secondary)">
           <div className="text-xs">{t.sports.marketAbout.viewDetails}</div>
           <svg
             xmlns="http://www.w3.org/2000/svg"

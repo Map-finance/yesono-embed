@@ -130,11 +130,11 @@ export default function SearchPage() {
   const hasSearchQuery = searchValue.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] px-4 pt-4 pb-20">
+    <div className="min-h-screen bg-(--bg-primary) px-4 pt-4 pb-20">
       {/* 搜索输入框 */}
       <div className="relative mb-4">
         <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-(--text-secondary)"
           size={18}
         />
         <input
@@ -142,7 +142,7 @@ export default function SearchPage() {
           type="text"
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
-          className="w-full py-3 pl-10 pr-9 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border)] focus:outline-none focus:border-[var(--accent)] text-sm"
+          className="w-full py-3 pl-10 pr-9 rounded-xl bg-(--bg-secondary) text-(--text-primary) border border-(--border) focus:outline-hidden focus:border-(--accent) text-sm"
           placeholder={t.common.search}
         />
         {searchValue && (
@@ -152,7 +152,7 @@ export default function SearchPage() {
               setSearchResults([]);
               inputRef.current?.focus();
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-(--bg-hover) text-(--text-secondary) hover:text-(--text-primary) transition-colors"
           >
             <X size={16} />
           </button>
@@ -164,7 +164,7 @@ export default function SearchPage() {
         <div className="mb-4">
           {isSearching ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
+              <Loader2 size={24} className="animate-spin text-(--text-secondary)" />
             </div>
           ) : searchResults.length > 0 ? (
             <div className="flex flex-col gap-1">
@@ -174,9 +174,9 @@ export default function SearchPage() {
                   <button
                     key={event.id}
                     onClick={() => handleResultClick(event)}
-                    className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors text-left"
+                    className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-(--bg-hover) transition-colors text-left"
                   >
-                    <div className="w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-secondary)]">
+                    <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-(--bg-secondary)">
                       {event.image ? (
                         <ProxyImage
                           src={event.image}
@@ -184,24 +184,24 @@ export default function SearchPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[var(--text-tertiary)]">
+                        <div className="w-full h-full flex items-center justify-center text-(--text-tertiary)">
                           <Search size={16} />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2">
+                      <p className="text-sm font-medium text-(--text-primary) line-clamp-2">
                         {event.title}
                       </p>
                     </div>
-                    <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
+                    <div className="flex flex-col items-end shrink-0 gap-0.5">
                       {pct && (
-                        <span className="text-sm font-semibold text-[var(--accent)]">
+                        <span className="text-sm font-semibold text-(--accent)">
                           {pct}
                         </span>
                       )}
                       {marketTitle && (
-                        <span className="text-[11px] text-[var(--text-tertiary)] max-w-[100px] truncate">
+                        <span className="text-[11px] text-(--text-tertiary) max-w-[100px] truncate">
                           {marketTitle}
                         </span>
                       )}
@@ -211,7 +211,7 @@ export default function SearchPage() {
               })}
             </div>
           ) : (
-            <div className="flex items-center justify-center py-8 text-sm text-[var(--text-secondary)]">
+            <div className="flex items-center justify-center py-8 text-sm text-(--text-secondary)">
               {t.market.common.noData}
             </div>
           )}
@@ -222,7 +222,7 @@ export default function SearchPage() {
       {!hasSearchQuery && (
         <>
           <div className="mb-6">
-            <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
+            <div className="text-xs font-semibold text-(--text-secondary) uppercase tracking-wider mb-3">
               {t.common.browse}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -230,7 +230,7 @@ export default function SearchPage() {
                 <button
                   key={item.id}
                   onClick={() => handleBrowseClick(item)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors border border-[var(--border)]"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover) transition-colors border border-(--border)"
                 >
                   <span>{item.label}</span>
                 </button>
@@ -240,7 +240,7 @@ export default function SearchPage() {
 
           {/* TOPICS 部分 */}
           <div>
-            <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
+            <div className="text-xs font-semibold text-(--text-secondary) uppercase tracking-wider mb-3">
               {t.common.topics}
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -248,12 +248,12 @@ export default function SearchPage() {
                 <button
                   key={tag.id}
                   onClick={() => handleTopicClick(tag)}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)] transition-colors border border-[var(--border)]"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-(--bg-secondary) hover:bg-(--bg-hover) transition-colors border border-(--border)"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-(--bg-tertiary) flex items-center justify-center shrink-0">
                     <Tag size={18} className={TOPIC_COLORS[index % TOPIC_COLORS.length]} />
                   </div>
-                  <span className="text-sm font-medium text-[var(--text-primary)] text-left">
+                  <span className="text-sm font-medium text-(--text-primary) text-left">
                     {tag.name}
                   </span>
                 </button>

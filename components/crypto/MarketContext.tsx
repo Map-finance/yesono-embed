@@ -62,7 +62,7 @@ const MarketContext: React.FC<MarketContextProps> = ({
           {/* 标题区域：使用相对定位实现平滑切换 */}
           <div className="relative h-6 overflow-hidden flex-1 select-none">
             <div
-              className="flex flex-col transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              className="flex flex-col transition-all duration-500 ease-in-out"
               style={{
                 transform: `translateY(${
                   contextStatus !== "idle" && isExpanded ? "-24px" : "0px"

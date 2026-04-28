@@ -32,7 +32,7 @@ export default function ScoreboardPanel() {
 
   return (
     <div className="relative">
-      <div className="absolute z-0 top-0 left-0 w-full h-full pointer-events-none stroke-[var(--border)] flex flex-col overflow-hidden stroke-[1px]">
+      <div className="absolute z-0 top-0 left-0 w-full h-full pointer-events-none stroke-(--border) flex flex-col overflow-hidden stroke-[1px]">
         <svg
           width="100%"
           height="44"
@@ -44,7 +44,7 @@ export default function ScoreboardPanel() {
           <path
             d="M1 105V30C0 13 13 0 30 0H380C400 0 410 66 440 66H760C790 66 800 0 820 0H1170C1187 0 1199.5 13 1199 30V105"
             fill="none"
-            className="translate-y-[1px]"
+            className="translate-y-px"
           ></path>
         </svg>
 
@@ -86,7 +86,7 @@ export default function ScoreboardPanel() {
             pathLength="1"
             stroke-dasharray="1"
             stroke-dashoffset="0"
-            className="-translate-y-[1px]"
+            className="-translate-y-px"
             style={{
               transition:
                 "stroke 100ms ease-out, stroke-width 100ms ease-out, transform 100ms ease-out, fill 100ms ease-out",
@@ -106,7 +106,7 @@ export default function ScoreboardPanel() {
               <div>Q2 - 07:18</div>
             </div>
           ) : (
-            <span className="px-2 bg-[var(--bg-secondary)] py-1 rounded-md">
+            <span className="px-2 bg-(--bg-secondary) py-1 rounded-md">
               11:30 AM
             </span>
           )}
@@ -115,7 +115,7 @@ export default function ScoreboardPanel() {
           <div className="flex flex-col items-center relative">
             <div className="absolute inset-0 -z-10 size-[60px] pointer-events-none">
               <div
-                className="absolute inset-0 bg-center bg-cover scale-[200%] origin-[center_15%] blur-sm filter opacity-20"
+                className="absolute inset-0 bg-center bg-cover scale-[200%] origin-[center_15%] blur-xs filter opacity-20"
                 style={{ backgroundImage: `url(${leftTeamLogo})` }}
               />
             </div>
@@ -127,7 +127,7 @@ export default function ScoreboardPanel() {
               className="size-[60px]"
             />
             <div className="mt-2">Patriots</div>
-            <div className="text-sm text-[var(--text-secondary)]">17-10</div>
+            <div className="text-sm text-(--text-secondary)">17-10</div>
           </div>
 
           <div className="flex flex-col items-center">
@@ -160,10 +160,10 @@ export default function ScoreboardPanel() {
                 {rightPercent}%
               </div>
             </div>
-            <div className="text-xs text-[var(--text-secondary)] mt-1">
+            <div className="text-xs text-(--text-secondary) mt-1">
               $5.47m {t.sports.game.vol}.
             </div>
-            <div className="text-xl font-semibold mt-3 text-[var(--text-secondary)] opacity-50">
+            <div className="text-xl font-semibold mt-3 text-(--text-secondary) opacity-50">
               YesONo
             </div>
           </div>
@@ -171,7 +171,7 @@ export default function ScoreboardPanel() {
           <div className="flex flex-col items-center relative">
             <div className="absolute inset-0 -z-10 size-[60px] pointer-events-none">
               <div
-                className="absolute inset-0 bg-center bg-cover scale-[200%] origin-[center_15%] blur-sm filter opacity-20"
+                className="absolute inset-0 bg-center bg-cover scale-[200%] origin-[center_15%] blur-xs filter opacity-20"
                 style={{ backgroundImage: `url(${rightTeamLogo})` }}
               />
             </div>
@@ -183,7 +183,7 @@ export default function ScoreboardPanel() {
               className="size-[60px]"
             />
             <div className="mt-2">Bills</div>
-            <div className="text-sm text-[var(--text-secondary)]">19-9</div>
+            <div className="text-sm text-(--text-secondary)">19-9</div>
           </div>
         </div>
       </div>

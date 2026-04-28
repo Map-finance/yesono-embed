@@ -134,13 +134,13 @@ const CryptoSideBar: React.FC<CryptoSideBarProps> = ({
       mobileScrollContainer:
         "flex overflow-x-auto py-2 px-4 gap-2 items-center scrollbar-hide",
       mobileButton:
-        "flex items-center justify-center w-[38px] h-[38px] min-w-[38px] rounded-lg border border-[var(--border)] transition-all shrink-0",
-      mobileButtonActive: "bg-[var(--accent)] border-[var(--accent)] text-[var(--bg-primary)]",
-      mobileButtonHover: "hover:bg-[var(--bg-secondary)]",
+        "flex items-center justify-center w-[38px] h-[38px] min-w-[38px] rounded-lg border border-(--border) transition-all shrink-0",
+      mobileButtonActive: "bg-(--accent) border-(--accent) text-(--bg-primary)",
+      mobileButtonHover: "hover:bg-(--bg-secondary)",
       mobileIcon: "w-5 h-5",
       mobileImageIcon: "w-5 h-5 rounded-full object-contain",
       mobileLabel: "sr-only",
-      mobileDivider: "w-px h-6 bg-[var(--border)] self-center mx-1 flex-shrink-0",
+      mobileDivider: "w-px h-6 bg-(--border) self-center mx-1 shrink-0",
     }),
     []
   );
@@ -148,46 +148,46 @@ const CryptoSideBar: React.FC<CryptoSideBarProps> = ({
   if (isLoadingTags) {
     return (
       <>
-        <aside className="hidden lg:flex flex-col w-[260px] p-4 gap-4 bg-[var(--bg-primary)] border-[var(--border)] overflow-y-auto h-[calc(100vh-120px)] sticky top-[120px] scrollbar-hide">
+        <aside className="hidden lg:flex flex-col w-[260px] p-4 gap-4 bg-(--bg-primary) border-(--border) overflow-y-auto h-[calc(100vh-120px)] sticky top-[120px] scrollbar-hide">
           <div className="space-y-4">
             {Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={`crypto-sidebar-freq-skeleton-${idx}`}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-[var(--bg-secondary)] animate-pulse"
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-(--bg-secondary) animate-pulse"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded bg-[var(--bg-primary)]" />
-                  <div className="h-4 w-20 rounded bg-[var(--bg-primary)]" />
+                  <div className="w-5 h-5 rounded bg-(--bg-primary)" />
+                  <div className="h-4 w-20 rounded bg-(--bg-primary)" />
                 </div>
-                <div className="h-3 w-6 rounded bg-[var(--bg-primary)]" />
+                <div className="h-3 w-6 rounded bg-(--bg-primary)" />
               </div>
             ))}
           </div>
 
-          <div className="h-px bg-[var(--border)] mx-1 my-2 flex-shrink-0" />
+          <div className="h-px bg-(--border) mx-1 my-2 shrink-0" />
 
           <div className="space-y-4">
             {Array.from({ length: 4 }).map((_, idx) => (
               <div
                 key={`crypto-sidebar-asset-skeleton-${idx}`}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-[var(--bg-secondary)] animate-pulse"
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-(--bg-secondary) animate-pulse"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[var(--bg-primary)]" />
-                  <div className="h-4 w-16 rounded bg-[var(--bg-primary)]" />
+                  <div className="w-5 h-5 rounded-full bg-(--bg-primary)" />
+                  <div className="h-4 w-16 rounded bg-(--bg-primary)" />
                 </div>
-                <div className="h-3 w-6 rounded bg-[var(--bg-primary)]" />
+                <div className="h-3 w-6 rounded bg-(--bg-primary)" />
               </div>
             ))}
           </div>
         </aside>
 
-        <div className="lg:hidden w-full bg-[var(--bg-primary)] border-b border-[var(--border)]">
+        <div className="lg:hidden w-full bg-(--bg-primary) border-b border-(--border)">
           <div className="flex overflow-x-auto py-2 px-4 gap-2 scrollbar-hide">
             {Array.from({ length: 8 }).map((_, idx) => (
               <div
                 key={`crypto-sidebar-mobile-skeleton-${idx}`}
-                className="w-[38px] h-[38px] min-w-[38px] rounded-lg bg-[var(--bg-secondary)] animate-pulse"
+                className="w-[38px] h-[38px] min-w-[38px] rounded-lg bg-(--bg-secondary) animate-pulse"
               />
             ))}
           </div>

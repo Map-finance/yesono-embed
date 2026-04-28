@@ -97,10 +97,10 @@ export default function MarketGrid({
             <div key={colIndex} className="masonry-grid_column">
               {Array.from({ length: 6 }).map((_, itemIndex) => (
                 <div key={itemIndex} className="mb-4">
-                  <div className="bg-[var(--bg-secondary)] rounded-lg p-4 animate-pulse">
-                    <div className="h-4 bg-[var(--bg-primary)] rounded w-3/4 mb-3"></div>
-                    <div className="h-3 bg-[var(--bg-primary)] rounded w-1/2 mb-2"></div>
-                    <div className="h-3 bg-[var(--bg-primary)] rounded w-2/3"></div>
+                  <div className="bg-(--bg-secondary) rounded-lg p-4 animate-pulse">
+                    <div className="h-4 bg-(--bg-primary) rounded w-3/4 mb-3"></div>
+                    <div className="h-3 bg-(--bg-primary) rounded w-1/2 mb-2"></div>
+                    <div className="h-3 bg-(--bg-primary) rounded w-2/3"></div>
                   </div>
                 </div>
               ))}
@@ -113,7 +113,7 @@ export default function MarketGrid({
 
   if (markets.length === 0) {
     return (
-      <div className="py-10 text-center text-[var(--text-secondary)]">
+      <div className="py-10 text-center text-(--text-secondary)">
         {effectiveEmptyMessage}
       </div>
     );

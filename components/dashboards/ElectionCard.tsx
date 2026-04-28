@@ -20,7 +20,7 @@ export default function ElectionCard(
   return (
     <div
       onClick={handleClick}
-      className="border border-[--border] rounded-lg p-6 font-semibold hover:scale-[1.02] transition-transform cursor-pointer"
+      className="border border-(--border) rounded-lg p-6 font-semibold hover:scale-[1.02] transition-transform cursor-pointer"
     >
       <a href="/market/1">
         <div className="flex gap-4 items-center">
@@ -30,7 +30,7 @@ export default function ElectionCard(
           </div>
           <div>
             <div className="text-2xl">{props.country}</div>
-            <div className="text-[--text-secondary]">{props.electionType}</div>
+            <div className="text-(--text-secondary)">{props.electionType}</div>
           </div>
           <Image
             src={props.flagUrl}
@@ -68,9 +68,9 @@ export interface PrimaryOutcomeBarProps {
 
 export function PrimaryOutcomeBar(candidate: PrimaryOutcomeBarProps) {
   return (
-    <div className="relative rounded-sm bg-[--bg-secondary] font-semibold">
+    <div className="relative rounded-sm bg-(--bg-secondary) font-semibold">
       <div
-        className="absolute top-0 left-0 h-full bg-[--accent] rounded-sm opacity-60"
+        className="absolute top-0 left-0 h-full bg-(--accent) rounded-sm opacity-60"
         style={{ width: `${Math.max(candidate.winRate, 1)}%` }}
       ></div>
       <div className="relative px-4 py-[6px] flex items-center">
@@ -78,7 +78,7 @@ export function PrimaryOutcomeBar(candidate: PrimaryOutcomeBarProps) {
           {candidate.winRate < 1 ? "<1" : Math.floor(candidate.winRate)}%
         </div>
         {candidate.avatar && (
-          <div className="size-[28px] flex items-center justify-center bg-white text-[0px] rounded-full ml-3 flex-shrink-0">
+          <div className="size-[28px] flex items-center justify-center bg-white text-[0px] rounded-full ml-3 shrink-0">
             <Image src={candidate.avatar} width={24} height={24} alt="icon" />
           </div>
         )}

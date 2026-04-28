@@ -96,10 +96,10 @@ const TopHolders: React.FC<TopHoldersProps> = ({ markets }) => {
                       setSelectedMarketId(option.value);
                       close();
                     }}
-                    className={`w-full text-left p-2 rounded-sm transition-[--transition-fast] bg-transparent hover:bg-[--bg-hover] ${
+                    className={`w-full text-left p-2 rounded-sm transition-(--transition-fast) bg-transparent hover:bg-(--bg-hover) ${
                       selectedMarketId === option.value
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--text-primary)]"
+                        ? "text-(--accent)"
+                        : "text-(--text-primary)"
                     }`}
                   >
                     {option.label}
@@ -109,7 +109,7 @@ const TopHolders: React.FC<TopHoldersProps> = ({ markets }) => {
             )}
           >
             {({ isOpen }) => (
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] hover:border-[var(--border-light)]">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-(--border) bg-(--bg-card) text-sm text-(--text-primary) hover:border-(--border-light)">
                 {marketOptions.find(o => o.value === selectedMarketId)?.label || ''}
                 <ChevronDown
                   size={16}

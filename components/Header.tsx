@@ -36,13 +36,13 @@ const Header: React.FC = () => {
   }, [navData, dynamicItems, (t as any)]);
 
   return (
-    <header className="sticky top-0 z-[100] bg-[var(--bg-primary)]">
-      <div className="border-b border-[var(--border)]">
+    <header className="sticky top-0 z-100 bg-(--bg-primary)">
+      <div className="border-b border-(--border)">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
           <div className="relative flex items-center justify-between py-2 sm:py-3 gap-2 sm:gap-5 h-auto sm:h-[68px]">
             <Link
               href="/"
-              className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold flex-shrink-0"
+              className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold shrink-0"
             >
               <svg
                 className="w-5 h-5 sm:w-6 sm:h-6"
@@ -61,7 +61,7 @@ const Header: React.FC = () => {
             <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 z-10 w-[min(500px,36vw)]">
               <Suspense
                 fallback={
-                  <div className="h-10 w-full rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)]" />
+                  <div className="h-10 w-full rounded-lg bg-(--bg-secondary) border border-(--border)" />
                 }
               >
                 <SearchBox className="w-full" />
@@ -71,7 +71,7 @@ const Header: React.FC = () => {
             <div className="hidden md:flex items-center gap-2 xl:gap-3">
               <button
                 onClick={() => setIsHowItWorksOpen(true)}
-                className="hidden md:flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm hover:bg-opacity-80 transition-colors"
+                className="hidden md:flex items-center gap-2 px-3 py-2 rounded-md bg-(--bg-secondary) text-(--text-primary) text-sm hover:bg-opacity-80 transition-colors"
               >
                 <HelpCircle size={16} />
                 <span>{t.common.howItWorks}</span>
@@ -79,12 +79,12 @@ const Header: React.FC = () => {
             </div>
 
             <div className="lg:hidden flex items-center gap-2">
-              <button className="p-2 rounded-full hover:bg-[var(--bg-secondary)] transition-colors">
-                <Bell size={20} className="text-[var(--text-secondary)]" />
+              <button className="p-2 rounded-full hover:bg-(--bg-secondary) transition-colors">
+                <Bell size={20} className="text-(--text-secondary)" />
               </button>
               <button
                 onClick={() => setIsMobileSidebarOpen(true)}
-                className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center hover:opacity-90 transition-opacity"
+                className="w-8 h-8 rounded-full bg-(--bg-secondary) flex items-center justify-center hover:opacity-90 transition-opacity"
                 aria-label="Open menu"
               >
                 <svg
@@ -92,7 +92,7 @@ const Header: React.FC = () => {
                   width="18px"
                   height="18px"
                   viewBox="0 0 18 18"
-                  className="w-5 h-[18px] text-[var(--text-secondary)]"
+                  className="w-5 h-[18px] text-(--text-secondary)"
                 >
                   <path
                     d="M15.75,9.75H2.25c-.414,0-.75-.336-.75-.75s.336-.75,.75-.75H15.75c.414,0,.75,.336,.75,.75s-.336,.75-.75,.75Z"
@@ -113,7 +113,7 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      <div className="border-b border-[var(--border)] overflow-visible">
+      <div className="border-b border-(--border) overflow-visible">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-5 overflow-visible">
           <Suspense fallback={<div className="h-[42px]" />}>
             <nav className="flex items-center gap-4 h-[42px] overflow-x-auto">
@@ -121,7 +121,7 @@ const Header: React.FC = () => {
                 <Link
                   key={item.path}
                   href={item.path}
-                  className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] whitespace-nowrap"
+                  className="text-sm text-(--text-secondary) hover:text-(--text-primary) whitespace-nowrap"
                 >
                   {item.label}
                 </Link>
@@ -144,8 +144,8 @@ const Header: React.FC = () => {
         description={t.common.howItWorksGuide?.description || "A prediction market for real-world events: create questions or trade outcomes."}
       >
         <div className="space-y-4">
-          <div className="rounded-lg border border-[var(--border)] p-4">
-            <p className="text-sm leading-6 text-[var(--text-secondary)]">
+          <div className="rounded-lg border border-(--border) p-4">
+            <p className="text-sm leading-6 text-(--text-secondary)">
               {t.common.howItWorksGuide?.intro || "On YesONo, prices move in real time as people trade."}
             </p>
           </div>

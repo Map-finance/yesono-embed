@@ -38,7 +38,7 @@ export default function MacroPage() {
       <div className="mt-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-semibold">{t.dashboards.macro.keyElections}</h1>
-          <div className="bg-[--bg-secondary] pl-3 py-[5px] flex items-center rounded-sm cursor-pointer hover:bg-[--bg-hover] transition-colors">
+          <div className="bg-(--bg-secondary) pl-3 py-[5px] flex items-center rounded-sm cursor-pointer hover:bg-(--bg-hover) transition-colors">
             <div className="font-semibold">{t.dashboards.macro.viewAll}</div>
             <ChevronRight />
           </div>

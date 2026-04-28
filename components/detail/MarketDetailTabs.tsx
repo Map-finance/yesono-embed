@@ -62,20 +62,20 @@ const MarketDetailTabs: React.FC<MarketDetailTabsProps> = ({ marketId, unionKey,
   return (
     <div className="mt-6">
       {/* 标签页 */}
-      <div className="flex items-center gap-6 border-b border-[var(--border)] mb-4">
+      <div className="flex items-center gap-6 border-b border-(--border) mb-4">
         {tabs.map((tab, index) => (
           <button
             key={tab}
             onClick={() => setActiveTab(index)}
             className={`pb-3 text-sm font-medium transition-colors relative ${
               activeTab === index
-                ? 'text-[var(--text-primary)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                ? 'text-(--text-primary)'
+                : 'text-(--text-secondary) hover:text-(--text-primary)'
             }`}
           >
             {tab}
             {activeTab === index && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-(--accent)" />
             )}
           </button>
         ))}
@@ -106,7 +106,7 @@ const MarketDetailTabs: React.FC<MarketDetailTabsProps> = ({ marketId, unionKey,
       <div className="flex justify-center mt-6">
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[var(--bg-hover)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          className="flex items-center gap-1 px-4 py-2 rounded-lg bg-(--bg-hover) text-sm text-(--text-secondary) hover:text-(--text-primary) transition-colors"
         >
           {t.common.backToTop} <ChevronUp size={16} />
         </button>

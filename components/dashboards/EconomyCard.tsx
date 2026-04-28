@@ -4,7 +4,7 @@ import Image from "next/image";
 export default function EconomyCard() {
   return (
     <a href="/market/1">
-      <div className="border border-[--border] px-4 py-6 hover:scale-[1.02] rounded-md transition-transform cursor-pointer">
+      <div className="border border-(--border) px-4 py-6 hover:scale-[1.02] rounded-md transition-transform cursor-pointer">
         <div className="flex items-center gap-3">
           <Image
             src="https://img.logo.dev/nets.com?token=live_6a1a28fd-6420-4492-aeb0-b297461d9de2&size=128"

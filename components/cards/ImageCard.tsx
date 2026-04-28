@@ -114,24 +114,24 @@ const ImageCard: React.FC<ImageCardProps> = ({
     const isYes = buyState.type === "yes";
 
     return (
-      <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+      <div className="p-4 rounded-xl border border-(--border) bg-(--bg-card)">
         {/* Header */}
         <div className="flex items-start gap-3 mb-4">
           <ProxyImage
             // 中文注释：市场图标通常是第三方外链，这里统一走 Cloudflare 图片代理（生产环境启用）
             src={market.icon}
             alt=""
-            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+            className="w-8 h-8 rounded-full object-cover shrink-0"
             fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiMyYTJhMmEiLz48L3N2Zz4="
           />
           <div className="flex-1">
-            <h3 className="text-sm font-medium text-[var(--text-primary)] leading-snug">
+            <h3 className="text-sm font-medium text-(--text-primary) leading-snug">
               {market.title}
             </h3>
           </div>
           <button
             onClick={handleClose}
-            className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] text-lg leading-none"
+            className="text-(--text-tertiary) hover:text-(--text-primary) text-lg leading-none"
           >
             ×
           </button>
@@ -139,8 +139,8 @@ const ImageCard: React.FC<ImageCardProps> = ({
 
         {/* Amount input row - 参考MultiOptionCard样式 */}
         <div className="flex items-center gap-2 mb-5">
-          <div className="flex-1 flex items-center bg-[var(--bg-secondary)] rounded-lg px-3 py-1.5">
-            <span className="text-[var(--text-tertiary)]">$</span>
+          <div className="flex-1 flex items-center bg-(--bg-secondary) rounded-lg px-3 py-1.5">
+            <span className="text-(--text-tertiary)">$</span>
             <input
               type="number"
               min="1"
@@ -155,25 +155,25 @@ const ImageCard: React.FC<ImageCardProps> = ({
                   ),
                 })
               }
-              className="flex-1 bg-transparent text-[var(--text-primary)] font-semibold text-base outline-none min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="flex-1 bg-transparent text-(--text-primary) font-semibold text-base outline-hidden min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <div className="flex items-center gap-0.5 ml-auto">
               <button
                 onClick={() => handleAmountChange(1)}
-                className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] text-[10px] font-medium hover:text-[var(--text-primary)] transition-colors"
+                className="px-1.5 py-0.5 rounded bg-(--bg-hover) text-(--text-secondary) text-[10px] font-medium hover:text-(--text-primary) transition-colors"
               >
                 +1
               </button>
               <button
                 onClick={() => handleAmountChange(10)}
-                className="px-1.5 py-0.5 rounded bg-[var(--bg-hover)] text-[var(--text-secondary)] text-[10px] font-medium hover:text-[var(--text-primary)] transition-colors"
+                className="px-1.5 py-0.5 rounded bg-(--bg-hover) text-(--text-secondary) text-[10px] font-medium hover:text-(--text-primary) transition-colors"
               >
                 +10
               </button>
             </div>
           </div>
           {/* Slider */}
-          <div className="w-[100px] flex-shrink-0">
+          <div className="w-[100px] shrink-0">
             <input
               type="range"
               min="1"
@@ -243,7 +243,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
 
     return (
       <div
-        className="relative flex-shrink-0"
+        className="relative shrink-0"
         style={{ width: size, height: size }}
       >
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
@@ -272,10 +272,10 @@ const ImageCard: React.FC<ImageCardProps> = ({
           <circle cx={dotX} cy={dotY} r="4" fill="#ef4444" />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pt-1">
-          <div className="text-sm font-bold text-[var(--text-primary)]">
+          <div className="text-sm font-bold text-(--text-primary)">
             {value}%
           </div>
-          <div className="text-[8px] text-[var(--text-secondary)]">chance</div>
+          <div className="text-[8px] text-(--text-secondary)">chance</div>
         </div>
       </div>
     );
@@ -284,7 +284,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
   // Default view
   return (
     <div
-      className="p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] cursor-pointer transition-all duration-200 hover:bg-[var(--bg-hover)] hover:-translate-y-1 hover:shadow-lg h-[180px] flex flex-col"
+      className="p-4 rounded-xl border border-(--border) bg-(--bg-card) cursor-pointer transition-all duration-200 hover:bg-(--bg-hover) hover:-translate-y-1 hover:shadow-lg h-[180px] flex flex-col"
     >
       {/* Header with icon, title and semi-circle progress */}
       <div className="flex items-start gap-3 mb-3">
@@ -292,10 +292,10 @@ const ImageCard: React.FC<ImageCardProps> = ({
           // 中文注释：默认视图同样使用图片代理，确保列表页大量图片加载更快、更稳
           src={market.icon}
           alt=""
-          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+          className="w-12 h-12 rounded-lg object-cover shrink-0"
           fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiMyYTJhMmEiLz48L3N2Zz4="
         />
-        <h3 className="flex-1 text-sm font-medium text-[var(--text-primary)] leading-snug line-clamp-2">
+        <h3 className="flex-1 text-sm font-medium text-(--text-primary) leading-snug line-clamp-2">
           {market.title}
         </h3>
         {!isResolved && <SemiCircleProgress value={percentage} />}
@@ -313,7 +313,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
             //   e.stopPropagation();
             //   handleBuyClick("yes");
             // }}
-            className="group flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold bg-[rgba(0,255,0,0.15)] text-[var(--green)] hover:bg-[rgba(0,255,0,0.25)] transition-colors"
+            className="group flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold bg-[rgba(0,255,0,0.15)] text-(--green) hover:bg-[rgba(0,255,0,0.25)] transition-colors"
           >
             <span className="relative block text-center">
               <span className="group-hover:opacity-0 block">{yesText}</span>
@@ -327,7 +327,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
             //   e.stopPropagation();
             //   handleBuyClick("no");
             // }}
-            className="group flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold bg-[rgba(255,71,87,0.15)] text-[var(--red)] hover:bg-[rgba(255,71,87,0.25)] transition-colors"
+            className="group flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold bg-[rgba(255,71,87,0.15)] text-(--red) hover:bg-[rgba(255,71,87,0.25)] transition-colors"
           >
             <span className="relative block text-center">
               <span className="group-hover:opacity-0 block">{noText}</span>
@@ -341,7 +341,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
 
       {/* Footer */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+        <div className="flex items-center gap-2 text-xs text-(--text-secondary)">
           <span>{market.volume} {t.common.volume}</span>
           <BarChart3 size={12} />
         </div>
@@ -350,8 +350,8 @@ const ImageCard: React.FC<ImageCardProps> = ({
             onClick={handleFavoriteClick}
             className={`p-1.5 rounded transition-colors ${
               market.isFavorite
-                ? "text-[var(--accent)] hover:text-[var(--accent)]"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "text-(--accent) hover:text-(--accent)"
+                : "text-(--text-secondary) hover:text-(--text-primary)"
             }`}
           >
             <Bookmark

@@ -118,15 +118,15 @@ function LineValueSwitcher({
 
   return (
     <div
-      className="relative mt-2 border-t border-[var(--border)]"
+      className="relative mt-2 border-t border-(--border)"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[1px] z-10 text-[var(--accent)] text-[10px] leading-none pointer-events-none">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-px z-10 text-(--accent) text-[10px] leading-none pointer-events-none">
         ▼
       </div>
       <div className="flex items-center justify-center pt-3">
         <button
-          className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex-shrink-0"
+          className="p-1 text-(--text-tertiary) hover:text-(--text-primary) shrink-0"
           onClick={(e) => { e.stopPropagation(); onSelect(Math.max(0, activeIdx - 1)); }}
         >
           <ChevronLeft size={14} />
@@ -144,10 +144,10 @@ function LineValueSwitcher({
                   key={lv.idx}
                   data-line-idx={lv.idx}
                   onClick={(e) => { e.stopPropagation(); onSelect(lv.idx); }}
-                  className={`relative flex items-center justify-center h-6 px-2 flex-shrink-0 transition-all duration-200 ${
+                  className={`relative flex items-center justify-center h-6 px-2 shrink-0 transition-all duration-200 ${
                     isActive
-                      ? "text-[var(--text-primary)]"
-                      : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                      ? "text-(--text-primary)"
+                      : "text-(--text-tertiary) hover:text-(--text-secondary)"
                   }`}
                 >
                   <span
@@ -163,7 +163,7 @@ function LineValueSwitcher({
           </div>
         </div>
         <button
-          className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex-shrink-0"
+          className="p-1 text-(--text-tertiary) hover:text-(--text-primary) shrink-0"
           onClick={(e) => { e.stopPropagation(); onSelect(Math.min(lines.length - 1, activeIdx + 1)); }}
         >
           <ChevronRight size={14} />
@@ -320,27 +320,27 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
 
 
   return (
-    <div className="border border-[var(--border)] rounded-lg overflow-hidden">
+    <div className="border border-(--border) rounded-lg overflow-hidden">
       {/* 可点击的卡片主体 */}
       <div
-        className="p-2 px-3 cursor-pointer hover:bg-[var(--bg-secondary)]/30 transition-all"
+        className="p-2 px-3 cursor-pointer hover:bg-(--bg-secondary)/30 transition-all"
         onClick={handleCardClick}
       >
         {/* 头部：时间 + 交易量 + Game View */}
         <div className="flex justify-between items-center">
           <div className="text-xs flex items-center gap-2 font-semibold">
-            <div className="text-[var(--text-secondary)] bg-[var(--bg-secondary)] px-2 rounded-sm">
+            <div className="text-(--text-secondary) bg-(--bg-secondary) px-2 rounded-sm">
               {endTime}
             </div>
-            <div className="text-[var(--text-secondary)]">
+            <div className="text-(--text-secondary)">
               {formatAbbreviatedCurrency(Number(event.volume ?? 0), '$')} {t.sports.game.vol}.
             </div>
           </div>
           <div
-            className="flex items-center bg-[var(--bg-hover)] rounded-sm overflow-hidden text-xs pl-2 py-1 gap-2 hover:bg-[var(--bg-secondary)] transition-all"
+            className="flex items-center bg-(--bg-hover) rounded-sm overflow-hidden text-xs pl-2 py-1 gap-2 hover:bg-(--bg-secondary) transition-all"
             onClick={handleGameView}
           >
-            <div className="bg-[var(--bg-primary)] px-1 py-[1px] rounded-sm text-xs border border-[var(--border)] text-[var(--text-secondary)]">
+            <div className="bg-(--bg-primary) px-1 py-px rounded-sm text-xs border border-(--border) text-(--text-secondary)">
               {event.marketCount}
             </div>
             <div className="font-semibold">{t.sports.game.gameView}</div>
@@ -357,7 +357,7 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
               <ProxyImage
                 src={event.icon}
                 alt=""
-                className="h-5 w-5 object-contain flex-shrink-0"
+                className="h-5 w-5 object-contain shrink-0"
                 fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHJ4PSIxMiIgZmlsbD0iIzNhM2EzYSIvPjwvc3ZnPg=="
               />
               <div className="text-sm font-medium truncate min-w-0">{teams.home}</div>
@@ -368,7 +368,7 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
                 <ProxyImage
                   src={event.image}
                   alt=""
-                  className="h-5 w-5 object-contain flex-shrink-0"
+                  className="h-5 w-5 object-contain shrink-0"
                   fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHJ4PSIxMiIgZmlsbD0iIzNhM2EzYSIvPjwvc3ZnPg=="
                 />
                 <div className="text-sm font-medium truncate min-w-0">{teams.away}</div>
@@ -377,7 +377,7 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
           </div>
 
           {/* 右侧按钮区 */}
-          <div className="flex gap-3 md:gap-3 max-md:gap-1.5 max-md:w-full flex-shrink-0">
+          <div className="flex gap-3 md:gap-3 max-md:gap-1.5 max-md:w-full shrink-0">
             {/* Moneyline 列：横向排布（仅 moneyline 时居右） */}
             <div className={`gap-1.5 flex ${onlyMoneyline ? "flex-row items-center" : "flex-col max-md:flex-row max-md:flex-1"}`}>
               <GameButton
@@ -554,7 +554,7 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
                   const panelMarket = activeExpandMarket || moneylineMarkets[0];
                   if (!panelMarket) {
                     return (
-                      <div className="p-4 text-center text-[var(--text-tertiary)] text-sm">
+                      <div className="p-4 text-center text-(--text-tertiary) text-sm">
                         {t.sports.game.noEvents}
                       </div>
                     );
@@ -583,7 +583,7 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
                   const panelMarket = activeExpandMarket || moneylineMarkets[0];
                   if (!panelMarket) {
                     return (
-                      <div className="p-4 text-center text-[var(--text-tertiary)] text-sm">
+                      <div className="p-4 text-center text-(--text-tertiary) text-sm">
                         {t.sports.game.noEvents}
                       </div>
                     );

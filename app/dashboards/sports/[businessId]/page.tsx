@@ -36,7 +36,7 @@ function FuturesChart({ items, initialVisible = 6, title, simple }: { items: Fut
                                         {
                                             !simple && (
                                                 <div
-                                                    className="size-9 flex-shrink-0 rounded-md flex items-center justify-center text-xs font-bold text-white"
+                                                    className="size-9 shrink-0 rounded-md flex items-center justify-center text-xs font-bold text-white"
                                                     style={{ backgroundColor: it.color }}
                                                 >
                                                     {it.short}
@@ -68,7 +68,7 @@ function FuturesChart({ items, initialVisible = 6, title, simple }: { items: Fut
                     items.length > initialVisible && (
                         <div className="mt-6 flex items-center justify-between">
                             <button
-                                className="text-[var(--text-secondary)] flex items-center gap-1"
+                                className="text-(--text-secondary) flex items-center gap-1"
                                 onClick={(e) => { e.preventDefault(); setExpanded((s) => !s) }}
                             >
                                 {expanded ? t.dashboards.sports.showLess : t.dashboards.sports.showMore}

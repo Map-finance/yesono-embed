@@ -67,14 +67,13 @@ export default function CommentItem({
       <UserProfile
         userId={String(comment.userId || comment.username)}
         displayName={commentName}
-        avatar={comment.avatarUrl || undefined}
       >
         <button type="button" onClick={toUserPna} className="cursor-pointer">
           <Avatar
             src={comment.avatarUrl}
             name={commentName}
             id={String(comment.userId || comment.username || "")}
-            size="sm"
+            size={32}
           />
         </button>
       </UserProfile>
@@ -86,24 +85,24 @@ export default function CommentItem({
             avatar={comment.avatarUrl || undefined}
           >
             <span
-              className="font-medium text-sm text-[var(--text-primary)] truncate hover:underline cursor-pointer"
+              className="font-medium text-sm text-(--text-primary) truncate hover:underline cursor-pointer"
               onClick={toUserPna}
             >
               {commentName}
             </span>
           </UserProfile>
 
-          <span className="text-xs text-[var(--text-tertiary)]">
+          <span className="text-xs text-(--text-tertiary)">
             {new Date(Number(comment.createdAt)).toLocaleString()}
           </span>
 
           <Popover className="ml-auto" placement="bottom-right" offset={-1} content={({ close }) => (
             <ul className="p-1 text-sm">
-              {/* <li className="flex gap-2 items-center py-1.5 rounded-sm transition-all pl-[10px] pr-10 cursor-pointer hover:bg-[var(--bg-hover)]">
+              {/* <li className="flex gap-2 items-center py-1.5 rounded-sm transition-all pl-[10px] pr-10 cursor-pointer hover:bg-(--bg-hover)">
                 <Share className="w-[15px] text-gray-500" />
                 <span>{t.common.share}</span>
               </li> */}
-              <li className="flex gap-2 items-center py-1.5 rounded-sm transition-all pl-[10px] pr-10 cursor-pointer hover:bg-[var(--bg-hover)]" onClick={() => {
+              <li className="flex gap-2 items-center py-1.5 rounded-sm transition-all pl-[10px] pr-10 cursor-pointer hover:bg-(--bg-hover)" onClick={() => {
                 close();
                 setReplyingTo(comment.id);
               }}>
@@ -112,13 +111,13 @@ export default function CommentItem({
               </li>
             </ul>
           )}>
-            <button className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+            <button className="text-(--text-tertiary) hover:text-(--text-primary)">
               <MoreHorizontal size={16} />
             </button>
           </Popover>
         </div>
 
-        <p className="text-sm text-[var(--text-secondary)] mt-1 leading-relaxed">
+        <p className="text-sm text-(--text-secondary) mt-1 leading-relaxed">
           {comment.displayText || comment.content}
         </p>
 
@@ -127,8 +126,8 @@ export default function CommentItem({
             onClick={() => toggleLike(comment.id)}
             className={`flex items-center gap-1 text-sm transition-colors ${
               comment.isLiked
-                ? "text-[var(--red)]"
-                : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                ? "text-(--red)"
+                : "text-(--text-tertiary) hover:text-(--text-primary)"
             }`}
           >
             <Heart size={14} fill={comment.isLiked ? "currentColor" : "none"} />
@@ -137,7 +136,7 @@ export default function CommentItem({
 
           <button
             onClick={() => setReplyingTo(comment.id)}
-            className="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+            className="text-sm text-(--text-tertiary) hover:text-(--text-primary)"
           >
             {t.common.reply}
           </button> 
@@ -145,7 +144,7 @@ export default function CommentItem({
           {comment.replyCount > 0 && (
             <button
               onClick={() => toggleSubComments(comment.id)}
-              className="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+              className="text-sm text-(--text-tertiary) hover:text-(--text-primary)"
             >
               {comment.open
                 ? t.common.hideReplies
@@ -167,13 +166,13 @@ export default function CommentItem({
                         deleteComment(comment.id);
                         close();
                       }}
-                      className="px-3 py-1 bg-[var(--red)] text-white text-sm rounded hover:bg-[var(--red)]"
+                      className="px-3 py-1 bg-(--red) text-white text-sm rounded hover:bg-(--red)"
                     >
                       {t.common.confirm}
                     </button>
                     <button
                       onClick={close}
-                      className="px-3 py-1 border border-[var(--border)] text-sm rounded hover:bg-[var(--bg-hover)]"
+                      className="px-3 py-1 border border-(--border) text-sm rounded hover:bg-(--bg-hover)"
                     >
                       {t.common.cancel}
                     </button>
@@ -181,7 +180,7 @@ export default function CommentItem({
                 </div>
               )}
             >
-              <button className="text-sm text-[var(--red)] hover:text-[var(--red)]">
+              <button className="text-sm text-(--red) hover:text-(--red)">
                 {t.common.delete}
               </button>
             </Popover>
@@ -189,13 +188,13 @@ export default function CommentItem({
         </div>
 
         {replyingTo === comment.id && (
-          <div className="mt-3 flex items-center gap-3 p-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+          <div className="mt-3 flex items-center gap-3 p-3 rounded-xl border border-(--border) bg-(--bg-card)">
             <input
               type="text"
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               placeholder={t.common.replyTo(commentName)}
-              className="flex-1 bg-transparent text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none text-sm"
+              className="flex-1 bg-transparent text-(--text-primary) placeholder-(--text-tertiary) outline-hidden text-sm"
             />
             <button
               onClick={() =>
@@ -207,15 +206,15 @@ export default function CommentItem({
               disabled={!replyText.trim()}
               className={`text-sm font-medium transition-colors ${
                 replyText.trim()
-                  ? "text-[var(--accent)] hover:underline"
-                  : "text-[var(--text-tertiary)]"
+                  ? "text-(--accent) hover:underline"
+                  : "text-(--text-tertiary)"
               }`}
             >
               {t.common.reply}
             </button>
             <button
               onClick={() => setReplyingTo(null)}
-              className="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+              className="text-sm text-(--text-tertiary) hover:text-(--text-primary)"
             >
               {t.common.cancel}
             </button>

@@ -255,16 +255,16 @@ export default function SportsTagNav(props: SportsTagNavProps) {
         className="flex-col md:flex-row"
       /> */}
 
-      {/* <div className="h-6 w-[1px] bg-[--border] flex-shrink-0 md:h-[1px] md:w-full"></div> */}
+      {/* <div className="h-6 w-px bg-(--border) shrink-0 md:h-px md:w-full"></div> */}
 
       {/* All Sports 标题 */}
-      <h3 className="px-3 py-1.5 text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wide m-0 hidden md:block">
+      <h3 className="px-3 py-1.5 text-[10px] font-semibold text-(--text-tertiary) uppercase tracking-wide m-0 hidden md:block">
         {t.sports.nav.allSports}
       </h3>
 
       {/* 加载状态 */}
       {isLoading && (
-        <div className="px-3 py-2 text-sm text-[var(--text-tertiary)]">
+        <div className="px-3 py-2 text-sm text-(--text-tertiary)">
           {t.common.loading}
         </div>
       )}
@@ -301,7 +301,7 @@ export default function SportsTagNav(props: SportsTagNavProps) {
                     }`}
                   >
                     {loadingChildren === tag.slug ? (
-                      <div className="px-3 py-2 pl-7 text-sm text-[var(--text-tertiary)]">
+                      <div className="px-3 py-2 pl-7 text-sm text-(--text-tertiary)">
                         {t.common.loading}
                       </div>
                     ) : (
@@ -365,8 +365,8 @@ export default function SportsTagNav(props: SportsTagNavProps) {
                 }}
                 className={`block w-full text-left px-6 py-3 transition-colors font-medium ${
                   isTagActive(mobileDrawerTag.slug)
-                    ? "bg-[var(--bg-secondary)] text-[var(--accent)]"
-                    : "hover:bg-[var(--bg-hover)]"
+                    ? "bg-(--bg-secondary) text-(--accent)"
+                    : "hover:bg-(--bg-hover)"
                 }`}
               >
                 {t.common.all}
@@ -382,13 +382,13 @@ export default function SportsTagNav(props: SportsTagNavProps) {
                   }
                   className={`block w-full text-left px-6 py-3 transition-colors ${
                     isTagActive(child.slug)
-                      ? "bg-[var(--bg-secondary)] text-[var(--accent)]"
-                      : "hover:bg-[var(--bg-hover)]"
+                      ? "bg-(--bg-secondary) text-(--accent)"
+                      : "hover:bg-(--bg-hover)"
                   }`}
                 >
                   <span>{child.name}</span>
                   {child.count && (
-                    <span className="ml-2 text-xs text-[var(--text-tertiary)]">
+                    <span className="ml-2 text-xs text-(--text-tertiary)">
                       ({child.count})
                     </span>
                   )}

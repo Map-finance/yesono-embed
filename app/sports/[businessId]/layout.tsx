@@ -50,7 +50,7 @@ export default function SportLayout({
                     </IconButton>
                   </div>
                   <div
-                    className="flex items-center border border-[var(--border)] rounded-md px-3 py-1 gap-2 cursor-pointer hover:bg-[var(--bg-hover)] transition-all text-xs max-md:hidden"
+                    className="flex items-center border border-(--border) rounded-md px-3 py-1 gap-2 cursor-pointer hover:bg-(--bg-hover) transition-all text-xs max-md:hidden"
                     onClick={() => setShowSpreads(!showSpreads)}
                   >
                     <Switch
@@ -92,7 +92,7 @@ export default function SportLayout({
               value={pathname.split("/").pop()}
             />
             {isGamesActive && (
-              <div className="px-3 gap-2 cursor-pointer h-[40px] flex items-center justify-center rounded-[20px] bg-[var(--bg-secondary)]">
+              <div className="px-3 gap-2 cursor-pointer h-[40px] flex items-center justify-center rounded-[20px] bg-(--bg-secondary)">
                 <div>Week 13</div>
                 <ChevronDown size={20} />
               </div>

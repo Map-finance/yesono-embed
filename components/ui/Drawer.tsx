@@ -167,7 +167,7 @@ export default function Drawer({
     <>
       {/* 遮罩层 */}
       <div
-        className={`fixed inset-0 bg-black/50 z-[9998] transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/50 z-9998 transition-opacity duration-300 ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         } ${className}`}
         onClick={onClose}
@@ -176,7 +176,7 @@ export default function Drawer({
       {/* 抽屉内容 */}
       <div
         ref={drawerRef}
-        className={`fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] rounded-t-2xl z-[9999] transition-transform duration-300 ease-out ${
+        className={`fixed bottom-0 left-0 right-0 bg-(--bg-primary) rounded-t-2xl z-9999 transition-transform duration-300 ease-out ${
           isOpen ? "translate-y-0" : "translate-y-full"
         } ${className}`}
         style={{ maxHeight }}
@@ -184,13 +184,13 @@ export default function Drawer({
       >
         {/* 拖动指示条 */}
         <div ref={handleBarRef} className="flex justify-center pt-3 pb-2">
-          <div className="w-12 h-1 bg-[var(--text-tertiary)] rounded-full opacity-50" />
+          <div className="w-12 h-1 bg-(--text-tertiary) rounded-full opacity-50" />
         </div>
 
         {/* 标题 */}
         {title && (
           <div className="px-6 py-3">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-(--text-primary) flex items-center gap-2">
               {title}
             </h3>
           </div>

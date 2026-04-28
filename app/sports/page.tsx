@@ -78,7 +78,7 @@ function SportsPageContent() {
               <button
                 onClick={loadMore}
                 disabled={isLoadingMore}
-                className="px-6 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50"
+                className="px-6 py-2 rounded-lg bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-tertiary) transition-colors disabled:opacity-50"
               >
                 {isLoadingMore
                   ? t.market.common.loading
@@ -94,7 +94,7 @@ function SportsPageContent() {
 
 function SportsPageFallback() {
   return (
-    <div className="py-10 text-center text-[var(--text-secondary)]">
+    <div className="py-10 text-center text-(--text-secondary)">
       Loading...
     </div>
   );

@@ -67,7 +67,7 @@ function SportsLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-full">
       <div className="flex-1 mx-auto gap-4 w-full max-w-[1400px] block md:flex">
         {/* 左侧导航栏 - 所有 /sports 页面统一显示 */}
-        <div className="py-2 overflow-y-auto overflow-x-hidden scrollbar-hide static md:sticky w-full md:w-40 flex-shrink-0 max-md:overflow-x-auto max-md:w-full max-md:h-auto max-md:py-2 max-md:px-2 max-md:border-b max-md:border-[--border] top-[120px] h-auto md:h-[calc(100vh-120px)]">
+        <div className="py-2 overflow-y-auto overflow-x-hidden scrollbar-hide static md:sticky w-full md:w-40 shrink-0 max-md:overflow-x-auto max-md:w-full max-md:h-auto max-md:py-2 max-md:px-2 max-md:border-b max-md:border-(--border) top-[120px] h-auto md:h-[calc(100vh-120px)]">
           <SportsTagNav
             selectedTagSlug={selectedTagSlug}
             tagsChain={tagsFromUrl}
@@ -94,7 +94,7 @@ export default function SportsLayout({
       fallback={
         <div className="flex flex-col h-full">
           <div className="flex-1 mx-auto gap-4 w-full max-w-[1400px] block md:flex">
-            <div className="py-2 overflow-y-auto overflow-x-hidden scrollbar-hide static md:sticky w-full md:w-40 flex-shrink-0 max-md:overflow-x-auto max-md:w-full max-md:h-auto max-md:py-2 max-md:px-2 max-md:border-b max-md:border-[--border] top-[120px] h-auto md:h-[calc(100vh-120px)]" />
+            <div className="py-2 overflow-y-auto overflow-x-hidden scrollbar-hide static md:sticky w-full md:w-40 shrink-0 max-md:overflow-x-auto max-md:w-full max-md:h-auto max-md:py-2 max-md:px-2 max-md:border-b max-md:border-(--border) top-[120px] h-auto md:h-[calc(100vh-120px)]" />
             <div className="py-2 flex-1 min-w-0 max-md:px-4 max-md:py-4">
               {children}
             </div>

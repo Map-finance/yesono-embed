@@ -23,9 +23,9 @@ const MarketCard: React.FC<MarketCardProps> = ({ market }) => {
   };
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 flex flex-col h-full hover:border-[var(--accent)] transition-all cursor-pointer">
+    <div className="bg-(--bg-card) border border-(--border) rounded-xl p-4 flex flex-col h-full hover:border-(--accent) transition-all cursor-pointer">
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-[var(--bg-secondary)] flex items-center justify-center border border-[var(--border-light)]">
+        <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-(--bg-secondary) flex items-center justify-center border border-(--border-light)">
           <ProxyImage
             src={getAssetIcon(market.asset)}
             className="w-5 h-5 object-contain"
@@ -33,7 +33,7 @@ const MarketCard: React.FC<MarketCardProps> = ({ market }) => {
           />
         </div>
         <Link href={`/crypto/${market.id}`}>
-          <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-snug flex-1 hover:text-[var(--accent)] transition-colors cursor-pointer">
+          <h3 className="text-[15px] font-bold text-(--text-primary) leading-snug flex-1 hover:text-(--accent) transition-colors cursor-pointer">
             {market.question}
           </h3>
         </Link>
@@ -46,13 +46,13 @@ const MarketCard: React.FC<MarketCardProps> = ({ market }) => {
             className="flex items-center justify-between group py-0.5"
           >
             <div className="flex items-center gap-2 flex-1">
-              <span className="text-[var(--text-tertiary)] text-xs">↑</span>
-              <span className="text-[14px] text-[var(--text-secondary)] font-medium">
+              <span className="text-(--text-tertiary) text-xs">↑</span>
+              <span className="text-[14px] text-(--text-secondary) font-medium">
                 {outcome.label}
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[14px] font-bold text-[var(--text-primary)] w-12 text-right">
+              <span className="text-[14px] font-bold text-(--text-primary) w-12 text-right">
                 {outcome.probability}
               </span>
               <div className="flex gap-1">
@@ -68,7 +68,7 @@ const MarketCard: React.FC<MarketCardProps> = ({ market }) => {
         ))}
       </div>
 
-      <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between">
+      <div className="mt-6 pt-4 border-t border-(--border) flex items-center justify-between">
         <div className="flex items-center gap-3">
           {market.isLive && (
             <div className="flex items-center gap-1.5 mr-1">
@@ -78,13 +78,13 @@ const MarketCard: React.FC<MarketCardProps> = ({ market }) => {
               </span>
             </div>
           )}
-          <span className="text-[12px] text-[var(--text-tertiary)] font-bold">
+          <span className="text-[12px] text-(--text-tertiary) font-bold">
             {market.volume} Vol.
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-3 text-(--text-tertiary)">
           {market.hasGift && <Gift className="w-4 h-4" />}
-          <Bookmark className="w-4 h-4 hover:text-[var(--accent)] transition-colors" />
+          <Bookmark className="w-4 h-4 hover:text-(--accent) transition-colors" />
         </div>
       </div>
     </div>
