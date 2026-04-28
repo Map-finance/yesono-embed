@@ -1,6 +1,203 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --color-primary: var(--accent);
+  --color-secondary: var(--accent-secondary);
+  --color-accent: var(--accent);
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-bg-hover: var(--bg-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-inverse: var(--text-inverse);
+  --color-success: var(--green);
+  --color-error: var(--red);
+  --color-warning: var(--yellow);
+  --color-info: var(--blue);
+  --color-green: var(--green);
+  --color-red: var(--red);
+  --color-yellow: var(--yellow);
+  --color-blue: var(--blue);
+  --color-border: var(--border);
+  --color-border-light: var(--border-light);
+  --color-border-dark: var(--border-dark);
+  --color-background: var(--bg-primary);
+  --color-text: var(--text-primary);
+
+  --font-primary: var(--font-primary);
+  --font-secondary: var(--font-secondary);
+  --font-mono: var(--font-mono);
+
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-base: var(--font-size-base);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+  --text-2xl: var(--font-size-2xl);
+  --text-3xl: var(--font-size-3xl);
+
+  --font-weight-normal: var(--font-weight-normal);
+  --font-weight-medium: var(--font-weight-medium);
+  --font-weight-semibold: var(--font-weight-semibold);
+  --font-weight-bold: var(--font-weight-bold);
+
+  --spacing-xs: var(--spacing-xs);
+  --spacing-sm: var(--spacing-sm);
+  --spacing-md: var(--spacing-md);
+  --spacing-lg: var(--spacing-lg);
+  --spacing-xl: var(--spacing-xl);
+  --spacing-2xl: var(--spacing-2xl);
+  --spacing-3xl: var(--spacing-3xl);
+
+  --radius-none: var(--radius-none);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+
+  --transition-duration-fast: 150ms;
+  --transition-duration-normal: 200ms;
+  --transition-duration-slow: 300ms;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility scrollbar-hide {
+  /* 隐藏滚动条 */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 移动端间距优化 */
+}
+
+@utility masonry-grid {
+  /* 瀑布流布局样式 - 横向填充（从左到右），完全兼容 Edge Runtime */
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  /* 移动端间距优化 */
+  @media (max-width: 640px) {
+    gap: 8px;
+  }
+
+  @media (min-width: 641px) and (max-width: 1024px) {
+    gap: 12px;
+  }
+}
+
+@utility masonry-grid_column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+
+  /* 移动端间距优化 */
+}
+@utility custom-table {
+  /* Mobile optimization for tables */
+  @media (max-width: 768px) {
+    & .ant-table-thead > tr > th {
+      font-size: 12px !important;
+      padding: 8px 4px !important;
+    }
+
+    & .ant-table-tbody > tr > td {
+      font-size: 12px !important;
+      padding: 8px 4px !important;
+    }
+
+    & .ant-btn {
+      padding: 4px 8px !important;
+      font-size: 12px !important;
+      height: auto !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    & .ant-table-thead > tr > th {
+      font-size: 11px !important;
+      padding: 6px 2px !important;
+    }
+
+    & .ant-table-tbody > tr > td {
+      font-size: 11px !important;
+      padding: 6px 2px !important;
+    }
+  }
+}
+@utility ant-table-thead {
+  /* Mobile optimization for tables */
+  @media (max-width: 768px) {
+    .custom-table & > tr > th {
+      font-size: 12px !important;
+      padding: 8px 4px !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .custom-table & > tr > th {
+      font-size: 11px !important;
+      padding: 6px 2px !important;
+    }
+  }
+}
+@utility ant-table-tbody {
+  /* Mobile optimization for tables */
+  @media (max-width: 768px) {
+    .custom-table & > tr > td {
+      font-size: 12px !important;
+      padding: 8px 4px !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .custom-table & > tr > td {
+      font-size: 11px !important;
+      padding: 6px 2px !important;
+    }
+  }
+}
+@utility ant-btn {
+  /* Mobile optimization for tables */
+  @media (max-width: 768px) {
+    .custom-table & {
+      padding: 4px 8px !important;
+      font-size: 12px !important;
+      height: auto !important;
+    }
+  }
+}
 
 @layer base {
   * {
@@ -178,16 +375,6 @@
 
 @layer utilities {
 
-  /* 隐藏滚动条 */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
   /* 自定义滚动条样式 */
   ::-webkit-scrollbar {
     @apply w-2 h-2;
@@ -204,87 +391,29 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-600;
   }
-
-  /* 瀑布流布局样式 - 横向填充（从左到右），完全兼容 Edge Runtime */
-  .masonry-grid {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-  }
-
-  .masonry-grid_column {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* 移动端间距优化 */
-  @media (max-width: 640px) {
-    .masonry-grid {
-      gap: 8px;
-    }
-  }
-
-  @media (min-width: 641px) and (max-width: 1024px) {
-    .masonry-grid {
-      gap: 12px;
-    }
-  }
 }
 
-.recharts-wrapper.outline-none * {
-  outline: none;
-}
-
-/* 移动端底部弹出动画 */
-@keyframes slide-up {
-  from {
-    transform: translateY(100%);
+@layer utilities {
+  .recharts-wrapper.outline-none * {
+    outline: none;
   }
 
-  to {
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out;
-}
-
-/* Global Table Responsive Styles */
-@layer components {
-
-  /* Mobile optimization for tables */
-  @media (max-width: 768px) {
-    .custom-table .ant-table-thead>tr>th {
-      font-size: 12px !important;
-      padding: 8px 4px !important;
+  /* 移动端底部弹出动画 */
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
     }
 
-    .custom-table .ant-table-tbody>tr>td {
-      font-size: 12px !important;
-      padding: 8px 4px !important;
-    }
-
-    .custom-table .ant-btn {
-      padding: 4px 8px !important;
-      font-size: 12px !important;
-      height: auto !important;
+    to {
+      transform: translateY(0);
     }
   }
 
-  @media (max-width: 480px) {
-    .custom-table .ant-table-thead>tr>th {
-      font-size: 11px !important;
-      padding: 6px 2px !important;
-    }
-
-    .custom-table .ant-table-tbody>tr>td {
-      font-size: 11px !important;
-      padding: 6px 2px !important;
-    }
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
   }
+
+  /* Global Table Responsive Styles */
 }
 
 /* Fix antd table placeholder making empty-state look faded */

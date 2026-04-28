@@ -24,8 +24,6 @@ node_modules
 
 # Debug
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
@@ -104,8 +102,8 @@ temp/
 *.sln
 *.sw?
 
-# yarn
-.yarn
+# package managers
+.pnpm-store/
 
 
 certificates

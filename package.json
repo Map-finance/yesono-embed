@@ -8,50 +8,59 @@
     "build": "next build",
     "build:clean": "rm -rf .next .open-next",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "deploy": "bash ./scripts/deploy.sh prod",
     "deploy:dev": "bash ./scripts/deploy.sh dev",
     "preview": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare preview"
   },
   "dependencies": {
-    "@number-flow/react": "^0.5.10",
-    "@tanstack/react-query": "^5.37.1",
+    "@number-flow/react": "^0.5.14",
+    "@tanstack/react-query": "^5.100.5",
     "@types/react-virtualized-auto-sizer": "^1.0.8",
     "@types/react-window": "^2.0.0",
     "antd": "^5.27.0",
-    "axios": "^1.7.7",
-    "lightweight-charts": "^5.1.0",
+    "axios": "^1.15.2",
+    "lightweight-charts": "^5.2.0",
     "lodash": "^4.18.1",
     "lucide-react": "0.469.0",
-    "next": "^15.5.15",
-    "p-queue": "^9.1.0",
+    "next": "^16.2.4",
+    "p-queue": "^9.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-virtualized-auto-sizer": "^2.0.2",
     "react-window": "^2.2.4",
-    "recharts": "^3.6.0",
-    "swr": "^2.3.6",
+    "recharts": "^3.8.1",
+    "swr": "^2.4.1",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.18.0",
-    "@types/node": "^20.10.6",
-    "@types/react": "19.2.5",
+    "@eslint/eslintrc": "^3",
+    "@opennextjs/cloudflare": "^1.19.4",
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/node": "^20.19.39",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "19.2.3",
-    "autoprefixer": "^10.4.16",
-    "eslint": "^8.56.0",
-    "eslint-config-next": "^14.0.4",
-    "postcss": "^8.4.35",
-    "tailwindcss": "3.4.17",
-    "typescript": "^5.3.3",
-    "wrangler": "^4.79.0"
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.4",
+    "postcss": "^8.5.12",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.85.0"
   },
-  "resolutions": {
-    "axios": "^1.7.7",
-    "lodash": "^4.18.1",
-    "lodash-es": "^4.18.1",
-    "lucide-react": "0.469.0",
-    "typescript": "^5.3.3"
+  "pnpm": {
+    "overrides": {
+      "axios": "^1.7.7",
+      "lodash": "^4.18.1",
+      "lodash-es": "^4.18.1",
+      "lucide-react": "0.469.0",
+      "typescript": "^6.0.3"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver",
+      "workerd"
+    ]
   },
-  "packageManager": "yarn@1.22.19"
+  "packageManager": "pnpm@10.33.2"
 }
