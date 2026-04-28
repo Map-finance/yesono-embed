@@ -9,7 +9,6 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import useComments from '@/lib/hooks/useComments';
 import { Popover } from '@/components/ui/Popover';
-import { Checkbox } from 'antd';
 import CommentItem from '@/components/common/CommentItem';
 import { useTranslation } from '@/lib/i18n';
 
@@ -158,10 +157,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             </button>
           </Popover>
         </div>
-        {/* <label className="flex items-center gap-1 text-sm ml-4 select-none">
-          <Checkbox />
-          <div>{t.market.holders}</div>
-        </label> */}
         <button className="ml-auto flex items-center gap-1 px-3 py-1.5 bg-(--bg-secondary) rounded-full text-sm text-(--text-secondary) hover:text-(--text-primary)">
           ⚠️ {t.common.bewareExternalLinks}
         </button>

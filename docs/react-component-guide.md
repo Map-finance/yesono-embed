@@ -4,7 +4,7 @@
 > 维护：所有提交 PR 前请对照本规范自检；review 时把违反项作为阻塞理由
 > 最后更新：2026-04-28（迁移到 pnpm 10、Next 16）
 >
-> 当前历史代码仍残留 Antd 5 组件，处于过渡期 —— **新增组件一律使用 shadcn/ui**，旧 Antd 组件随业务迭代逐步替换。详见 [§18 UI 组件库](#18-ui-组件库shadcnui)。
+> Antd 5 已于 2026-04-28 完全移除（详见 [§18.4 迁移路线](#184-迁移路线)）。**新增组件一律使用 shadcn/ui**，禁止重新引入 antd / MUI / Chakra / Mantine 等其他 UI 库。
 
 ---
 
@@ -425,7 +425,7 @@ export function useXxx(options: UseXxxOptions = {}): UseXxxReturn {
 - RSC 友好，不会被一堆 `"use client"` 拖累。
 - 体积小，比 Antd 节省约 200KB（gzip）。
 
-**Antd 处于过渡期**：旧组件不强制改，但**新代码不允许新增 Antd 依赖**。详见 [§18.4 迁移路线](#184-迁移路线)。
+**Antd 已完全移除（2026-04-28）**：仓库不再依赖 antd / @ant-design/cssinjs，PR 中**禁止**重新引入。历史迁移记录见 [§18.4 迁移路线](#184-迁移路线)。
 
 ### 18.2 组件选型清单
 
@@ -473,17 +473,17 @@ import { cn } from "@/lib/utils";
 
 **a11y**：所有交互组件用 shadcn / Radix 的对应组件，不要自己 `<div onClick>` 模拟。
 
-### 18.4 迁移路线
+### 18.4 迁移路线（已完成 2026-04-28）
 
-不强制一次性切换，按以下节奏：
-
-| 阶段 | 内容 | 工时预估 |
+| 阶段 | 内容 | 状态 |
 |---|---|---|
-| 1 | `npx shadcn init`，引入 `Dialog` / `Tabs` / `Popover` / `Toast`，先把 Header 的 "How it works" 弹窗换掉 | 半天 |
-| 2 | 新组件全部用 shadcn；不再 import `antd` | 持续 |
-| 3 | 把存量 Antd 组件按使用频率排序，逐个替换：`Modal` → `Dialog`，`Drawer` → `Sheet`，`Tabs` → `Tabs`，`Popover` → `Popover`，`Select` → `Select` | 1–2 天 |
-| 4 | 拆掉 [app/ClientWrapper.tsx](../app/ClientWrapper.tsx) 中的 `ConfigProvider` / `App`，主题改为纯 CSS 变量 | 半天 |
-| 5 | `pnpm remove antd @ant-design/cssinjs`，跑 `pnpm build` 确认无引用 | 10 分钟 |
+| 1 | 引入 shadcn 基础组件（`Dialog` / `Tabs` / `Popover` / `Toast` 等），现有 `components/ui/` 已自带等价封装 | ✅ |
+| 2 | 新组件一律 shadcn，禁止 `import` antd | ✅ 强制 |
+| 3 | 替换存量 Antd 组件（`Modal` → `Dialog`、`Drawer` → `Sheet`、`Tabs`、`Popover`、`Select`、`Checkbox` 等） | ✅ |
+| 4 | 移除 [app/ClientWrapper.tsx](../app/ClientWrapper.tsx) 里的 `ConfigProvider` / `App`，主题完全走 CSS 变量 | ✅ |
+| 5 | 删除 `antd` / `@ant-design/cssinjs` 依赖、清理 `next.config.js` 里的 `optimizePackageImports`、删除 `lib/dayjsConfig.ts` 与 `styles/index.css` 中残留的 `.ant-*` 选择器 | ✅ |
+
+后续新增 shadcn 组件用官方 CLI（`pnpm dlx shadcn@latest add ...`），首次执行会生成 `lib/utils.ts` 的 `cn` helper（依赖 `clsx` + `tailwind-merge`）。
 
 ### 18.5 黑名单（与 §13 互补）
 

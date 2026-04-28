@@ -23,7 +23,7 @@ No tests configured.
 
 ## Architecture
 
-Next.js 16 App Router on `@opennextjs/cloudflare`. UI is **migrating from Antd 5 → shadcn/ui + Radix Primitives + Tailwind** (see [docs/react-component-guide.md §18](docs/react-component-guide.md#18-ui-组件库shadcnui)); CSS-variable theme drives both. Data fetched via SWR / TanStack Query with a thin axios layer at [lib/request.ts](lib/request.ts).
+Next.js 16 App Router on `@opennextjs/cloudflare`. UI standard: **shadcn/ui + Radix Primitives + Tailwind** (see [docs/react-component-guide.md §18](docs/react-component-guide.md#18-ui-组件库shadcnui)); the legacy Antd 5 dependency has been removed. CSS-variable theme drives all components. Data fetched via SWR / TanStack Query with a thin axios layer at [lib/request.ts](lib/request.ts).
 
 ### Token / auth
 
@@ -47,9 +47,7 @@ iframe.contentWindow.postMessage({ type: "yesono-embed:clear-token" }, "*");
 ### Provider stack
 
 [app/ClientWrapper.tsx](app/ClientWrapper.tsx):
-`I18nProvider` → `EmbedProvider` → `ToastProvider` → `NavigationProvider` → `ConfigProvider (Antd, transitional)` → `App` → children + `IframeBridge`.
-
-The Antd `ConfigProvider` / `App` wrapper is transitional and will be removed once existing Antd components are migrated to shadcn/ui (see [docs/react-component-guide.md §18.4](docs/react-component-guide.md#184-迁移路线)).
+`I18nProvider` → `EmbedProvider` → `ToastProvider` → `NavigationProvider` → children + `IframeBridge`.
 
 ### Available pages
 
@@ -68,7 +66,7 @@ The Antd `ConfigProvider` / `App` wrapper is transitional and will be removed on
 
 ### Theme
 
-CSS variables in [lib/theme/](lib/theme/) (`var(--accent)`, `var(--bg-primary)`, etc.) drive Tailwind, shadcn/ui, and (transitionally) Antd. Light/dark via `data-theme` on `<html>`. shadcn's default tokens (`--background`, `--foreground`, ...) are mapped to the project variables in [styles/index.css](styles/index.css).
+CSS variables in [lib/theme/](lib/theme/) (`var(--accent)`, `var(--bg-primary)`, etc.) drive Tailwind and shadcn/ui. Light/dark via `data-theme` on `<html>`. shadcn's default tokens (`--background`, `--foreground`, ...) are mapped to the project variables in [styles/index.css](styles/index.css).
 
 ### i18n
 
