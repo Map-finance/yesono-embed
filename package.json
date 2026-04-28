@@ -7,7 +7,6 @@
     "dev:https": "next dev --experimental-https",
     "build": "next build",
     "build:clean": "rm -rf .next .open-next",
-    "start": "next start",
     "lint": "eslint .",
     "deploy": "bash ./scripts/deploy.sh prod",
     "deploy:dev": "bash ./scripts/deploy.sh dev",
@@ -16,19 +15,13 @@
   },
   "dependencies": {
     "@number-flow/react": "^0.5.14",
-    "@tanstack/react-query": "^5.100.5",
-    "@types/react-virtualized-auto-sizer": "^1.0.8",
-    "@types/react-window": "^2.0.0",
     "axios": "^1.15.2",
     "lightweight-charts": "^5.2.0",
-    "lodash": "^4.18.1",
+    "lodash": "^4.17.21",
     "lucide-react": "0.469.0",
     "next": "^16.2.4",
-    "p-queue": "^9.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "react-virtualized-auto-sizer": "^2.0.2",
-    "react-window": "^2.2.4",
     "recharts": "^3.8.1",
     "swr": "^2.4.1",
     "zustand": "^4.4.7"
@@ -39,7 +32,7 @@
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^20.19.39",
     "@types/react": "^19.2.14",
-    "@types/react-dom": "19.2.3",
+    "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.4",
     "husky": "^9.1.7",
@@ -54,11 +47,7 @@
   },
   "pnpm": {
     "overrides": {
-      "axios": "^1.7.7",
-      "lodash": "^4.18.1",
-      "lodash-es": "^4.18.1",
-      "lucide-react": "0.469.0",
-      "typescript": "^6.0.3"
+      "lucide-react": "0.469.0"
     },
     "onlyBuiltDependencies": [
       "esbuild",
