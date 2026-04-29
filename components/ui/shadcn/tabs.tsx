@@ -64,7 +64,8 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
         // line variant 下方下划线：用项目 --accent 黄色而非 foreground 白色
         "after:absolute after:bg-[var(--accent)] after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-[-1px] group-data-horizontal/tabs:after:h-[2px] group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100",
         // line variant active 文字与下划线同色（主题 accent 黄）
-        "group-data-[variant=line]/tabs-list:data-active:text-[var(--accent)]",
+        // 用 ! 强制 !important 压过 shadcn 默认的 dark:data-active:text-foreground
+        "group-data-[variant=line]/tabs-list:data-active:text-[var(--accent)]!",
         className
       )}
       {...props}
