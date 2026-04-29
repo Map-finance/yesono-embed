@@ -146,8 +146,8 @@ const Header: React.FC = () => {
 
       <Dialog open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen}>
         <DialogContent
-          className="!max-w-lg bg-(--bg-card) border-(--border)"
-          style={{ maxWidth: "32rem" }}
+          className="bg-(--bg-card) border-(--border)"
+          style={{ width: "32rem", maxWidth: "calc(100vw - 2rem)" }}
         >
           <DialogHeader>
             <DialogTitle className="text-(--text-primary)">
