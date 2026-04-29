@@ -17,11 +17,10 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
-import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import { useAuthStore } from "@/lib/stores/authStore";
-import ProfileSummary from "./components/profile-summary";
 import ProfitLossChart from "./components/profit-loss-chart";
+import ModeBar, { type PositionMode } from "./components/mode-bar";
 import PositionsTable from "./components/positions-table";
 import ActivityTable from "./components/activity-table";
 import OrdersTable from "./components/orders-table";
@@ -29,7 +28,6 @@ import MarketRecordsTable from "./components/market-records-table";
 
 const TAB_KEYS = ["positions", "activity", "orders", "records"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
-type PositionMode = "yesNo" | "asian";
 
 function isTabKey(v: string | null): v is TabKey {
   return !!v && (TAB_KEYS as readonly string[]).includes(v);
@@ -51,23 +49,15 @@ function PnaPageContent() {
   const routeUserId = (searchParams.get("userId") || "").trim();
   const currentUserId = (user?.userId || "").trim();
   const targetUserId = routeUserId || currentUserId || undefined;
-  const isViewingOtherUser = Boolean(routeUserId && routeUserId !== currentUserId);
 
   // Asian 模式锁定为 orders tab；Yes/No 模式遵循用户的 tab 选择
   const tabValue: TabKey = mode === "asian" ? "orders" : tab;
 
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <ProfileSummary
-          targetUserId={targetUserId}
-          isViewingOtherUser={isViewingOtherUser}
-        />
-      </div>
-
-      <ModeToggle value={mode} onChange={setMode} />
-
       <ProfitLossChart targetUserId={targetUserId} />
+
+      <ModeBar mode={mode} onChange={setMode} targetUserId={targetUserId} />
 
       <Tabs value={tabValue} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
         <TabsList className="bg-(--bg-card) border border-(--border)">
@@ -97,49 +87,6 @@ function PnaPageContent() {
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-function ModeToggle({
-  value,
-  onChange,
-}: {
-  value: PositionMode;
-  onChange: (v: PositionMode) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="inline-flex gap-1 rounded-md border border-(--border) bg-(--bg-card) p-1 text-xs">
-      <ModeButton current={value} self="yesNo" label={t.pna.profile.modeYesNo} onClick={onChange} />
-      <ModeButton current={value} self="asian" label={t.pna.profile.modeAsianHandicap} onClick={onChange} />
-    </div>
-  );
-}
-
-function ModeButton({
-  current,
-  self,
-  label,
-  onClick,
-}: {
-  current: PositionMode;
-  self: PositionMode;
-  label: string;
-  onClick: (v: PositionMode) => void;
-}) {
-  const active = current === self;
-  return (
-    <button
-      onClick={() => onClick(self)}
-      className={cn(
-        "px-3 py-1 rounded transition-colors",
-        active
-          ? "bg-(--accent) text-(--bg-primary) font-medium"
-          : "text-(--text-secondary) hover:text-(--text-primary)"
-      )}
-    >
-      {label}
-    </button>
   );
 }
 
