@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 
 import { Badge } from "@/components/ui/shadcn/badge";
+import ProxyImage from "@/components/common/ProxyImage";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import useGetOracleResultEvents, {
   type MarketCreatedRecord,
@@ -43,7 +43,7 @@ const COLUMNS: DataTableColumn<MarketCreatedRecord>[] = [
     cell: (m) => (
       <div className="flex items-center gap-2 min-w-0">
         {m.icon || m.image ? (
-          <Image src={m.icon || m.image || ""} alt="" width={24} height={24} className="rounded shrink-0" />
+          <ProxyImage src={m.icon || m.image || ""} alt="" className="size-6 rounded shrink-0 object-cover" />
         ) : null}
         <div className="min-w-0">
           <div className="truncate font-medium">{m.title || m.slug || "—"}</div>

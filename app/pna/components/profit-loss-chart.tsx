@@ -104,7 +104,7 @@ export default function ProfitLossChart({ targetUserId }: ProfitLossChartProps) 
           </div>
         </div>
 
-        <div className="h-[180px]">
+        <div className="h-[180px] w-full">
           {isLoading ? (
             <Skeleton className="size-full" />
           ) : chartData.length === 0 ? (

@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
-
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
 import { Badge } from "@/components/ui/shadcn/badge";
+import ProxyImage from "@/components/common/ProxyImage";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import useGetPositions from "@/lib/hooks/pna/use-get-positions";
 import useGetClosedPositions from "@/lib/hooks/pna/use-get-closed-positions";
@@ -106,7 +105,7 @@ function MarketCell({ icon, title, outcome }: { icon: string | null; title: stri
   return (
     <div className="flex items-center gap-2 min-w-0">
       {icon ? (
-        <Image src={icon} alt="" width={24} height={24} className="rounded shrink-0" />
+        <ProxyImage src={icon} alt="" className="size-6 rounded shrink-0 object-cover" />
       ) : null}
       <div className="min-w-0">
         <div className="truncate font-medium">{title}</div>
