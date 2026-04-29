@@ -59,6 +59,7 @@ export default function ModeBar({ mode, onChange, targetUserId }: ModeBarProps) 
               format={{
                 style: "currency",
                 currency: "USD",
+                currencyDisplay: "narrowSymbol",
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               }}
