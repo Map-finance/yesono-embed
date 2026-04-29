@@ -53,6 +53,21 @@ export function fmtUnixDateTime(unix: number | string | null | undefined): strin
 }
 
 /**
+ * unix 时间戳 → "5m ago" / "3h ago" / "4d ago" / 超 30 天回退到日期
+ */
+export function fmtRelativeTime(unix: number | string | null | undefined): string {
+  const ms = toMillis(unix, /* assumeSeconds */ false);
+  if (ms === null) return "—";
+  const diff = Date.now() - ms;
+  if (diff < 0) return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(ms));
+  if (diff < 60_000) return "<1m";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < 30 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d ago`;
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(ms));
+}
+
+/**
  * 防御式把任意"时间戳样"输入转为毫秒。
  * 处理：null / undefined / "" / NaN / 字符串 / 秒 vs 毫秒判定 / 非法 Date。
  */

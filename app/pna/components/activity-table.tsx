@@ -6,7 +6,9 @@ import {
   ArrowUpFromLine,
   ArrowDown,
   ArrowUp,
+  ExternalLink,
   GitMerge,
+  Split,
   CircleDollarSign,
 } from "lucide-react";
 
@@ -15,11 +17,12 @@ import { Badge } from "@/components/ui/shadcn/badge";
 import { Button } from "@/components/ui/shadcn/button";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { cn } from "@/lib/utils";
+import { getBasescanUrl } from "@/lib/config";
 import useGetActivity, { type Activity } from "@/lib/hooks/pna/use-get-activity";
 import useGetChainTransactions, {
   type ChainTransaction,
 } from "@/lib/hooks/pna/use-get-chain-transactions";
-import { fmtMoney, fmtUnixDateTime } from "./formatters";
+import { fmtMoney, fmtRelativeTime } from "./formatters";
 import { MarketCell } from "./positions-table";
 
 interface ActivityTableProps {
@@ -128,26 +131,73 @@ const TRADE_COLUMNS: DataTableColumn<Activity>[] = [
       />
     ),
   },
-  { key: "amount", header: "Amount", align: "right", cell: (a) => <span className="tabular-nums">{fmtMoney(a.amount)}</span> },
   {
-    key: "when",
-    header: "When",
+    key: "amount",
+    header: "Amount",
     align: "right",
-    cell: (a) => <span className="text-xs text-(--text-secondary)">{fmtUnixDateTime(a.timestamp)}</span>,
+    cell: (a) => <AmountWithTime amount={a.amount} timestamp={a.timestamp} txHash={a.txHash} />,
   },
 ];
 
 const CHAIN_COLUMNS: DataTableColumn<ChainTransaction>[] = [
   { key: "type", header: "Type", cell: (tx) => <ActivityTypeBadge type={tx.type} /> },
-  { key: "market", header: "Market", cell: (tx) => <span className="truncate font-medium">{tx.market || "—"}</span> },
-  { key: "amount", header: "Amount", align: "right", cell: (tx) => <span className="tabular-nums">{fmtMoney(tx.amount)}</span> },
   {
-    key: "when",
-    header: "When",
+    key: "market",
+    header: "Market",
+    cell: (tx) => (
+      <MarketCell
+        icon={tx.icon ?? null}
+        title={tx.question || tx.market || "—"}
+        eventSlug={tx.eventSlug ?? null}
+        subtitle={
+          tx.marketId ? (
+            <span className="text-xs text-(--text-secondary) font-mono">ID: {tx.marketId}</span>
+          ) : null
+        }
+      />
+    ),
+  },
+  {
+    key: "amount",
+    header: "Amount",
     align: "right",
-    cell: (tx) => <span className="text-xs text-(--text-secondary)">{fmtUnixDateTime(tx.timestamp)}</span>,
+    cell: (tx) => <AmountWithTime amount={tx.amount} timestamp={tx.timestamp} txHash={tx.txHash} />,
   },
 ];
+
+/**
+ * Amount + 相对时间 + 区块浏览器外链 — 三件叠成一列右对齐。
+ * 与原 h2-market /pna 一致。
+ */
+function AmountWithTime({
+  amount,
+  timestamp,
+  txHash,
+}: {
+  amount: number | null | undefined;
+  timestamp: number | string | null | undefined;
+  txHash: string | null | undefined;
+}) {
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <span className="font-semibold tabular-nums">{fmtMoney(amount)}</span>
+      <div className="flex items-center gap-1 text-[11px] text-(--text-secondary) whitespace-nowrap">
+        {timestamp ? <span>{fmtRelativeTime(timestamp)}</span> : null}
+        {txHash ? (
+          <a
+            href={getBasescanUrl.transaction(txHash)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={txHash}
+            className="hover:text-(--text-primary) transition-colors shrink-0"
+          >
+            <ExternalLink size={11} />
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 function ActivityTypeBadge({ type }: { type: string }) {
   const meta = TYPE_META[type] ?? DEFAULT_META;
@@ -168,6 +218,7 @@ const TYPE_META: Record<string, { label: string; icon?: typeof ArrowDown; color:
   Sell: { label: "Sell", icon: ArrowUp, color: "text-red-500" },
   REDEEM: { label: "Redeem", icon: CircleDollarSign, color: "text-emerald-500" },
   MERGE: { label: "Merge", icon: GitMerge, color: "text-(--text-secondary)" },
+  SPLIT: { label: "Split", icon: Split, color: "text-(--text-secondary)" },
   DEPOSIT: { label: "Deposit", icon: ArrowDownToLine, color: "text-emerald-500" },
   WITHDRAW: { label: "Withdraw", icon: ArrowUpFromLine, color: "text-red-500" },
 };

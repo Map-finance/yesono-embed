@@ -10,12 +10,16 @@ import { getChainTransactions } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 
 export interface ChainTransaction {
-    type: 'MERGE' | 'REDEEM' | 'DEPOSIT' | 'WITHDRAW';
+    type: 'MERGE' | 'REDEEM' | 'DEPOSIT' | 'WITHDRAW' | 'SPLIT';
     market?: string;
     amount?: number;
     timestamp?: number;
     marketId?: number;
     txHash?: string;
+    // 后端实际还会带这几个字段（原 ActivityTable 用），interface 此前漏声明
+    icon?: string | null;
+    question?: string | null;
+    eventSlug?: string | null;
 }
 
 interface UseGetChainTransactionsOptions {
