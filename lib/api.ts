@@ -5,6 +5,7 @@ import { getEmbedToken } from "@/lib/embed/EmbedContext";
 import { getAuthApiHost } from "@/lib/config/authApiUrl";
 
 const BASE_URL = process.env.NEXT_PUBLIC_C2C_API_BASE_URL!;
+const ROUTER_BASE_URL = process.env.NEXT_PUBLIC_ROUTER_BASE_URL!;
 const API_HOST = getAuthApiHost();
 const AUTH_BASE_URL = `${API_HOST}/api`;
 
@@ -119,6 +120,369 @@ export async function getComments({
 export async function getSubComments(commentId: number) {
   return request(`${AUTH_BASE_URL}/comments/${commentId}/replies`, {}, {});
 }
+
+
+// ─── Unfinished Aggregated Orders ────────────────────────────────────────────
+
+export interface UnfinishedAggregatedOrder {
+  orderId: number;
+  userId: string;
+  tokenId: string;
+  side: 'BUY' | 'SELL';
+  orderType: string;
+  orderPrice: number;
+  filledSize: number;
+  status: 'CREATED' | 'WAITING_DEPOSIT' | 'PARTIALLY_DEPOSITED' | 'EXECUTING';
+  estimatedGasFee: number;
+  actualGasFee: number;
+  placedAmount: number;
+  placedSize: number;
+  avgFillPrice: number;
+  tradingFee: number;
+  outComeUnionKey: string;
+  expiresAt: number | null;
+  executedAt: number | null;
+  completedAt: number | null;
+  eventId: string;
+}
+
+export async function getUnfinishedOrders(userId?: string): Promise<{
+  code: number;
+  message: string;
+  data: UnfinishedAggregatedOrder[];
+}> {
+  const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+  const response = await request(`${AUTH_BASE_URL}/orders/unfinished${query}`, {
+    method: "GET",
+  },
+    getLanguageHeaders(),
+    // true // 需要 token 鉴权
+  );
+  return response;
+}
+
+
+/**
+ * 获取用户持仓数据（新接口）
+ * @param params - 查询参数
+ * @returns 用户持仓数据列表
+ */
+export async function getPositions(params: {
+  limit?: number;
+  offset?: number;
+  userId: string;
+}) {
+  const queryParams = new URLSearchParams({
+    limit: (params.limit || 25).toString(),
+    offset: (params.offset || 0).toString(),
+    userId: params.userId,
+  });
+
+  return request(
+    `${AUTH_BASE_URL}/positions/new?${queryParams}`,
+    { method: "GET" },
+    getLanguageHeaders(),
+    // true
+  );
+}
+
+
+/**
+ * 获取已结束持仓数据（新接口）
+ * @param params - 查询参数
+ * @returns 已结束持仓数据列表
+ */
+export async function getClosedPositions(params: {
+  limit?: number;
+  offset?: number;
+  userId: string;
+}) {
+  const queryParams = new URLSearchParams({
+    limit: (params.limit || 25).toString(),
+    offset: (params.offset || 0).toString(),
+    userId: params.userId,
+  });
+
+  return request(
+    `${AUTH_BASE_URL}/positions/closed-new?${queryParams}`,
+    { method: "GET" },
+    getLanguageHeaders(),
+    // true
+  );
+}
+
+
+// ─── Order Cancel API ────────────────────────────────────────────────────────
+
+export interface OrderCancelResponse {
+  code: number;
+  message: string;
+  data: boolean;
+}
+
+/**
+ * 调用 /api/order/cancel 接口，通知后端取消指定订单
+ *
+ * @param orderId  订单 ID（字符串，如 "1234567890123"）
+ */
+export async function cancelOrderApi(params: {
+  orderId: string;
+}): Promise<OrderCancelResponse> {
+  console.log("📤 API: 取消订单...", params);
+
+  const response = await request(
+    `${ROUTER_BASE_URL}/order/cancel`,
+    {
+      method: "POST",
+      body: JSON.stringify(params),
+    },
+    getLanguageHeaders(),
+    // true // 需要 token 鉴权
+  );
+
+  return response;
+}
+
+
+/**
+ * 获取市场创建记录
+ * GET /api/market/created-record?page=1&size=20
+ * 返回 Pagination<Market> 分页结构
+ */
+export async function getMarketCreatedRecords(params: {
+  page?: number;
+  size?: number;
+}) {
+  const page = params.page ?? 1;
+  const size = params.size ?? 20;
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  return request(
+    `${AUTH_BASE_URL}/events/user?${queryParams}`,
+    { method: "GET" },
+    getLanguageHeaders(),
+    // true
+  );
+}
+
+
+/**
+ * 获取用户活动记录
+ * @param params - 查询参数
+ * @returns 用户活动记录列表
+ */
+export async function getActivityList(params: {
+  limit?: number;
+  offset?: number;
+  userId: string;
+}) {
+  const queryParams = new URLSearchParams({
+    limit: (params.limit || 25).toString(),
+    offset: (params.offset || 0).toString(),
+    userId: params.userId,
+  });
+
+  return request(
+    `${AUTH_BASE_URL}/activity?${queryParams}`,
+    { method: "GET" },
+    getLanguageHeaders(),
+    // true
+  );
+}
+
+
+/**
+ * 分页查询用户的链上交易记录
+ * @param params - 查询参数
+ * @returns 链上交易记录列表
+ */
+export async function getChainTransactions(params: {
+  limit?: number;
+  offset?: number;
+  userId?: string;
+}) {
+  const queryParams = new URLSearchParams();
+  if (params.limit) queryParams.append("limit", params.limit.toString());
+  if (params.offset) queryParams.append("offset", params.offset.toString());
+  if (params.userId) queryParams.append("userId", params.userId);
+
+  return request(
+    `${AUTH_BASE_URL}/activity/chain-transactions?${queryParams}`,
+    { method: "GET" },
+    getLanguageHeaders(),
+    // true
+  );
+}
+
+
+// 获取用户交易记录
+export async function getUserTransactions(page: number, size: number) {
+  const response = await request(
+    `${BASE_URL}/transaction/user?page=${page}&size=${size}`,
+    {
+      method: "GET",
+    },
+    getLanguageHeaders(),
+    // true
+  ); // 添加语言头和认证
+
+  // 处理返回结果
+  if (response.success) {
+    console.log("✅ 用户交易记录获取成功");
+  }
+
+  return response;
+}
+
+export interface UserOrder {
+    id: number;
+    marketId: number;
+    optionId: number;
+    userId: number;
+    email: string;
+    amount: number;
+    txHash: string;
+    address: string;
+    chainTimestamp: number;
+    status: "SUCCESS" | "PENDING" | "FAIL";
+    type: "stake" | "claim";
+    createdAt: number;
+    username: string;
+    avatar: string;
+    smartAccount: string;
+}
+
+export interface ApiUserOrdersResponse {
+    records: UserOrder[];
+    total: number;
+    page: number;
+    size: number;
+}
+
+
+// 获取用户订单簿
+export async function getUserOrders(
+  page: number,
+  size: number
+): Promise<ApiResponse<ApiUserOrdersResponse>> {
+  console.log("📤 API: 获取用户订单簿...", { page, size });
+  const response = await request(
+    `${BASE_URL}/user/order?page=${page}&size=${size}`,
+    {
+      method: "GET",
+    },
+    getLanguageHeaders(),
+    // true
+  ); // 添加语言头和认证
+
+  // 处理返回结果
+  if (response.success) {
+    console.log("✅ 用户订单簿获取成功");
+  }
+
+  return response;
+}
+
+// 获取待领取订单列表（marketId + itemId）
+export async function getClaimingOrders(): Promise<ApiResponse<{
+  totalAmount: string;
+  totalCount: number;
+  records: Array<{ marketId: string; itemId: string }>;
+}>> {
+  const response = await request(
+    `${BASE_URL}/user/order/claiming`,
+    { method: "GET" },
+    getLanguageHeaders(),
+    // true
+  );
+  return response;
+}
+
+
+// 获取用户开盘记录
+export async function getUserMarketRecords(
+  page: number,
+  size: number,
+  catalog: string = "football"
+) {
+  console.log("📤 API: 获取用户开盘记录...", { page, size, catalog });
+
+  const response = await request(
+    `${BASE_URL}/market/user/record/${catalog}?page=${page}&size=${size}`,
+    {
+      method: "GET",
+    },
+    getLanguageHeaders(),
+    // true
+  ); // 添加语言头和认证
+
+  // 处理返回结果
+  if (response.success) {
+    console.log("✅ 用户开盘记录获取成功");
+  }
+
+  return response;
+}
+
+export interface UserInfo {
+    userId: string;
+    username: string;
+    displayName: string;
+    email: string | null;
+    avatarUrl: string | null;
+    avatarGradient: string;
+    bio: string | null;
+    smartAccountAddress: string;
+    walletAddress: string;
+    joinedDate: string;
+    profileViews: number;
+}
+
+/**
+ * 根据 userId 获取用户资料（他人主页）
+ * GET /api/user/profile/user-info?userId=xxx
+ */
+export async function getUserProfileUserInfo(userId: string): Promise<ApiResponse<UserInfo>> {
+  const queryParams = new URLSearchParams({
+    userId,
+  });
+
+  return request(
+    `${AUTH_BASE_URL}/user/profile/user-info?${queryParams}`,
+    { method: "GET" },
+    getLanguageHeaders(),
+    // true
+  );
+}
+
+export interface UserOrderSummaryData {
+  marketCounts: string;
+  marketValues: string;
+}
+
+/**
+ * 获取用户亚盘订单汇总
+ * - 不传 userId: 查询当前用户
+ * - 传 userId: 查询指定用户
+ * - 走 c2c 域名
+ */
+export async function getUserOrderSummary(
+  userId?: string
+): Promise<ApiResponse<UserOrderSummaryData>> {
+  const query = userId
+    ? `?userId=${encodeURIComponent(userId)}`
+    : "";
+  return request(
+    `${BASE_URL}/user/order/summary${query}`,
+    { method: "GET" },
+    getLanguageHeaders(),
+    // true
+  );
+}
+
 
 export type Fidelity =
   | "1MIN"
