@@ -11,7 +11,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Globe, Moon, Trophy } from "lucide-react";
+import { Briefcase, Check, Globe, Moon, Trophy } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/shadcn/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/shadcn/popover";
@@ -74,6 +74,13 @@ export default function UserMenu() {
       >
         {view === "main" ? (
           <div className="py-1">
+            <Link
+              href="/pna"
+              className="flex items-center gap-3 px-4 py-2 text-sm text-(--text-secondary) hover:text-(--text-primary) hover:bg-(--bg-secondary) transition-colors"
+            >
+              <Briefcase size={16} className="text-emerald-500" />
+              <span>{t.common?.portfolio ?? "Portfolio"}</span>
+            </Link>
             <Link
               href="/leaderboard"
               className="flex items-center gap-3 px-4 py-2 text-sm text-(--text-secondary) hover:text-(--text-primary) hover:bg-(--bg-secondary) transition-colors"

@@ -76,6 +76,10 @@ function PnaPageContent() {
 
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-4">
+      <h1 className="text-2xl font-semibold text-(--text-primary)">
+        {t.common?.portfolio ?? "Portfolio"}
+      </h1>
+
       <ProfitLossChart targetUserId={targetUserId} />
 
       {/* ModeBar 仅自己看：mode 切换、持仓总额（充提总额）只对当前用户有意义 */}
