@@ -28,7 +28,7 @@ export default function PositionsTable({ targetUserId }: PositionsTableProps) {
   return (
     <div className="space-y-3">
       <Tabs value={tab} onValueChange={(v) => setTab(v as SubTab)}>
-        <TabsList className="bg-(--bg-card) border border-(--border)">
+        <TabsList variant="line" className="border-b border-(--border) [&_[data-active]]:after:bg-(--accent) [&_[data-active]]:text-(--text-primary)">
           <TabsTrigger value="active">{t.pna.positionFilters.active}</TabsTrigger>
           <TabsTrigger value="closed">{t.pna.positionFilters.closed}</TabsTrigger>
         </TabsList>
@@ -58,14 +58,14 @@ function ActivePositions({ targetUserId }: { targetUserId?: string }) {
           eventSlug={p.eventSlug}
           subtitle={
             <>
-              <OutcomeBadge label={p.outcome} positive={p.profit >= 0} />
+              <OutcomeBadge label={p.outcome} />
               <span className="text-xs text-(--text-secondary) tabular-nums">
                 {p.shares.toLocaleString()} {t.pna.activity.shares} · {t.pna.positionHeaders.avg} {fmtMoney(p.avgPrice)}
               </span>
               {p.canClaim ? (
-                <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4">
-                  {t.pna.positions.claimable}
-                </Badge>
+                <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded text-[10px] font-medium bg-(--accent)/15 text-(--accent)">
+                  ● {t.pna.positions.claimable}
+                </span>
               ) : null}
             </>
           }
@@ -118,7 +118,7 @@ function ClosedPositions({ targetUserId }: { targetUserId?: string }) {
           icon={p.icon}
           title={p.question || p.market}
           eventSlug={p.eventSlug}
-          subtitle={<OutcomeBadge label={p.outcome} positive={p.result === "Won"} />}
+          subtitle={<OutcomeBadge label={p.outcome} />}
         />
       ),
     },
@@ -216,21 +216,43 @@ function MarketCell({ icon, title, eventSlug, subtitle }: MarketCellProps) {
   );
 }
 
-function OutcomeBadge({ label, positive }: { label: string; positive: boolean }) {
+/**
+ * Outcome 徽章 —— 按 outcome 文字语义着色（不是按 profit 正负）。
+ * up/YES/over → 绿；down/NO/under → 红；其余中性灰。
+ */
+function OutcomeBadge({ label }: { label: string }) {
+  const tone = outcomeTone(label);
+  const cls =
+    tone === "positive"
+      ? "bg-emerald-500/15 text-emerald-500"
+      : tone === "negative"
+        ? "bg-red-500/15 text-red-500"
+        : "bg-(--bg-secondary) text-(--text-secondary)";
   return (
-    <span
-      className={cn(
-        "py-0.5 px-2 rounded text-xs font-medium whitespace-nowrap",
-        positive ? "bg-emerald-500/15 text-emerald-500" : "bg-red-500/15 text-red-500"
-      )}
-    >
+    <span className={cn("py-0.5 px-2 rounded text-xs font-medium whitespace-nowrap", cls)}>
       {label}
     </span>
   );
 }
 
+const POSITIVE_TOKENS = new Set(["yes", "y", "up", "over", "won", "win", "more"]);
+const NEGATIVE_TOKENS = new Set(["no", "n", "down", "under", "lost", "lose", "less"]);
+
+function outcomeTone(label: string): "positive" | "negative" | "neutral" {
+  const k = (label ?? "").trim().toLowerCase();
+  if (POSITIVE_TOKENS.has(k)) return "positive";
+  if (NEGATIVE_TOKENS.has(k)) return "negative";
+  return "neutral";
+}
+
+/**
+ * 盈亏单元格：profit === 0 时仅显示 "—"，避免 "$0.00 (0.00%)" 视觉噪音。
+ */
 function ProfitCell({ profit, pct }: { profit: number; pct: number }) {
-  const positive = profit >= 0;
+  if (!Number.isFinite(profit) || profit === 0) {
+    return <span className="text-(--text-secondary) tabular-nums">—</span>;
+  }
+  const positive = profit > 0;
   return (
     <span className={positive ? "text-emerald-500" : "text-red-500"}>
       <span className="tabular-nums">{fmtMoney(profit)}</span>{" "}
