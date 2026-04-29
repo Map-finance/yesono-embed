@@ -99,6 +99,8 @@ const ACTIVE_COLUMNS: DataTableColumn<Position>[] = [
     header: "Current",
     align: "right",
     cell: (p) => <span className="tabular-nums">{fmtMoney(p.currentPrice)}</span>,
+    className: "max-md:hidden",
+    headerClassName: "max-md:hidden",
   },
   {
     key: "value",
@@ -134,8 +136,22 @@ const CLOSED_COLUMNS: DataTableColumn<ClosedPosition>[] = [
       <Badge variant={p.result === "Won" ? "default" : "secondary"}>{p.result}</Badge>
     ),
   },
-  { key: "bet", header: "Bet", align: "right", cell: (p) => <span className="tabular-nums">{fmtMoney(p.totalBet)}</span> },
-  { key: "won", header: "Won", align: "right", cell: (p) => <span className="tabular-nums">{fmtMoney(p.amountWon)}</span> },
+  {
+    key: "bet",
+    header: "Bet",
+    align: "right",
+    cell: (p) => <span className="tabular-nums">{fmtMoney(p.totalBet)}</span>,
+    className: "max-md:hidden",
+    headerClassName: "max-md:hidden",
+  },
+  {
+    key: "won",
+    header: "Won",
+    align: "right",
+    cell: (p) => <span className="tabular-nums">{fmtMoney(p.amountWon)}</span>,
+    className: "max-md:hidden",
+    headerClassName: "max-md:hidden",
+  },
   { key: "profit", header: "Profit", align: "right", cell: (p) => <ProfitCell profit={p.profit} pct={p.profitPct} /> },
   {
     key: "resolved",
@@ -144,6 +160,8 @@ const CLOSED_COLUMNS: DataTableColumn<ClosedPosition>[] = [
     cell: (p) => (
       <span className="text-xs text-(--text-secondary)">{fmtUnixDate(p.resolvedAt)}</span>
     ),
+    className: "max-md:hidden",
+    headerClassName: "max-md:hidden",
   },
 ];
 

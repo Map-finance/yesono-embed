@@ -7,7 +7,7 @@ export default {
   positionFilters: { active: "Activo", closed: "Cerrado", searchPlaceholder: "Buscar posiciones" },
   sort: { value: "Valor", profitLossDollar: "Ganancia/Pérdida $", profitLossPercent: "Ganancia/Pérdida %", bet: "Apuesta", alphabetically: "Alfabéticamente", averagePrice: "Precio promedio", currentPrice: "Precio actual" },
   positionHeaders: { market: "Mercado", outcome: "Resultado", bet: "Apuesta", shares: "acciones", avg: "Prom", current: "Actual", value: "Valor", profitLoss: "Ganancia/Pérdida" },
-  activity: { type: "Tipo", market: "Mercado", amount: "Monto", shares: "Acciones", buy: "Compra", sell: "Venta", merge: "Fusión", redeem: "Canjear", deposit: "Depósito", withdraw: "Retiro", transactionHistory: "Historial de transacciones", chainTransactionHistory: "Historial on-chain" },
+  activity: { type: "Tipo", market: "Mercado", amount: "Monto", shares: "Acciones", buy: "Compra", sell: "Venta", merge: "Fusión", redeem: "Canjear", deposit: "Depósito", withdraw: "Retiro", split: "Dividir", transactionHistory: "Historial de transacciones", chainTransactionHistory: "Historial on-chain" },
   time: { minutesAgo: "minutos", hourAgo: "hora", hoursAgo: "horas", dayAgo: "día", daysAgo: "días" },
   positions: { claim: "Reclamar", claiming: "Reclamando...", claimSuccess: "Reclamación exitosa", claimFailed: "Reclamación fallida" },
   loading: "Cargando...", noPositions: "Sin posiciones", noActivity: "Sin actividad", loadMore: "Cargar más", noMore: "Sin más datos", profitLossLabel: "Ganancia/Pérdida",

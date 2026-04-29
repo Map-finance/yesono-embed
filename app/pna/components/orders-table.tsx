@@ -113,6 +113,8 @@ const YESNO_COLUMNS: DataTableColumn<YesNoOrder>[] = [
         {o.filled ?? o.filledSize ?? 0} / {o.shares ?? o.placedSize ?? 0}
       </span>
     ),
+    className: "max-md:hidden",
+    headerClassName: "max-md:hidden",
   },
   {
     key: "total",
@@ -129,6 +131,8 @@ const YESNO_COLUMNS: DataTableColumn<YesNoOrder>[] = [
         {typeof o.expiresAt === "number" ? fmtUnixDateTime(o.expiresAt) : (o.expiresAt ?? "—")}
       </span>
     ),
+    className: "max-md:hidden",
+    headerClassName: "max-md:hidden",
   },
 ];
 

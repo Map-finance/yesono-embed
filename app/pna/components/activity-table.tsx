@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/shadcn/button";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { cn } from "@/lib/utils";
 import { getBasescanUrl } from "@/lib/config";
+import { useTranslation } from "@/lib/i18n";
 import useGetActivity, { type Activity } from "@/lib/hooks/pna/use-get-activity";
 import useGetChainTransactions, {
   type ChainTransaction,
@@ -97,7 +98,14 @@ function ChainTxList({ targetUserId }: { targetUserId?: string }) {
 }
 
 const TRADE_COLUMNS: DataTableColumn<Activity>[] = [
-  { key: "type", header: "Type", cell: (a) => <ActivityTypeBadge type={a.type} /> },
+  {
+    key: "type",
+    header: "Type",
+    cell: (a) => <ActivityTypeBadge type={a.type} />,
+    // 移动端隐藏：Type 在 Market 副标题里有移动版徽章
+    className: "max-md:hidden",
+    headerClassName: "max-md:hidden",
+  },
   {
     key: "market",
     header: "Market",
@@ -107,26 +115,31 @@ const TRADE_COLUMNS: DataTableColumn<Activity>[] = [
         title={a.question || a.market || "—"}
         eventSlug={a.eventSlug ?? null}
         subtitle={
-          a.outcomeName ? (
-            <>
-              <span
-                className={cn(
-                  "py-0.5 px-2 rounded text-xs font-medium whitespace-nowrap",
-                  isCreditSide(a.type)
-                    ? "bg-emerald-500/15 text-emerald-500"
-                    : "bg-red-500/15 text-red-500"
-                )}
-              >
-                {a.outcomeName}
-                {a.price ? ` ${fmtMoney(a.price)}` : ""}
-              </span>
-              <span className="text-xs text-(--text-secondary) tabular-nums">
-                {(a.shares ?? 0).toLocaleString()} shares
-              </span>
-            </>
-          ) : a.marketId ? (
-            <span className="text-xs text-(--text-secondary)">ID: {a.marketId}</span>
-          ) : null
+          <>
+            <span className="md:hidden">
+              <ActivityTypeBadge type={a.type} />
+            </span>
+            {a.outcomeName ? (
+              <>
+                <span
+                  className={cn(
+                    "py-0.5 px-2 rounded text-xs font-medium whitespace-nowrap",
+                    isCreditSide(a.type)
+                      ? "bg-emerald-500/15 text-emerald-500"
+                      : "bg-red-500/15 text-red-500"
+                  )}
+                >
+                  {a.outcomeName}
+                  {a.price ? ` ${fmtMoney(a.price)}` : ""}
+                </span>
+                <span className="text-xs text-(--text-secondary) tabular-nums">
+                  {(a.shares ?? 0).toLocaleString()} shares
+                </span>
+              </>
+            ) : a.marketId ? (
+              <span className="text-xs text-(--text-secondary)">ID: {a.marketId}</span>
+            ) : null}
+          </>
         }
       />
     ),
@@ -140,7 +153,13 @@ const TRADE_COLUMNS: DataTableColumn<Activity>[] = [
 ];
 
 const CHAIN_COLUMNS: DataTableColumn<ChainTransaction>[] = [
-  { key: "type", header: "Type", cell: (tx) => <ActivityTypeBadge type={tx.type} /> },
+  {
+    key: "type",
+    header: "Type",
+    cell: (tx) => <ActivityTypeBadge type={tx.type} />,
+    className: "max-md:hidden",
+    headerClassName: "max-md:hidden",
+  },
   {
     key: "market",
     header: "Market",
@@ -150,9 +169,14 @@ const CHAIN_COLUMNS: DataTableColumn<ChainTransaction>[] = [
         title={tx.question || tx.market || "—"}
         eventSlug={tx.eventSlug ?? null}
         subtitle={
-          tx.marketId ? (
-            <span className="text-xs text-(--text-secondary) font-mono">ID: {tx.marketId}</span>
-          ) : null
+          <>
+            <span className="md:hidden">
+              <ActivityTypeBadge type={tx.type} />
+            </span>
+            {tx.marketId ? (
+              <span className="text-xs text-(--text-secondary) font-mono">ID: {tx.marketId}</span>
+            ) : null}
+          </>
         }
       />
     ),
@@ -200,30 +224,42 @@ function AmountWithTime({
 }
 
 function ActivityTypeBadge({ type }: { type: string }) {
-  const meta = TYPE_META[type] ?? DEFAULT_META;
+  const { t } = useTranslation();
+  const meta = TYPE_META[type.toUpperCase()] ?? TYPE_META[type] ?? DEFAULT_META;
   const Icon = meta.icon;
+  // i18n key 在 t.pna.activity.* 下，缺失时回退英文 label
+  const i18nLabel = meta.i18nKey
+    ? (t.pna?.activity as Record<string, string> | undefined)?.[meta.i18nKey]
+    : undefined;
+  const label = i18nLabel || meta.label;
   return (
-    <Badge
-      variant="outline"
-      className={cn("gap-1 border-current", meta.color)}
-    >
+    <Badge variant="outline" className={cn("gap-1 border-current", meta.color)}>
       {Icon ? <Icon className="size-3" /> : null}
-      {meta.label}
+      {label}
     </Badge>
   );
 }
 
-const TYPE_META: Record<string, { label: string; icon?: typeof ArrowDown; color: string }> = {
-  Buy: { label: "Buy", icon: ArrowDown, color: "text-emerald-500" },
-  Sell: { label: "Sell", icon: ArrowUp, color: "text-red-500" },
-  REDEEM: { label: "Redeem", icon: CircleDollarSign, color: "text-emerald-500" },
-  MERGE: { label: "Merge", icon: GitMerge, color: "text-(--text-secondary)" },
-  SPLIT: { label: "Split", icon: Split, color: "text-(--text-secondary)" },
-  DEPOSIT: { label: "Deposit", icon: ArrowDownToLine, color: "text-emerald-500" },
-  WITHDRAW: { label: "Withdraw", icon: ArrowUpFromLine, color: "text-red-500" },
+interface TypeMeta {
+  label: string;
+  i18nKey?: "buy" | "sell" | "merge" | "redeem" | "deposit" | "withdraw" | "split";
+  icon?: typeof ArrowDown;
+  color: string;
+}
+
+const TYPE_META: Record<string, TypeMeta> = {
+  BUY:      { label: "Buy",      i18nKey: "buy",      icon: ArrowDown,        color: "text-emerald-500" },
+  Buy:      { label: "Buy",      i18nKey: "buy",      icon: ArrowDown,        color: "text-emerald-500" },
+  SELL:     { label: "Sell",     i18nKey: "sell",     icon: ArrowUp,          color: "text-red-500" },
+  Sell:     { label: "Sell",     i18nKey: "sell",     icon: ArrowUp,          color: "text-red-500" },
+  REDEEM:   { label: "Redeem",   i18nKey: "redeem",   icon: CircleDollarSign, color: "text-emerald-500" },
+  MERGE:    { label: "Merge",    i18nKey: "merge",    icon: GitMerge,         color: "text-(--text-secondary)" },
+  SPLIT:    { label: "Split",    i18nKey: "split",    icon: Split,            color: "text-(--text-secondary)" },
+  DEPOSIT:  { label: "Deposit",  i18nKey: "deposit",  icon: ArrowDownToLine,  color: "text-emerald-500" },
+  WITHDRAW: { label: "Withdraw", i18nKey: "withdraw", icon: ArrowUpFromLine,  color: "text-red-500" },
 };
 
-const DEFAULT_META = { label: "—", color: "text-(--text-secondary)" };
+const DEFAULT_META: TypeMeta = { label: "—", color: "text-(--text-secondary)" };
 
 function isCreditSide(type: string): boolean {
   // 视觉色：买入 / 赎回 / 入账 都是"获得"侧 → 绿；卖出 / 转出 → 红

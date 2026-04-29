@@ -87,6 +87,7 @@ export default {
     redeem: "リデーム",
     deposit: "入金",
     withdraw: "出金",
+    split: "分割",
     transactionHistory: "取引履歴",
     chainTransactionHistory: "チェーン履歴",
   },

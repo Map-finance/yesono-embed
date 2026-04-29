@@ -7,7 +7,7 @@ export default {
   positionFilters: { active: "Attivo", closed: "Chiuso", searchPlaceholder: "Cerca posizioni" },
   sort: { value: "Valore", profitLossDollar: "Profitto/Perdita $", profitLossPercent: "Profitto/Perdita %", bet: "Scommessa", alphabetically: "Alfabeticamente", averagePrice: "Prezzo medio", currentPrice: "Prezzo attuale" },
   positionHeaders: { market: "Mercato", outcome: "Risultato", bet: "Scommessa", shares: "quote", avg: "Media", current: "Attuale", value: "Valore", profitLoss: "Profitto/Perdita" },
-  activity: { type: "Tipo", market: "Mercato", amount: "Importo", shares: "Quote", buy: "Acquisto", sell: "Vendita", merge: "Unione", redeem: "Riscatto", deposit: "Deposito", withdraw: "Prelievo", transactionHistory: "Storico transazioni", chainTransactionHistory: "Storico on-chain" },
+  activity: { type: "Tipo", market: "Mercato", amount: "Importo", shares: "Quote", buy: "Acquisto", sell: "Vendita", merge: "Unione", redeem: "Riscatto", deposit: "Deposito", withdraw: "Prelievo", split: "Dividi", transactionHistory: "Storico transazioni", chainTransactionHistory: "Storico on-chain" },
   time: { minutesAgo: "minuti fa", hourAgo: "ora fa", hoursAgo: "ore fa", dayAgo: "giorno fa", daysAgo: "giorni fa" },
   positions: { claim: "Riscuoti", claiming: "Riscossione...", claimSuccess: "Riscossione riuscita", claimFailed: "Riscossione fallita" },
   loading: "Caricamento...", noPositions: "Nessuna posizione trovata", noActivity: "Nessuna attività trovata", loadMore: "Carica altro", noMore: "Nessun altro dato", profitLossLabel: "Profitto/Perdita",

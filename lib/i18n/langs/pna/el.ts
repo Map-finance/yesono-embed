@@ -7,7 +7,7 @@ export default {
   positionFilters: { active: "Ενεργές", closed: "Κλειστές", searchPlaceholder: "Αναζήτηση θέσεων" },
   sort: { value: "Αξία", profitLossDollar: "Κέρδος/Ζημία $", profitLossPercent: "Κέρδος/Ζημία %", bet: "Στοίχημα", alphabetically: "Αλφαβητικά", averagePrice: "Μέση τιμή", currentPrice: "Τρέχουσα τιμή" },
   positionHeaders: { market: "Αγορά", outcome: "Αποτέλεσμα", bet: "Στοίχημα", shares: "μερίδια", avg: "Μέσος", current: "Τρέχον", value: "Αξία", profitLoss: "Κέρδος/Ζημία" },
-  activity: { type: "Τύπος", market: "Αγορά", amount: "Ποσό", shares: "Μερίδια", buy: "Αγορά", sell: "Πώληση", merge: "Συγχώνευση", redeem: "Εξαργύρωση", deposit: "Κατάθεση", withdraw: "Ανάληψη", transactionHistory: "Ιστορικό συναλλαγών", chainTransactionHistory: "Ιστορικό blockchain" },
+  activity: { type: "Τύπος", market: "Αγορά", amount: "Ποσό", shares: "Μερίδια", buy: "Αγορά", sell: "Πώληση", merge: "Συγχώνευση", redeem: "Εξαργύρωση", deposit: "Κατάθεση", withdraw: "Ανάληψη", split: "Διαχωρισμός", transactionHistory: "Ιστορικό συναλλαγών", chainTransactionHistory: "Ιστορικό blockchain" },
   time: { minutesAgo: "λεπτά πριν", hourAgo: "ώρα πριν", hoursAgo: "ώρες πριν", dayAgo: "ημέρα πριν", daysAgo: "ημέρες πριν" },
   positions: { claim: "Αξίωση", claiming: "Αξίωση σε εξέλιξη...", claimSuccess: "Επιτυχής αξίωση", claimFailed: "Αποτυχία αξίωσης" },
   loading: "Φόρτωση...", noPositions: "Δεν βρέθηκαν θέσεις", noActivity: "Δεν βρέθηκε δραστηριότητα", loadMore: "Φόρτωση περισσότερων", noMore: "Δεν υπάρχουν άλλα δεδομένα", profitLossLabel: "Κέρδος/Ζημία",

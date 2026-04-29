@@ -104,6 +104,7 @@ export default {
     redeem: "赎回",
     deposit: "充值",
     withdraw: "提现",
+    split: "拆分",
     transactionHistory: "交易记录",
     chainTransactionHistory: "链上交易记录",
   },

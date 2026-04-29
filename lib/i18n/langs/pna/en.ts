@@ -104,6 +104,7 @@ export default {
     redeem: "Redeem",
     deposit: "Deposit",
     withdraw: "Withdraw",
+    split: "Split",
     transactionHistory: "Trade History ",
     chainTransactionHistory: "Chain History ",
   },
