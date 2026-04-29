@@ -22,6 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn
 import { useAuthStore } from "@/lib/stores/authStore";
 import ProfileSummary from "./components/profile-summary";
 import ProfitLossChart from "./components/profit-loss-chart";
+import PositionsTable from "./components/positions-table";
+import ActivityTable from "./components/activity-table";
 
 const TAB_KEYS = ["positions", "activity", "orders", "records"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
@@ -63,10 +65,10 @@ function PnaPageContent() {
         </TabsList>
 
         <TabsContent value="positions" className="mt-3">
-          <TabPlaceholder name="Positions" />
+          <PositionsTable targetUserId={targetUserId} />
         </TabsContent>
         <TabsContent value="activity" className="mt-3">
-          <TabPlaceholder name="Activity" />
+          <ActivityTable targetUserId={targetUserId} />
         </TabsContent>
         <TabsContent value="orders" className="mt-3">
           <TabPlaceholder name="Orders" />
