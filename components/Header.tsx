@@ -2,12 +2,21 @@
 
 import React, { Suspense, useState, useMemo } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
-import { HelpCircle, Bell } from "lucide-react";
+import { HelpCircle, Bell, Menu } from "lucide-react";
 import SearchBox from "./SearchBox";
 import MobileSidebar from "./mobile/MobileSidebar";
 import { useNavigation } from "@/lib/hooks/useNavigation";
-import { Dialog } from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/shadcn/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/shadcn/dialog";
+import { cn } from "@/lib/utils";
 
 type NavItem = { label: string; path: string; icon?: string };
 
@@ -15,8 +24,22 @@ const Header: React.FC = () => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
   const { t } = useTranslation();
+  const pathname = usePathname();
 
   const { data: navData, dynamicItems } = useNavigation();
+
+  const guide = (t.common as any).howItWorksGuide as
+    | {
+        description?: string;
+        intro?: string;
+        step1Title?: string;
+        step1Body?: string;
+        step2Title?: string;
+        step2Body?: string;
+        step3Title?: string;
+        step3Body?: string;
+      }
+    | undefined;
 
   const FIXED_NAV_ITEMS: NavItem[] = [
     { label: t.common.nav.trending ?? "Trending", path: "/trending", icon: "TrendingUp" },
@@ -34,6 +57,26 @@ const Header: React.FC = () => {
     });
     return [...FIXED_NAV_ITEMS, ...dynamic];
   }, [navData, dynamicItems, (t as any)]);
+
+  // 路由高亮：取最长前缀匹配的 nav path（/trending/new 优先于 /trending）
+  const activeNavPath = useMemo(() => {
+    if (!pathname) return null;
+    const candidates = navItems
+      .map((item) => item.path.split("?")[0].split("#")[0])
+      .filter((p) => pathname === p || pathname.startsWith(p + "/"));
+    if (candidates.length === 0) return null;
+    return candidates.reduce((a, b) => (a.length >= b.length ? a : b));
+  }, [navItems, pathname]);
+
+  // HowItWorks 弹窗 3 步骤数据
+  const howItWorksSteps = useMemo(() => {
+    if (!guide) return [];
+    return [
+      { title: guide.step1Title, body: guide.step1Body },
+      { title: guide.step2Title, body: guide.step2Body },
+      { title: guide.step3Title, body: guide.step3Body },
+    ].filter((s) => s.title && s.body);
+  }, [guide]);
 
   return (
     <header className="sticky top-0 z-100 bg-(--bg-primary)">
@@ -69,45 +112,34 @@ const Header: React.FC = () => {
             </div>
 
             <div className="hidden md:flex items-center gap-2 xl:gap-3">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setIsHowItWorksOpen(true)}
-                className="hidden md:flex items-center gap-2 px-3 py-2 rounded-md bg-(--bg-secondary) text-(--text-primary) text-sm hover:bg-opacity-80 transition-colors"
               >
-                <HelpCircle size={16} />
+                <HelpCircle />
                 <span>{t.common.howItWorks}</span>
-              </button>
+              </Button>
             </div>
 
             <div className="lg:hidden flex items-center gap-2">
-              <button className="p-2 rounded-full hover:bg-(--bg-secondary) transition-colors">
-                <Bell size={20} className="text-(--text-secondary)" />
-              </button>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full text-(--text-secondary)"
+                aria-label="Notifications"
+              >
+                <Bell className="size-5" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="rounded-full size-8 text-(--text-secondary)"
                 onClick={() => setIsMobileSidebarOpen(true)}
-                className="w-8 h-8 rounded-full bg-(--bg-secondary) flex items-center justify-center hover:opacity-90 transition-opacity"
                 aria-label="Open menu"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18px"
-                  height="18px"
-                  viewBox="0 0 18 18"
-                  className="w-5 h-[18px] text-(--text-secondary)"
-                >
-                  <path
-                    d="M15.75,9.75H2.25c-.414,0-.75-.336-.75-.75s.336-.75,.75-.75H15.75c.414,0,.75,.336,.75,.75s-.336,.75-.75,.75Z"
-                    fill="currentColor"
-                  />
-                  <path
-                    d="M15.75,4.5H2.25c-.414,0-.75-.336-.75-.75s.336-.75,.75-.75H15.75c.414,0,.75,.336,.75,.75s-.336,.75-.75,.75Z"
-                    fill="currentColor"
-                  />
-                  <path
-                    d="M15.75,15H2.25c-.414,0-.75-.336-.75-.75s.336-.75,.75-.75H15.75c.414,0,.75,.336,.75,.75s-.336,.75-.75,.75Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </button>
+                <Menu className="size-[18px]" />
+              </Button>
             </div>
           </div>
         </div>
@@ -116,16 +148,32 @@ const Header: React.FC = () => {
       <div className="border-b border-(--border) overflow-visible">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-5 overflow-visible">
           <Suspense fallback={<div className="h-[42px]" />}>
-            <nav className="flex items-center gap-4 h-[42px] overflow-x-auto">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className="text-sm text-(--text-secondary) hover:text-(--text-primary) whitespace-nowrap"
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <nav className="flex items-center gap-1 h-[42px] overflow-x-auto">
+              {navItems.map((item) => {
+                const itemBase = item.path.split("?")[0].split("#")[0];
+                const isActive = activeNavPath === itemBase;
+                return (
+                  <Button
+                    key={item.path}
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "whitespace-nowrap",
+                      isActive
+                        ? "text-(--text-primary) bg-(--bg-secondary)"
+                        : "text-(--text-secondary) hover:text-(--text-primary)"
+                    )}
+                  >
+                    <Link
+                      href={item.path}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      {item.label}
+                    </Link>
+                  </Button>
+                );
+              })}
             </nav>
           </Suspense>
         </div>
@@ -136,20 +184,39 @@ const Header: React.FC = () => {
         onClose={() => setIsMobileSidebarOpen(false)}
       />
 
-      <Dialog
-        open={isHowItWorksOpen}
-        onOpenChange={setIsHowItWorksOpen}
-        size="lg"
-        title={t.common.howItWorks}
-        description={t.common.howItWorksGuide?.description || "A prediction market for real-world events: create questions or trade outcomes."}
-      >
-        <div className="space-y-4">
-          <div className="rounded-lg border border-(--border) p-4">
-            <p className="text-sm leading-6 text-(--text-secondary)">
-              {t.common.howItWorksGuide?.intro || "On YesONo, prices move in real time as people trade."}
-            </p>
+      <Dialog open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.common.howItWorks}</DialogTitle>
+            <DialogDescription>
+              {guide?.description ||
+                "A prediction market for real-world events: create questions or trade outcomes."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {guide?.intro && (
+              <p className="text-sm leading-6 text-(--text-primary)">
+                {guide.intro}
+              </p>
+            )}
+
+            {howItWorksSteps.length > 0 && (
+              <ol className="space-y-3">
+                {howItWorksSteps.map((step, i) => (
+                  <li key={i} className="space-y-1">
+                    <h3 className="text-sm font-semibold text-(--text-primary)">
+                      {step.title}
+                    </h3>
+                    <p className="text-sm leading-6 text-(--text-secondary)">
+                      {step.body}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
-        </div>
+        </DialogContent>
       </Dialog>
     </header>
   );

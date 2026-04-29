@@ -4,9 +4,12 @@ import { useTranslation } from "@/lib/i18n";
 import { Market } from "@/types/types";
 import { PolymarketMarketResp } from "@/types/home";
 import { Switch } from "@/components/ui/Switch";
-import ProxyImage from "@/components/common/ProxyImage";
 import { usePriceHistory } from "@/lib/hooks/usePriceHistory";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  generateEmbedCode,
+  renderHighlightedCodeLine,
+} from "./EmbedModal.helpers";
+import EmbedPreviewCard from "./EmbedPreviewCard";
 
 interface EmbedModalProps {
   isOpen: boolean;
@@ -138,50 +141,17 @@ export default function EmbedModal({
   const yesPrice = lines[0]?.price ?? 0;
   const noPrice = lines.length <= 2 ? 100 - Number(yesPrice) : 0;
 
-  const generatedCode = `<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  "name": "${previewMarket.title.replace(/"/g, '\\"')}",
-  "description": "Prediction market: Yes ${yesPrice}%${noPrice ? ` · No ${noPrice}%` : ''} on YesONo.",
-  "url": "${marketUrl}",
-  "publisher": {
-    "@type": "Organization",
-    "name": "YesONo",
-    "url": "${siteOrigin}"
-  }
-}
-</script>
-<figure
-    class="yesono-embed"
-    id="yesono-${marketSlug}"
-    aria-label="YesONo prediction market: ${previewMarket.title.replace(/"/g, '\\"')}"
-    itemscope
-    itemtype="https://schema.org/WebPage"
-    style="position:relative;display:inline-block;margin:0">
-    <iframe
-        title="${previewMarket.title.replace(/"/g, '\\"')} — YesONo Prediction Market"
-        src="${embedSrc}"
-        width="${actualWidth}"
-        height="${actualHeight}"
-        frameborder="0"
-        style="border-radius:16px;overflow:hidden"
-        allowtransparency="true">
-    </iframe>
-    <a href="${marketUrl}"
-        aria-label="View on YesONo"
-        target="_blank"
-        rel="noopener noreferrer"
-        style="position:absolute;top:16px;right:20px;width:120px;height:24px;z-index:10">
-    </a>
-    <figcaption style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
-        <strong>${previewMarket.title}</strong><br>
-        Yes ${yesPrice}%${noPrice ? ` · No ${noPrice}%` : ''}<br>
-        <a href="${marketUrl}">
-            View full market &amp; trade on YesONo
-        </a>
-    </figcaption>
-</figure>`;
+  const generatedCode = generateEmbedCode({
+    marketUrl,
+    marketSlug: String(marketSlug),
+    embedSrc,
+    title: previewMarket.title,
+    yesPrice,
+    noPrice,
+    siteOrigin,
+    width: actualWidth,
+    height: actualHeight,
+  });
 
   const handleCopy = async () => {
     try {
@@ -199,83 +169,6 @@ export default function EmbedModal({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  };
-
-  const renderHighlightedCodeLine = (line: string, lineIndex: number) => {
-    const nodes: React.ReactNode[] = [];
-    const tokenRegex = /(<\/?\w+|[\w-]+=|"[^"]*"|'[^']*')/g;
-    let lastIndex = 0;
-    let match: RegExpExecArray | null;
-
-    while ((match = tokenRegex.exec(line)) !== null) {
-      if (match.index > lastIndex) {
-        nodes.push(
-          <span key={`${lineIndex}-text-${lastIndex}`}>{line.slice(lastIndex, match.index)}</span>
-        );
-      }
-
-      const token = match[0];
-      let className = "text-[#c9d1d9]";
-
-      if (/^<\/?\w+$/.test(token)) {
-        className = "text-[#ff7b72]";
-      } else if (/^[\w-]+=$/.test(token)) {
-        className = "text-[#79c0ff]";
-      } else if (/^["'].*["']$/.test(token)) {
-        className = "text-[#a5d6ff]";
-      }
-
-      nodes.push(
-        <span key={`${lineIndex}-token-${match.index}`} className={className}>
-          {token}
-        </span>
-      );
-
-      lastIndex = match.index + token.length;
-    }
-
-    if (lastIndex < line.length) {
-      nodes.push(
-        <span key={`${lineIndex}-text-${lastIndex}`}>{line.slice(lastIndex)}</span>
-      );
-    }
-
-    return nodes;
-  };
-
-  // 自定义 Tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const dateStr = label ? new Date(label).toLocaleString('en-US', {
-        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-      }) : '';
-
-      return (
-        <div className={`p-2 border rounded-lg shadow-lg text-xs min-w-[120px] ${
-          config.darkMode
-            ? 'bg-[#1a1f2e] border-gray-700 text-gray-200'
-            : 'bg-white border-gray-200 text-gray-800'
-        }`}>
-          {dateStr && <div className="mb-2 pb-1 border-b border-gray-500/30 text-gray-500">{dateStr}</div>}
-          {payload.map((entry: any, index: number) => {
-            const lineConfig = lines.find(l => l.id === entry.dataKey);
-            const title = lineConfig?.label || entry.dataKey;
-            const color = lineConfig?.color || entry.color;
-            const val = entry.value !== undefined && entry.value !== null ? Math.round(Number(entry.value)) : '-';
-            return (
-              <div key={`item-${index}`} className="flex items-center justify-between gap-4 py-0.5">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="font-medium truncate max-w-[80px]">{title}</span>
-                </div>
-                <span className="font-bold">{val}%</span>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-    return null;
   };
 
   return (
@@ -416,200 +309,19 @@ export default function EmbedModal({
           {/* Right Panel */}
           <div className="flex-1 bg-(--bg-secondary) flex items-center justify-center p-10 relative overflow-auto">
             {viewMode === "preview" ? (
-              <div className="relative flex flex-col items-center justify-center">
-                {/* 包含了高度控制线和卡片的水平容器 */}
-                <div className="relative flex items-center">
-                  {/* 调节器：高度（左侧） */}
-                  <div className="absolute right-full top-0 bottom-0 mr-6 flex items-center">
-                    <div className="absolute right-0 top-0 bottom-0 w-px bg-(--border) opacity-50" />
-                    <div className="absolute right-[-14px] top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <span className="text-[10px] text-(--text-tertiary) font-mono font-bold">H</span>
-                      <div className="group relative bg-(--bg-card) border border-(--border) rounded-md shadow-sm z-10 hover:border-(--text-tertiary) transition-colors">
-                        <button onClick={() => handleDimensionChange("height", 10)} className="absolute -top-5 left-0 right-0 h-5 flex items-center justify-center text-(--text-tertiary) hover:text-(--text-primary) opacity-0 group-hover:opacity-100 transition-opacity"><Plus size={12}/></button>
-                        <input
-                          type="number"
-                          value={dimensions.height}
-                          onChange={(e) => handleInputChange("height", e.target.value)}
-                          className="w-10 h-7 bg-transparent text-center text-xs focus:outline-hidden appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <button onClick={() => handleDimensionChange("height", -10)} className="absolute -bottom-5 left-0 right-0 h-5 flex items-center justify-center text-(--text-tertiary) hover:text-(--text-primary) opacity-0 group-hover:opacity-100 transition-opacity"><Minus size={12}/></button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 预览容器 */}
-                  <div
-                    className="relative transition-all duration-300 shrink-0"
-                    style={{ width: actualWidth, height: actualHeight }}
-                  >
-                    <div
-                      className={`w-full h-full flex flex-col p-4 transition-colors overflow-hidden
-                        ${config.darkMode ? 'bg-[#151B24] text-white' : 'bg-white text-gray-900'}
-                        ${config.border ? 'rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl' : 'rounded-2xl shadow-md'}
-                      `}
-                    >
-                      {/* 卡片 Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <ProxyImage
-                            src={market.icon || ""}
-                            alt=""
-                            className="w-5 h-5 rounded-full object-cover"
-                          />
-                          <span className="text-xs font-semibold opacity-70">YesONo</span>
-                        </div>
-                        <span className="text-xs font-medium opacity-70 flex items-center hover:opacity-100 cursor-pointer">
-                          View Market <ChevronLeft size={12} className="rotate-180 ml-0.5" />
-                        </span>
-                      </div>
-
-                      <div className="flex gap-3 flex-1 min-h-0">
-                        {!isSports && (
-                          <ProxyImage
-                            src={previewMarket.icon || ""}
-                            alt=""
-                            className="w-12 h-12 rounded-lg object-cover shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 flex flex-col min-w-0">
-                          <h3 className={`font-bold leading-tight ${isSports ? 'text-base mb-1' : 'text-lg mb-2'} line-clamp-2`}>
-                            {previewMarket.title}
-                          </h3>
-
-                          {/* Chart 区域 */}
-                          {config.chart && (
-                            <div className="flex-1 relative mt-2 min-h-[60px]">
-                              {formattedChartData && formattedChartData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <LineChart data={formattedChartData} margin={{ top: 15, right: config.yAxis ? 40 : 30, left: 0, bottom: 5 }}>
-                                    {config.gridRows && (
-                                      <CartesianGrid vertical={false} stroke={config.darkMode ? "#333" : "#e5e7eb"} strokeDasharray="3 3" />
-                                    )}
-                                    <XAxis
-                                      dataKey="timestamp"
-                                      type="number"
-                                      domain={['dataMin', 'dataMax']}
-                                      hide
-                                    />
-                                    {config.yAxis && (
-                                      <YAxis
-                                        domain={[0, 100]}
-                                        orientation="right"
-                                        tick={{ fontSize: 10, fill: config.darkMode ? "#6b7280" : "#9ca3af" }}
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tickFormatter={(v) => `${v}%`}
-                                        width={30}
-                                      />
-                                    )}
-                                    <Tooltip
-                                      content={<CustomTooltip />}
-                                      cursor={{ stroke: config.darkMode ? '#4b5563' : '#9ca3af', strokeDasharray: '3 3' }}
-                                      isAnimationActive={false}
-                                      wrapperStyle={{ zIndex: 100, pointerEvents: 'none' }}
-                                    />
-                                    {lines.map((line) => (
-                                      <Line
-                                        key={line.id}
-                                        type="stepAfter"
-                                        dataKey={line.id}
-                                        stroke={line.color}
-                                        strokeWidth={2}
-                                        isAnimationActive={false}
-                                        activeDot={{ r: 4, strokeWidth: 0 }}
-                                        dot={(props: any) => {
-                                          const { cx, cy, index } = props;
-                                          if (index === formattedChartData.length - 1) {
-                                            return (
-                                              <g key={`dot-${line.id}-${index}`}>
-                                                <circle cx={cx} cy={cy} r={4} fill={line.color} />
-                                                <text x={cx + 8} y={cy + 4} fill={line.color} fontSize={14} fontWeight="bold">
-                                                  {line.price}%
-                                                </text>
-                                              </g>
-                                            );
-                                          }
-                                          return <circle key={`dot-${line.id}-${index}`} cx={cx} cy={cy} r={0} fill="none" pointerEvents="none" />;
-                                        }}
-                                      />
-                                    ))}
-                                  </LineChart>
-                                </ResponsiveContainer>
-                              ) : (
-                                <div className="flex items-center justify-center h-full text-xs text-(--text-tertiary)">
-                                  Loading chart...
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Sports 特有的右侧胜率显示 */}
-                        {isSports && config.chart && (
-                          <div className="flex flex-col gap-2 items-end justify-start font-bold pt-1">
-                            {lines.map(line => (
-                              <span key={line.id} style={{ color: line.color }}>{line.price}%</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Volume 区域 */}
-                      {config.volume && (
-                        <div className="flex items-center justify-between text-[10px] opacity-60 mt-3 font-medium shrink-0">
-                          <span>${Number(previewMarket.volume || 0).toLocaleString()} Vol.</span>
-                          <span className="flex items-center cursor-pointer hover:opacity-100">
-                            All time <ChevronDown size={12} className="ml-0.5" />
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Buy Buttons */}
-                      {config.buyButtons && (
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-current border-opacity-10 shrink-0">
-                          {isSports ? (
-                            lines.map((line) => (
-                              <button key={line.id} className="flex-1 py-2 rounded-lg font-semibold text-sm transition-colors flex justify-center gap-2 text-white" style={{ backgroundColor: line.color }}>
-                                <span className="truncate max-w-[80px]">{line.label}</span>
-                                <span>{line.price}¢</span>
-                              </button>
-                            ))
-                          ) : (
-                            <>
-                              <button className="flex-1 py-2 rounded-lg bg-[#22c55e]/10 hover:bg-[#22c55e]/20 text-[#22c55e] font-semibold text-sm transition-colors flex justify-center gap-2">
-                                <span>Yes</span>
-                                <span>{lines[0]?.price}¢</span>
-                              </button>
-                              <button className="flex-1 py-2 rounded-lg bg-[#ef4444]/10 hover:bg-[#ef4444]/20 text-[#ef4444] font-semibold text-sm transition-colors flex justify-center gap-2">
-                                <span>No</span>
-                                <span>{100 - Number(lines[0]?.price)}¢</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 调节器：宽度（底部） */}
-                <div className="relative mt-6 flex justify-center w-full max-w-full" style={{ width: actualWidth }}>
-                  <div className="absolute top-0 left-0 right-0 h-px bg-(--border) opacity-50" />
-                  <div className="absolute top-[-14px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
-                    <div className="group relative bg-(--bg-card) border border-(--border) rounded-md shadow-sm z-10 hover:border-(--text-tertiary) transition-colors">
-                      <button onClick={() => handleDimensionChange("width", -10)} className="absolute top-0 bottom-0 -left-5 w-5 flex items-center justify-center text-(--text-tertiary) hover:text-(--text-primary) opacity-0 group-hover:opacity-100 transition-opacity"><Minus size={12}/></button>
-                      <input
-                        type="number"
-                        value={dimensions.width}
-                        onChange={(e) => handleInputChange("width", e.target.value)}
-                        className="w-12 h-7 bg-transparent text-center text-xs focus:outline-hidden appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <button onClick={() => handleDimensionChange("width", 10)} className="absolute top-0 bottom-0 -right-5 w-5 flex items-center justify-center text-(--text-tertiary) hover:text-(--text-primary) opacity-0 group-hover:opacity-100 transition-opacity"><Plus size={12}/></button>
-                    </div>
-                    <span className="text-[10px] text-(--text-tertiary) font-mono font-bold">W</span>
-                  </div>
-                </div>
-              </div>
+              <EmbedPreviewCard
+                market={market}
+                previewMarket={previewMarket}
+                isSports={isSports}
+                config={config}
+                lines={lines}
+                formattedChartData={formattedChartData}
+                dimensions={dimensions}
+                actualWidth={actualWidth}
+                actualHeight={actualHeight}
+                onDimensionStep={handleDimensionChange}
+                onDimensionInput={handleInputChange}
+              />
             ) : (
               <div className="w-full max-w-2xl text-left">
                 <p className="text-sm text-(--text-secondary) font-medium mb-3">

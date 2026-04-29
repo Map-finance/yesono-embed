@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowLeft, Settings, Code, Bookmark, Share2, Loader2 } from "lucide-react";
+import { Bookmark, Share2, Loader2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { getSportsEventBySlug } from "@/lib/services/sportsEventService";
 import { favoriteEvent } from "@/lib/api";
@@ -15,16 +15,12 @@ import { useToast } from "@/components/ui/Toast";
 import { SportsEventDetail, SportsMarketItem } from "@/types/sports";
 import ProxyImage from "@/components/common/ProxyImage";
 import MarketSection from "./MarketSection";
-import CommentSection from "@/components/common/CommentSection";
 import MarketChart from "@/components/detail/MarketChart";
-import ActivityFeed from "@/components/detail/ActivityFeed";
-import TopHolders from "@/components/detail/TopHolders";
-import Positions from "@/components/detail/Positions";
-import { ChevronUp } from "lucide-react";
-import { Market } from "@/types/types";
-import { PolymarketMarketResp } from "@/types/home";
-import { getOutcomeLabel, sortOutcomesByOriginalIndex } from "@/lib/utils/outcomes";
 import { trackEvent } from "@/lib/sentryClient";
+import { toChartData, toPolymarketMarkets } from "./SportsEventDetailView.helpers";
+import ExactScorePanel from "./ExactScorePanel";
+import HalftimeResultPanel from "./HalftimeResultPanel";
+import EventBottomTabs from "./EventBottomTabs";
 
 interface SportsEventDetailViewProps {
   /** 赛事 slug，用于调用 /api/sports/events/{slug} */
@@ -58,7 +54,6 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeGameLineTab, setActiveGameLineTab] = useState(0);
-  const [activeBottomTab, setActiveBottomTab] = useState(0);
 
   // 加载赛事详情
   useEffect(() => {
@@ -162,74 +157,12 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
     return { gameLineCategories: gameLine, exactScoreMarkets: exactScore, halftimeResultMarkets: halftimeResult };
   }, [eventData, t]);
 
-  // 构造 MarketChart 所需的数据（取 moneyline 三个 market）
-  const chartData = useMemo(() => {
-    if (!eventData) return null;
-    const moneylineItems = eventData.market?.moneyline || [];
-    if (moneylineItems.length === 0) return null;
-
-    // 构造 Market 对象
-    const market: Market = {
-      id: eventData.id,
-      slug: eventData.slug,
-      icon: eventData.icon || "",
-      title: eventData.title,
-      options: moneylineItems.map((m) => {
-        const yes = m.outcomes?.find((o) => o.outcome === "Yes") || m.outcomes?.[0];
-        return {
-          label: m.marketTitle.replace(/\s*\(.*?\)/, "").trim(),
-          percentage: yes ? Math.round(parseFloat(yes.price) * 100) : 50,
-        };
-      }),
-      volume: "",
-      isLive: false,
-      isResolved: false,
-      isFavorite: false,
-    };
-
-    // 构造 PolymarketMarketResp[] 兼容对象
-    const eventMarkets: PolymarketMarketResp[] = moneylineItems.map((m) => ({
-      id: m.marketId,
-      question: m.marketTitle,
-      groupItemTitle: m.marketTitle.replace(/\s*\(.*?\)/, "").trim(),
-      conditionId: "",
-      slug: eventData.slug,
-      outcomes: JSON.stringify(m.outcomes?.map((o) => o.outcome) || []),
-      outcomePrices: JSON.stringify(m.outcomes?.map((o) => o.price) || []),
-      clobTokenIds: JSON.stringify(m.outcomes?.map((o) => o.id) || []),
-      active: true,
-      closed: false,
-      volume: 0,
-      image: eventData.image || "",
-      icon: eventData.icon || "",
-    })) as any[];
-
-    return { market, eventMarkets };
-  }, [eventData]);
-
-  // 构造 PolymarketMarketResp[] 用于 ActivityFeed
-  const polymarketMarkets = useMemo((): PolymarketMarketResp[] => {
-    if (!eventData?.market) return [];
-    const allItems: SportsMarketItem[] = [];
-    for (const items of Object.values(eventData.market)) {
-      if (Array.isArray(items)) allItems.push(...items);
-    }
-    return allItems.map((m) => ({
-      id: m.marketId,
-      question: m.marketTitle,
-      groupItemTitle: m.marketTitle,
-      conditionId: "",
-      slug: eventData.slug,
-      outcomes: JSON.stringify(m.outcomes?.map((o) => o.outcome) || []),
-      outcomePrices: JSON.stringify(m.outcomes?.map((o) => o.price) || []),
-      clobTokenIds: JSON.stringify(m.outcomes?.map((o) => o.id) || []),
-      active: true,
-      closed: false,
-      volume: 0,
-      image: eventData.image || "",
-      icon: eventData.icon || "",
-    })) as any[];
-  }, [eventData]);
+  // 构造 MarketChart 所需数据 + 下游组件的 PolymarketMarketResp[]
+  const chartData = useMemo(() => toChartData(eventData), [eventData]);
+  const polymarketMarkets = useMemo(
+    () => toPolymarketMarkets(eventData),
+    [eventData]
+  );
 
   const handleOutcomeClick = useCallback(
     (item: SportsMarketItem, idx: number) => {
@@ -253,14 +186,6 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
     }
     return tabs;
   }, [exactScoreMarkets, halftimeResultMarkets, t]);
-
-  // 底部标签
-  const bottomTabs = [
-    t.market.commentsNumber ? t.market.commentsNumber(0) : "Comments",
-    t.market.topHolders || "Top Holders",
-    t.sports.detail.positions,
-    t.market.activity || "Activity",
-  ];
 
   if (loading) {
     return (
@@ -445,172 +370,27 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
 
       {/* Exact Score 标签页 */}
       {gameLineTabs[activeGameLineTab]?.key === "exact_score" && (
-        <div className="space-y-3">
-          {exactScoreMarkets.map((item) => {
-            const sorted = sortOutcomesByOriginalIndex(item.outcomes || []);
-            const outcome0 = sorted[0];
-            const outcome1 = sorted[1];
-            const isThisMarket = selectedMarketId === item.marketId;
-            const label = item.marketTitle.replace(/\s*\(.*?\)/, "").trim();
-            const active0 = isThisMarket && selectedOutcomeIdx === 0;
-            const active1 = isThisMarket && selectedOutcomeIdx === 1;
-            return (
-              <div
-                key={item.marketId}
-                className="border border-(--border) rounded-lg p-3 flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-(--text-primary) truncate">
-                    {label}
-                  </div>
-                  <div className="text-xs text-(--text-tertiary)">
-                    $0 {t.sports.game.vol}.
-                  </div>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => handleOutcomeClick(item, 0)}
-                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-colors min-w-[90px] border-2 border-(--border) ${
-                      active0
-                        ? "bg-[#3bab68] text-white border-[#3bab68]"
-                        : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
-                    }`}
-                    style={active0 ? undefined : { boxShadow: "0 4px 0 0 rgba(0,0,0,0.1)" }}
-                  >
-                    {getOutcomeLabel(outcome0) || "YES"}{" "}
-                    <span className="font-bold">
-                      {outcome0 ? `${(parseFloat(outcome0.price) * 100).toFixed(1)}¢` : "—"}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => handleOutcomeClick(item, 1)}
-                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-colors min-w-[90px] border-2 border-(--border) ${
-                      active1
-                        ? "bg-[#e13737] text-white border-[#e13737]"
-                        : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
-                    }`}
-                    style={active1 ? undefined : { boxShadow: "0 4px 0 0 rgba(0,0,0,0.1)" }}
-                  >
-                    {getOutcomeLabel(outcome1) || "NO"}{" "}
-                    <span className="font-bold">
-                      {outcome1 ? `${(parseFloat(outcome1.price) * 100).toFixed(1)}¢` : "—"}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <ExactScorePanel
+          markets={exactScoreMarkets}
+          selectedMarketId={selectedMarketId}
+          selectedOutcomeIdx={selectedOutcomeIdx}
+          onOutcomeClick={handleOutcomeClick}
+        />
       )}
 
-      {/* Halftime Result 标签页：所有 markets 合并为一张单行卡片，左侧标题右侧多个按钮 */}
+      {/* Halftime Result 标签页 */}
       {gameLineTabs[activeGameLineTab]?.key === "halftime_result" && (
-        <div className="space-y-3">
-          {(() => {
-            if (halftimeResultMarkets.length === 0) return null;
-            // 取第一个市场的标题作为卡片标题（去除括号内容），多个 market 各为一个按钮
-            const cardTitle = halftimeResultMarkets[0].marketTitle.replace(/\s*\(.*?\)/, "").trim()
-              .replace(/halftime result/i, t.sports.detail.halftimeResult || "Halftime Result");
-            return (
-              <div className="border border-(--border) rounded-lg p-3 flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-(--text-primary) truncate">
-                    {cardTitle}
-                  </div>
-                  <div className="text-xs text-(--text-tertiary)">$0 {t.sports.game.vol}.</div>
-                </div>
-                <div className="flex gap-2 flex-wrap shrink-0" onClick={(e) => e.stopPropagation()}>
-                  {halftimeResultMarkets.map((item) => {
-                    const isActive = selectedMarketId === item.marketId;
-                    const outcome0 = item.outcomes?.find((o) => o.originalIndex === 0);
-                    const label = item.marketTitle.replace(/\s*\(.*?\)/, "").trim();
-                    const abbr = (() => {
-                      const words = label.split(/\s+/);
-                      return (words.find((w) => w.length > 2) || words[0] || "").slice(0, 4).toUpperCase();
-                    })();
-                    const price = outcome0 ? `${(parseFloat(outcome0.price) * 100).toFixed(1)}¢` : "—";
-                    return (
-                      <button
-                        key={item.marketId}
-                        onClick={() => handleOutcomeClick(item, 0)}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors border-2 border-(--border) min-w-[80px] ${
-                          isActive
-                            ? "bg-[#d4a017] text-white border-[#d4a017]"
-                            : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
-                        }`}
-                        style={isActive ? undefined : { boxShadow: "0 4px 0 0 rgba(0,0,0,0.1)" }}
-                      >
-                        <span className="opacity-80">{abbr}</span>{" "}
-                        <span className="font-bold">{price}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+        <HalftimeResultPanel
+          markets={halftimeResultMarkets}
+          selectedMarketId={selectedMarketId}
+          onOutcomeClick={handleOutcomeClick}
+        />
       )}
 
-      {/* 底部标签页：Comments / Top Holders / Positions / Activity */}
-      <div className="mt-8">
-        <div className="flex items-center gap-6 border-b border-(--border) mb-4">
-          {bottomTabs.map((tab, idx) => (
-            <button
-              key={idx}
-              onClick={() => setActiveBottomTab(idx)}
-              className={`pb-3 text-sm font-medium transition-colors relative ${
-                activeBottomTab === idx
-                  ? "text-(--text-primary)"
-                  : "text-(--text-secondary) hover:text-(--text-primary)"
-              }`}
-            >
-              {tab}
-              {activeBottomTab === idx && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-(--accent)" />
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Comments */}
-        {activeBottomTab === 0 && (
-          <CommentSection
-            entityId={eventData.id}
-          />
-        )}
-
-        {/* Top Holders */}
-        {activeBottomTab === 1 && (
-          <TopHolders markets={polymarketMarkets} />
-        )}
-
-        {/* Positions */}
-        {activeBottomTab === 2 && (
-          <Positions markets={polymarketMarkets} />
-        )}
-
-        {/* Activity */}
-        {activeBottomTab === 3 && (
-          <ActivityFeed
-            marketId={eventData.id}
-            unionKey={eventData.slug}
-            eventSlug={eventData.slug}
-            eventId={eventData.id}
-            markets={polymarketMarkets}
-          />
-        )}
-
-        {/* 返回顶部 */}
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="flex items-center gap-1 px-4 py-2 rounded-lg bg-(--bg-hover) text-sm text-(--text-secondary) hover:text-(--text-primary) transition-colors"
-          >
-            {t.common.backToTop} <ChevronUp size={16} />
-          </button>
-        </div>
-      </div>
+      <EventBottomTabs
+        eventData={eventData}
+        polymarketMarkets={polymarketMarkets}
+      />
     </div>
   );
 };

@@ -10,10 +10,10 @@
  * - lineValue 显示: originalIndex=0 → 负, originalIndex=1 → 正
  */
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { ChevronRight, ChevronLeft, RefreshCcw } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { ChevronRight, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { SportsEventDetail, SportsMarketItem, SportsMarketOutcome } from "@/types/sports";
+import { SportsEventDetail, SportsMarketItem } from "@/types/sports";
 import { useTranslation } from "@/lib/i18n";
 import { formatAbbreviatedCurrency } from '@/utils/format';
 import ProxyImage from "@/components/common/ProxyImage";
@@ -24,6 +24,13 @@ import SpotOrderbook from "@/components/detail/SpotOrderbook";
 import SportsOutcomeGraph from "./SportsOutcomeGraph";
 import { buildSportsEventUrl } from "@/lib/utils/sportsNav";
 import { sortOutcomesByOriginalIndex } from "@/lib/utils/outcomes";
+import LineValueSwitcher from "./LineValueSwitcher";
+import {
+  getAbbr,
+  formatPrice,
+  getYesPrice,
+  groupByLineValue,
+} from "./SportsEventCard.helpers";
 
 interface SportsEventCardProps {
   event: SportsEventDetail;
@@ -34,143 +41,6 @@ interface SportsEventCardProps {
   selectedOutcomeIdx?: number;
   isExpanded?: boolean;
   onToggle?: () => void;
-}
-
-// ============== 工具函数 ==============
-
-/** 从 marketTitle 提取缩写 (前3-4个字母) */
-function getAbbr(title: string): string {
-  const clean = title.replace(/\s*\(.*\)/, "").trim();
-  const words = clean.split(/\s+/);
-  const word = words.find((w) => w.length > 2) || words[0] || "";
-  return word.slice(0, 4).toUpperCase();
-}
-
-/** 格式化价格为 cents（精确到 1 位小数，与交易面板一致） */
-function formatPrice(price: string): string {
-  const num = parseFloat(price);
-  if (isNaN(num)) return "—";
-  return `${(num * 100).toFixed(1)}¢`;
-}
-
-/** 获取 Yes outcome */
-function getYesOutcome(item: SportsMarketItem): SportsMarketOutcome | undefined {
-  return item.outcomes?.find((o) => o.outcome === "Yes") || item.outcomes?.[0];
-}
-
-/** 获取 Yes 价格 */
-function getYesPrice(item?: SportsMarketItem): string {
-  if (!item) return "—";
-  const yes = getYesOutcome(item);
-  return yes ? formatPrice(yes.price) : "—";
-}
-
-/**
- * 获取带符号的 lineValue
- * 忽略接口返回的正负，只取绝对值
- * originalIndex=0 → 负号, originalIndex=1 → 正号
- */
-function getSignedLine(item: SportsMarketItem): string {
-  const lv = item.lineValue;
-  if (lv === null || lv === undefined) return "";
-  const absLv = Math.abs(lv);
-  const yes = getYesOutcome(item);
-  if (!yes) return String(absLv);
-  return yes.originalIndex === 0 ? `-${absLv}` : `+${absLv}`;
-}
-
-/** 按 lineValue 绝对值分组 markets，返回 [absLineValue, items[]] 有序数组 */
-function groupByLineValue(
-  markets: SportsMarketItem[]
-): [number, SportsMarketItem[]][] {
-  const map = new Map<number, SportsMarketItem[]>();
-  markets.forEach((m) => {
-    const lv = Math.abs(m.lineValue ?? 0);
-    if (!map.has(lv)) map.set(lv, []);
-    map.get(lv)!.push(m);
-  });
-  return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
-}
-
-/** 可复用的 LineValue 切换器：黄色倒三角固定居中，选中按钮通过 translateX 滑动到中间 */
-function LineValueSwitcher({
-  lines,
-  activeIdx,
-  onSelect,
-}: {
-  lines: { value: number; idx: number }[];
-  activeIdx: number;
-  onSelect: (idx: number) => void;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [tx, setTx] = useState(0);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const inner = innerRef.current;
-    if (!container || !inner) return;
-    const btn = inner.querySelector(`[data-line-idx="${activeIdx}"]`) as HTMLElement | null;
-    if (!btn) return;
-    const offset = btn.offsetLeft + btn.offsetWidth / 2 - container.offsetWidth / 2;
-    setTx(-offset);
-  }, [activeIdx, lines]);
-
-  return (
-    <div
-      className="relative mt-2 border-t border-(--border)"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-px z-10 text-(--accent) text-[10px] leading-none pointer-events-none">
-        ▼
-      </div>
-      <div className="flex items-center justify-center pt-3">
-        <button
-          className="p-1 text-(--text-tertiary) hover:text-(--text-primary) shrink-0"
-          onClick={(e) => { e.stopPropagation(); onSelect(Math.max(0, activeIdx - 1)); }}
-        >
-          <ChevronLeft size={14} />
-        </button>
-        <div ref={containerRef} className="overflow-hidden flex-1 min-w-0">
-          <div
-            ref={innerRef}
-            className="flex items-center gap-3 w-max transition-transform duration-300 ease-in-out"
-            style={{ transform: `translateX(${tx}px)` }}
-          >
-            {lines.map((lv) => {
-              const isActive = lv.idx === activeIdx;
-              return (
-                <button
-                  key={lv.idx}
-                  data-line-idx={lv.idx}
-                  onClick={(e) => { e.stopPropagation(); onSelect(lv.idx); }}
-                  className={`relative flex items-center justify-center h-6 px-2 shrink-0 transition-all duration-200 ${
-                    isActive
-                      ? "text-(--text-primary)"
-                      : "text-(--text-tertiary) hover:text-(--text-secondary)"
-                  }`}
-                >
-                  <span
-                    className={`transition-all duration-200 ${
-                      isActive ? "text-sm font-bold" : "text-xs font-normal"
-                    }`}
-                  >
-                    {lv.value}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <button
-          className="p-1 text-(--text-tertiary) hover:text-(--text-primary) shrink-0"
-          onClick={(e) => { e.stopPropagation(); onSelect(Math.min(lines.length - 1, activeIdx + 1)); }}
-        >
-          <ChevronRight size={14} />
-        </button>
-      </div>
-    </div>
-  );
 }
 
 // ============== 组件 ==============

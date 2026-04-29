@@ -18,35 +18,12 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   X,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { trackEvent } from "@/lib/sentryClient";
-
-// 排序选项
-const SORT_OPTIONS = [
-  { value: "24hr_volume", label: "24hr Volume", icon: "📊" },
-  { value: "total_volume", label: "Total Volume", icon: "📈" },
-  { value: "liquidity", label: "Liquidity", icon: "💧" },
-  { value: "newest", label: "Newest", icon: "✨" },
-  { value: "ending_soon", label: "Ending Soon", icon: "⏰" },
-  // { value: 'competitive', label: 'Competitive', icon: '🏆' },
-];
-
-// 频率选项
-const FREQUENCY_OPTIONS = [
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "all", label: "All" },
-];
-
-// 状态选项
-const STATUS_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "resolved", label: "Resolved" },
-];
+import { SORT_TO_API } from "./filterBar/constants";
+import { DropdownSelect, CheckboxFilter } from "./filterBar/parts";
 
 interface FilterBarSimpleProps {
   categories: string[];
@@ -65,16 +42,6 @@ interface FilterBarSimpleProps {
   showBookmark?: boolean;
   showStatus?: boolean;
 }
-
-// 排序值 → API order 映射（支持多字段，前缀 - 降序，+ 升序）
-const SORT_TO_API: Record<string, string> = {
-  "24hr_volume": "-volume24hr",
-  total_volume: "-volume",
-  liquidity: "-liquidity",
-  newest: "+startdate",
-  ending_soon: "+enddate",
-  competitive: "-volume",
-};
 
 export default function FilterBarSimple({
   categories,
@@ -261,88 +228,6 @@ export default function FilterBarSimple({
     setIsCollected(next);
     onCollectedChange?.(next);
   };
-
-  // 下拉选择组件
-  const DropdownSelect = ({
-    label,
-    value,
-    options,
-    onChange,
-    dropdownKey,
-  }: {
-    label: string;
-    value: string;
-    options: { value: string; label: string; icon?: string }[];
-    onChange: (value: string) => void;
-    dropdownKey: string;
-  }) => {
-    const isOpen = openDropdown === dropdownKey;
-    const selectedOption = options.find((opt) => opt.value === value);
-
-    return (
-      <div className="relative">
-        <button
-          onClick={() => setOpenDropdown(isOpen ? null : dropdownKey)}
-          className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-(--border) rounded-md hover:bg-(--bg-secondary) transition-colors"
-        >
-          <span className="text-(--text-secondary)">{label}:</span>
-          <span className="text-(--text-primary) font-medium">
-            {selectedOption?.label}
-          </span>
-          <ChevronDown
-            size={12}
-            className={`text-(--text-secondary) transition-transform sm:w-3.5 sm:h-3.5 ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        {isOpen && (
-          <div className="absolute top-full left-0 mt-1 min-w-[140px] bg-(--bg-card) border border-(--border) rounded-md shadow-lg z-50 py-1">
-            {options.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  setOpenDropdown(null);
-                }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-(--bg-secondary) transition-colors flex items-center gap-2 ${
-                  value === option.value
-                    ? "text-(--accent)"
-                    : "text-(--text-primary)"
-                }`}
-              >
-                {option.icon && <span>{option.icon}</span>}
-                {option.label}
-                {value === option.value && <span className="ml-auto">•</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // 复选框组件
-  const CheckboxFilter = ({
-    label,
-    checked,
-    onChange,
-  }: {
-    label: string;
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-  }) => (
-    <label className="flex items-center gap-2 px-3 py-1.5 text-sm border border-(--border) rounded-md cursor-pointer hover:bg-(--bg-secondary) transition-colors">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-4 h-4 rounded border-(--border) text-(--accent) focus:ring-(--accent) focus:ring-offset-0 bg-transparent"
-      />
-      <span className="text-(--text-secondary)">{label}</span>
-    </label>
-  );
 
   const shouldUseWideSearch = isSidebarVariant && !showCategories && showSearch;
   const actionButtonsContainerClass = shouldUseWideSearch
@@ -543,6 +428,8 @@ export default function FilterBarSimple({
                 if (apiSort) onSortChange?.(apiSort);
               }}
               dropdownKey="sort"
+              openDropdown={openDropdown}
+              setOpenDropdown={setOpenDropdown}
             />
 
             {/* Frequency dropdown */}
@@ -574,6 +461,8 @@ export default function FilterBarSimple({
                   onActiveChange?.(val === "active");
                 }}
                 dropdownKey="status"
+                openDropdown={openDropdown}
+                setOpenDropdown={setOpenDropdown}
               />
             )}
 
