@@ -93,9 +93,15 @@ export default function ProfitLossChart({ targetUserId }: ProfitLossChartProps) 
         <div className="flex items-end justify-between gap-4">
           <div>
             <div className={cn("text-3xl font-semibold", isPositive ? "text-(--text-primary)" : "text-red-500")}>
-              <NumberFlow value={displayValue} format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }} />
+              {isLoading ? (
+                <Skeleton className="h-8 w-32" />
+              ) : (
+                <NumberFlow value={displayValue} format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }} />
+              )}
             </div>
-            <div className="text-xs text-(--text-secondary) mt-1">{displayTime || "—"}</div>
+            <div className="text-xs text-(--text-secondary) mt-1">
+              {isLoading ? <Skeleton className="h-3 w-24 mt-1" /> : displayTime || "—"}
+            </div>
           </div>
           <div className="flex gap-1">
             {TIME_RANGES.map((r) => (
@@ -117,7 +123,8 @@ export default function ProfitLossChart({ targetUserId }: ProfitLossChartProps) 
 
         <div className="h-[180px] w-full">
           {isLoading ? (
-            <Skeleton className="size-full" />
+            // 大面积 Skeleton 用更高对比度（10% 而非默认 6%），明显可见
+            <Skeleton className="size-full !bg-[var(--text-primary)]/[0.10]" />
           ) : chartData.length === 0 ? (
             <div className="size-full flex items-center justify-center text-sm text-(--text-secondary)">
               No data
