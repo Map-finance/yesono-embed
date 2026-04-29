@@ -8,7 +8,13 @@ import SearchBox from "./SearchBox";
 import UserMenu from "./user-menu";
 import MobileSidebar from "./mobile/MobileSidebar";
 import { useNavigation } from "@/lib/hooks/useNavigation";
-import { Dialog } from "@/components/ui/Dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/shadcn/dialog";
 
 type NavItem = { label: string; path: string; icon?: string };
 
@@ -138,20 +144,24 @@ const Header: React.FC = () => {
         onClose={() => setIsMobileSidebarOpen(false)}
       />
 
-      <Dialog
-        open={isHowItWorksOpen}
-        onOpenChange={setIsHowItWorksOpen}
-        size="lg"
-        title={t.common.howItWorks}
-        description={t.common.howItWorksGuide?.description || "A prediction market for real-world events: create questions or trade outcomes."}
-      >
-        <div className="space-y-4">
+      <Dialog open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen}>
+        <DialogContent className="sm:max-w-lg bg-(--bg-card) border-(--border)">
+          <DialogHeader>
+            <DialogTitle className="text-(--text-primary)">
+              {t.common.howItWorks}
+            </DialogTitle>
+            <DialogDescription className="text-(--text-secondary)">
+              {t.common.howItWorksGuide?.description ||
+                "A prediction market for real-world events: create questions or trade outcomes."}
+            </DialogDescription>
+          </DialogHeader>
           <div className="rounded-lg border border-(--border) p-4">
             <p className="text-sm leading-6 text-(--text-secondary)">
-              {t.common.howItWorksGuide?.intro || "On YesONo, prices move in real time as people trade."}
+              {t.common.howItWorksGuide?.intro ||
+                "On YesONo, prices move in real time as people trade."}
             </p>
           </div>
-        </div>
+        </DialogContent>
       </Dialog>
     </header>
   );
