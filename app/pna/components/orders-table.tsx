@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
 import { Badge } from "@/components/ui/shadcn/badge";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import useGetOrders from "@/lib/hooks/pna/use-get-orders";
@@ -12,31 +11,14 @@ import { fmtMoney, fmtUnixDateTime } from "./formatters";
 
 interface OrdersTableProps {
   targetUserId?: string;
+  mode: "yesNo" | "asian";
 }
-
-type SubTab = "yesno" | "asian";
 
 const ASIAN_PAGE_SIZE = 25;
 
-export default function OrdersTable({ targetUserId }: OrdersTableProps) {
-  const [tab, setTab] = useState<SubTab>("yesno");
-
-  return (
-    <div className="space-y-3">
-      <Tabs value={tab} onValueChange={(v) => setTab(v as SubTab)}>
-        <TabsList className="bg-(--bg-card) border border-(--border)">
-          <TabsTrigger value="yesno">Yes/No</TabsTrigger>
-          <TabsTrigger value="asian">Asian Handicap</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {tab === "yesno" ? (
-        <YesNoOrders targetUserId={targetUserId} />
-      ) : (
-        <AsianOrders />
-      )}
-    </div>
-  );
+export default function OrdersTable({ targetUserId, mode }: OrdersTableProps) {
+  if (mode === "yesNo") return <YesNoOrders targetUserId={targetUserId} />;
+  return <AsianOrders />;
 }
 
 interface YesNoOrder {

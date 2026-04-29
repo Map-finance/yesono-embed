@@ -3,22 +3,21 @@
 /**
  * /pna - Portfolio & Activity 页面
  *
- * 功能：
- *   - Positions   持仓
- *   - Activity    活动
- *   - Orders      未完成订单（含 Asian Handicap）
- *   - Records     市场记录（仅创建记录，无审核）
- *   - 顶部 Profile + P&L 图表
+ * 顶层 mode：[Yes/No] [Asian Handicap]（与原版一致）
+ *   - Yes/No 模式：4 tab（positions/activity/orders/records）
+ *   - Asian 模式：仅 orders tab，渲染亚盘订单簿
  *
  * 路由参数：
- *   - ?tab=positions|activity|orders|records  指定默认 tab
+ *   - ?tab=positions|activity|orders|records  指定默认 tab（仅 Yes/No 模式生效）
+ *   - ?mode=yesno|asian                       指定默认顶层 mode
  *   - ?userId=<id>                            看别人的 portfolio
  */
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/authStore";
 import ProfileSummary from "./components/profile-summary";
 import ProfitLossChart from "./components/profit-loss-chart";
@@ -29,6 +28,7 @@ import MarketRecordsTable from "./components/market-records-table";
 
 const TAB_KEYS = ["positions", "activity", "orders", "records"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
+type PositionMode = "yesNo" | "asian";
 
 function isTabKey(v: string | null): v is TabKey {
   return !!v && (TAB_KEYS as readonly string[]).includes(v);
@@ -39,47 +39,102 @@ function PnaPageContent() {
   const { user } = useAuthStore();
 
   const tabParam = searchParams.get("tab");
+  const modeParam = searchParams.get("mode");
   const initialTab: TabKey = isTabKey(tabParam) ? tabParam : "positions";
+  const initialMode: PositionMode = modeParam === "asian" ? "asian" : "yesNo";
+
+  const [mode, setMode] = useState<PositionMode>(initialMode);
+  const [tab, setTab] = useState<TabKey>(initialTab);
 
   const routeUserId = (searchParams.get("userId") || "").trim();
   const currentUserId = (user?.userId || "").trim();
-
   const targetUserId = routeUserId || currentUserId || undefined;
-  const isViewingOtherUser = useMemo(
-    () => Boolean(routeUserId && routeUserId !== currentUserId),
-    [routeUserId, currentUserId]
-  );
+  const isViewingOtherUser = Boolean(routeUserId && routeUserId !== currentUserId);
+
+  // Asian 模式锁定为 orders tab；Yes/No 模式遵循用户的 tab 选择
+  const tabValue: TabKey = mode === "asian" ? "orders" : tab;
 
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-4">
-      <ProfileSummary
-        targetUserId={targetUserId}
-        isViewingOtherUser={isViewingOtherUser}
-      />
+      <div className="flex items-center justify-between gap-3">
+        <ProfileSummary
+          targetUserId={targetUserId}
+          isViewingOtherUser={isViewingOtherUser}
+        />
+      </div>
+
+      <ModeToggle value={mode} onChange={setMode} />
+
       <ProfitLossChart targetUserId={targetUserId} />
 
-      <Tabs defaultValue={initialTab} className="w-full">
+      <Tabs value={tabValue} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
         <TabsList className="bg-(--bg-card) border border-(--border)">
-          <TabsTrigger value="positions">Positions</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+          {mode === "yesNo" && <TabsTrigger value="positions">Positions</TabsTrigger>}
+          {mode === "yesNo" && <TabsTrigger value="activity">Activity</TabsTrigger>}
           <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="records">Records</TabsTrigger>
+          {mode === "yesNo" && <TabsTrigger value="records">Records</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="positions" className="mt-3">
-          <PositionsTable targetUserId={targetUserId} />
-        </TabsContent>
-        <TabsContent value="activity" className="mt-3">
-          <ActivityTable targetUserId={targetUserId} />
-        </TabsContent>
+        {mode === "yesNo" && (
+          <>
+            <TabsContent value="positions" className="mt-3">
+              <PositionsTable targetUserId={targetUserId} />
+            </TabsContent>
+            <TabsContent value="activity" className="mt-3">
+              <ActivityTable targetUserId={targetUserId} />
+            </TabsContent>
+            <TabsContent value="records" className="mt-3">
+              <MarketRecordsTable />
+            </TabsContent>
+          </>
+        )}
         <TabsContent value="orders" className="mt-3">
-          <OrdersTable targetUserId={targetUserId} />
-        </TabsContent>
-        <TabsContent value="records" className="mt-3">
-          <MarketRecordsTable />
+          <OrdersTable targetUserId={targetUserId} mode={mode} />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function ModeToggle({
+  value,
+  onChange,
+}: {
+  value: PositionMode;
+  onChange: (v: PositionMode) => void;
+}) {
+  return (
+    <div className="inline-flex gap-1 rounded-md border border-(--border) bg-(--bg-card) p-1 text-xs">
+      <ModeButton current={value} self="yesNo" label="Yes / No" onClick={onChange} />
+      <ModeButton current={value} self="asian" label="Asian Handicap" onClick={onChange} />
+    </div>
+  );
+}
+
+function ModeButton({
+  current,
+  self,
+  label,
+  onClick,
+}: {
+  current: PositionMode;
+  self: PositionMode;
+  label: string;
+  onClick: (v: PositionMode) => void;
+}) {
+  const active = current === self;
+  return (
+    <button
+      onClick={() => onClick(self)}
+      className={cn(
+        "px-3 py-1 rounded transition-colors",
+        active
+          ? "bg-(--accent) text-(--bg-primary) font-medium"
+          : "text-(--text-secondary) hover:text-(--text-primary)"
+      )}
+    >
+      {label}
+    </button>
   );
 }
 
