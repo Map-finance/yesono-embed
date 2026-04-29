@@ -46,13 +46,13 @@ export default function ModeBar({ mode, onChange, targetUserId }: ModeBarProps) 
       : t.pna.profile.asianPositionsValue;
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      {/* 持仓总额 */}
-      <div className="flex flex-col">
-        <span className="text-xs text-(--text-secondary)">{totalLabel}</span>
-        <span className="text-xl font-semibold tabular-nums">
+    <div className="flex items-center justify-end gap-3 text-xs">
+      {/* 持仓总额：label + value 一行，紧贴切换按钮 */}
+      <span className="text-(--text-secondary)">
+        {totalLabel}
+        <span className="ml-1.5 text-(--text-primary) font-semibold tabular-nums">
           {totalLoading ? (
-            <span className="text-(--text-secondary) text-base">—</span>
+            "—"
           ) : (
             <NumberFlow
               value={total}
@@ -65,10 +65,10 @@ export default function ModeBar({ mode, onChange, targetUserId }: ModeBarProps) 
             />
           )}
         </span>
-      </div>
+      </span>
 
       {/* Mode 切换 */}
-      <div className="inline-flex gap-1 rounded-md border border-(--border) bg-(--bg-card) p-1 text-xs shrink-0">
+      <div className="inline-flex gap-1 rounded-md border border-(--border) bg-(--bg-card) p-1 shrink-0">
         <ModeButton current={mode} self="yesNo" label={t.pna.profile.modeYesNo} onClick={onChange} />
         <ModeButton current={mode} self="asian" label={t.pna.profile.modeAsianHandicap} onClick={onChange} />
       </div>
