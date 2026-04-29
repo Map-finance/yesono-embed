@@ -24,6 +24,7 @@ import ProfileSummary from "./components/profile-summary";
 import ProfitLossChart from "./components/profit-loss-chart";
 import PositionsTable from "./components/positions-table";
 import ActivityTable from "./components/activity-table";
+import OrdersTable from "./components/orders-table";
 
 const TAB_KEYS = ["positions", "activity", "orders", "records"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
@@ -71,7 +72,7 @@ function PnaPageContent() {
           <ActivityTable targetUserId={targetUserId} />
         </TabsContent>
         <TabsContent value="orders" className="mt-3">
-          <TabPlaceholder name="Orders" />
+          <OrdersTable targetUserId={targetUserId} />
         </TabsContent>
         <TabsContent value="records" className="mt-3">
           <TabPlaceholder name="Records" />
