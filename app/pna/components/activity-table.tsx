@@ -225,13 +225,15 @@ function AmountWithTime({
 
 function ActivityTypeBadge({ type }: { type: string }) {
   const { t } = useTranslation();
-  const meta = TYPE_META[type.toUpperCase()] ?? TYPE_META[type] ?? DEFAULT_META;
+  const upper = (type ?? "").toUpperCase();
+  const meta = TYPE_META[upper] ?? DEFAULT_META;
   const Icon = meta.icon;
+
   // i18n key 在 t.pna.activity.* 下，缺失时回退英文 label
-  const i18nLabel = meta.i18nKey
-    ? (t.pna?.activity as Record<string, string> | undefined)?.[meta.i18nKey]
-    : undefined;
-  const label = i18nLabel || meta.label;
+  const activityT = (t?.pna?.activity ?? {}) as Record<string, string>;
+  const i18nLabel = meta.i18nKey ? activityT[meta.i18nKey] : undefined;
+  const label = (i18nLabel && i18nLabel.length > 0 ? i18nLabel : meta.label) ?? type;
+
   return (
     <Badge variant="outline" className={cn("gap-1 border-current", meta.color)}>
       {Icon ? <Icon className="size-3" /> : null}
@@ -247,11 +249,10 @@ interface TypeMeta {
   color: string;
 }
 
+// key 一律 UPPER；ActivityTypeBadge 入口已 toUpperCase。
 const TYPE_META: Record<string, TypeMeta> = {
   BUY:      { label: "Buy",      i18nKey: "buy",      icon: ArrowDown,        color: "text-emerald-500" },
-  Buy:      { label: "Buy",      i18nKey: "buy",      icon: ArrowDown,        color: "text-emerald-500" },
   SELL:     { label: "Sell",     i18nKey: "sell",     icon: ArrowUp,          color: "text-red-500" },
-  Sell:     { label: "Sell",     i18nKey: "sell",     icon: ArrowUp,          color: "text-red-500" },
   REDEEM:   { label: "Redeem",   i18nKey: "redeem",   icon: CircleDollarSign, color: "text-emerald-500" },
   MERGE:    { label: "Merge",    i18nKey: "merge",    icon: GitMerge,         color: "text-(--text-secondary)" },
   SPLIT:    { label: "Split",    i18nKey: "split",    icon: Split,            color: "text-(--text-secondary)" },
