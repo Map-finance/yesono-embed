@@ -2,19 +2,12 @@
 
 import { useState } from "react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/shadcn/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
-import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { Badge } from "@/components/ui/shadcn/badge";
+import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import useGetOrders from "@/lib/hooks/pna/use-get-orders";
 import useAsianOrderBook from "@/lib/hooks/pna/use-asian-order-book";
+import type { UserOrder } from "@/lib/api";
 import { fmtMoney, fmtUnixDateTime } from "./formatters";
 
 interface OrdersTableProps {
@@ -22,6 +15,8 @@ interface OrdersTableProps {
 }
 
 type SubTab = "yesno" | "asian";
+
+const ASIAN_PAGE_SIZE = 25;
 
 export default function OrdersTable({ targetUserId }: OrdersTableProps) {
   const [tab, setTab] = useState<SubTab>("yesno");
@@ -60,120 +55,98 @@ interface YesNoOrder {
 function YesNoOrders({ targetUserId }: { targetUserId?: string }) {
   const { orders, isLoading } = useGetOrders({ userId: targetUserId });
 
-  if (isLoading) return <RowsSkeleton cols={6} />;
-  if (orders.length === 0) return <EmptyRow text="No open Yes/No orders" />;
-
   return (
-    <div className="rounded-md border border-(--border) overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Market</TableHead>
-            <TableHead>Side</TableHead>
-            <TableHead className="text-right">Price</TableHead>
-            <TableHead className="text-right">Filled</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead className="text-right">Expires</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(orders as YesNoOrder[]).map((o, idx) => (
-            <TableRow key={String(o.orderId ?? o.id ?? idx)}>
-              <TableCell className="min-w-0">
-                <div className="truncate font-medium">{o.question || "—"}</div>
-                {o.outcome ? (
-                  <div className="text-xs text-(--text-secondary) truncate">{o.outcome}</div>
-                ) : null}
-              </TableCell>
-              <TableCell>
-                <Badge variant={o.side === "Sell" ? "secondary" : "default"}>
-                  {o.side ?? "Buy"}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{fmtMoney(o.price)}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {o.filled ?? 0} / {o.shares ?? 0}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{fmtMoney(o.total)}</TableCell>
-              <TableCell className="text-right text-xs text-(--text-secondary)">
-                {typeof o.expiresAt === "number" ? fmtUnixDateTime(o.expiresAt) : (o.expiresAt ?? "—")}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      data={orders as YesNoOrder[]}
+      loading={isLoading}
+      rowKey={(o, i) => String(o.orderId ?? o.id ?? i)}
+      empty="No open Yes/No orders"
+      columns={YESNO_COLUMNS}
+    />
   );
 }
 
 function AsianOrders() {
-  const { rows, isLoading } = useAsianOrderBook({ page: 1, size: 50 });
-
-  if (isLoading) return <RowsSkeleton cols={5} />;
-  if (rows.length === 0) return <EmptyRow text="No Asian Handicap orders" />;
+  const [page, setPage] = useState(1);
+  const { rows, total, isLoading } = useAsianOrderBook({
+    page,
+    size: ASIAN_PAGE_SIZE,
+  });
 
   return (
-    <div className="rounded-md border border-(--border) overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Market</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">When</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((o) => (
-            <TableRow key={String(o.id)}>
-              <TableCell className="min-w-0 truncate font-medium">
-                Market #{o.marketId}
-              </TableCell>
-              <TableCell>
-                <Badge variant={o.type === "stake" ? "default" : "secondary"}>
-                  {o.type}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{fmtMoney(o.amount)}</TableCell>
-              <TableCell>
-                <StatusBadge status={o.status} />
-              </TableCell>
-              <TableCell className="text-right text-xs text-(--text-secondary)">
-                {fmtUnixDateTime(o.chainTimestamp)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      data={rows}
+      loading={isLoading}
+      rowKey={(o) => String(o.id)}
+      empty="No Asian Handicap orders"
+      columns={ASIAN_COLUMNS}
+      pagination={{
+        page,
+        pageSize: ASIAN_PAGE_SIZE,
+        total,
+        onPageChange: setPage,
+      }}
+    />
   );
 }
+
+const YESNO_COLUMNS: DataTableColumn<YesNoOrder>[] = [
+  {
+    key: "market",
+    header: "Market",
+    cell: (o) => (
+      <div className="min-w-0">
+        <div className="truncate font-medium">{o.question || "—"}</div>
+        {o.outcome ? <div className="text-xs text-(--text-secondary) truncate">{o.outcome}</div> : null}
+      </div>
+    ),
+  },
+  {
+    key: "side",
+    header: "Side",
+    cell: (o) => <Badge variant={o.side === "Sell" ? "secondary" : "default"}>{o.side ?? "Buy"}</Badge>,
+  },
+  { key: "price", header: "Price", align: "right", cell: (o) => <span className="tabular-nums">{fmtMoney(o.price)}</span> },
+  {
+    key: "filled",
+    header: "Filled",
+    align: "right",
+    cell: (o) => (
+      <span className="tabular-nums">{o.filled ?? 0} / {o.shares ?? 0}</span>
+    ),
+  },
+  { key: "total", header: "Total", align: "right", cell: (o) => <span className="tabular-nums">{fmtMoney(o.total)}</span> },
+  {
+    key: "expires",
+    header: "Expires",
+    align: "right",
+    cell: (o) => (
+      <span className="text-xs text-(--text-secondary)">
+        {typeof o.expiresAt === "number" ? fmtUnixDateTime(o.expiresAt) : (o.expiresAt ?? "—")}
+      </span>
+    ),
+  },
+];
+
+const ASIAN_COLUMNS: DataTableColumn<UserOrder>[] = [
+  { key: "market", header: "Market", cell: (o) => <span className="truncate font-medium">Market #{o.marketId}</span> },
+  {
+    key: "type",
+    header: "Type",
+    cell: (o) => <Badge variant={o.type === "stake" ? "default" : "secondary"}>{o.type}</Badge>,
+  },
+  { key: "amount", header: "Amount", align: "right", cell: (o) => <span className="tabular-nums">{fmtMoney(o.amount)}</span> },
+  { key: "status", header: "Status", cell: (o) => <StatusBadge status={o.status} /> },
+  {
+    key: "when",
+    header: "When",
+    align: "right",
+    cell: (o) => <span className="text-xs text-(--text-secondary)">{fmtUnixDateTime(o.chainTimestamp)}</span>,
+  },
+];
 
 function StatusBadge({ status }: { status: "SUCCESS" | "PENDING" | "FAIL" }) {
   const variant: "default" | "secondary" | "outline" =
     status === "SUCCESS" ? "default" : status === "PENDING" ? "outline" : "secondary";
   return <Badge variant={variant}>{status}</Badge>;
-}
-
-function RowsSkeleton({ cols }: { cols: number }) {
-  return (
-    <div className="space-y-2 p-4 border border-(--border) rounded-md">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex gap-3">
-          {Array.from({ length: cols }).map((__, j) => (
-            <Skeleton key={j} className="h-6 flex-1" />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function EmptyRow({ text }: { text: string }) {
-  return (
-    <div className="rounded-md border border-dashed border-(--border) p-8 text-center text-sm text-(--text-secondary)">
-      {text}
-    </div>
-  );
 }

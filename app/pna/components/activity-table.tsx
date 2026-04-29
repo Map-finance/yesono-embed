@@ -1,21 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, ExternalLink } from "lucide-react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/shadcn/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
-import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { Badge } from "@/components/ui/shadcn/badge";
-import useGetActivity from "@/lib/hooks/pna/use-get-activity";
-import useGetChainTransactions from "@/lib/hooks/pna/use-get-chain-transactions";
+import { Button } from "@/components/ui/shadcn/button";
+import { DataTable, type DataTableColumn } from "@/components/common/data-table";
+import useGetActivity, { type Activity } from "@/lib/hooks/pna/use-get-activity";
+import useGetChainTransactions, {
+  type ChainTransaction,
+} from "@/lib/hooks/pna/use-get-chain-transactions";
 import { fmtMoney, fmtUnixDateTime } from "./formatters";
 
 interface ActivityTableProps {
@@ -46,47 +41,16 @@ export default function ActivityTable({ targetUserId }: ActivityTableProps) {
 }
 
 function TradesList({ targetUserId }: { targetUserId?: string }) {
-  const { activities, isLoading } = useGetActivity({ userId: targetUserId, limit: 50 });
-
-  if (isLoading) return <RowsSkeleton cols={5} />;
-  if (activities.length === 0) return <EmptyRow text="No activity" />;
+  const { activities, isLoading } = useGetActivity({ userId: targetUserId, limit: 100 });
 
   return (
-    <div className="rounded-md border border-(--border) overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Type</TableHead>
-            <TableHead>Market</TableHead>
-            <TableHead className="text-right">Shares</TableHead>
-            <TableHead className="text-right">Price</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-            <TableHead className="text-right">When</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {activities.map((a, idx) => (
-            <TableRow key={`${a.txHash}-${idx}`}>
-              <TableCell>
-                <ActivityTypeBadge type={a.type} />
-              </TableCell>
-              <TableCell className="min-w-0">
-                <div className="truncate font-medium">{a.market || "—"}</div>
-                {a.outcomeName ? (
-                  <div className="text-xs text-(--text-secondary) truncate">{a.outcomeName}</div>
-                ) : null}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{a.shares ?? "—"}</TableCell>
-              <TableCell className="text-right tabular-nums">{fmtMoney(a.price)}</TableCell>
-              <TableCell className="text-right tabular-nums">{fmtMoney(a.amount)}</TableCell>
-              <TableCell className="text-right text-xs text-(--text-secondary)">
-                {fmtUnixDateTime(a.timestamp)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      data={activities}
+      loading={isLoading}
+      rowKey={(a, i) => `${a.txHash}-${i}`}
+      empty="No activity"
+      columns={TRADE_COLUMNS}
+    />
   );
 }
 
@@ -94,98 +58,77 @@ function ChainTxList({ targetUserId }: { targetUserId?: string }) {
   const { transactions, isLoading, isLoadingMore, hasMore, loadMore } =
     useGetChainTransactions({ userId: targetUserId, pageSize: 25 });
 
-  const rows = useMemo(() => transactions, [transactions]);
-
-  if (isLoading && rows.length === 0) return <RowsSkeleton cols={4} />;
-  if (rows.length === 0) return <EmptyRow text="No chain transactions" />;
-
   return (
-    <div className="space-y-3">
-      <div className="rounded-md border border-(--border) overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Market</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">When</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((tx, idx) => (
-              <TableRow key={`${tx.txHash ?? "tx"}-${idx}`}>
-                <TableCell>
-                  <ActivityTypeBadge type={tx.type} />
-                </TableCell>
-                <TableCell className="truncate font-medium">{tx.market || "—"}</TableCell>
-                <TableCell className="text-right tabular-nums">{fmtMoney(tx.amount)}</TableCell>
-                <TableCell className="text-right text-xs text-(--text-secondary)">
-                  <span className="inline-flex items-center gap-1">
-                    {fmtUnixDateTime(tx.timestamp)}
-                    {tx.txHash ? <ExternalLink className="size-3 opacity-50" /> : null}
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {hasMore && (
-        <div className="flex justify-center">
-          <button
-            onClick={loadMore}
-            disabled={isLoadingMore}
-            className="px-4 py-1.5 text-xs rounded border border-(--border) hover:bg-(--bg-secondary) transition-colors disabled:opacity-50"
-          >
-            {isLoadingMore ? "Loading…" : "Load more"}
-          </button>
-        </div>
-      )}
-    </div>
+    <DataTable
+      data={transactions}
+      loading={isLoading}
+      rowKey={(tx, i) => `${tx.txHash ?? "tx"}-${i}`}
+      empty="No chain transactions"
+      columns={CHAIN_COLUMNS}
+      footer={
+        hasMore ? (
+          <div className="flex justify-center p-2 border-t border-(--border)">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadMore}
+              disabled={isLoadingMore}
+              className="h-7 text-xs"
+            >
+              {isLoadingMore ? "Loading…" : "Load more"}
+            </Button>
+          </div>
+        ) : null
+      }
+    />
   );
 }
 
+const TRADE_COLUMNS: DataTableColumn<Activity>[] = [
+  { key: "type", header: "Type", cell: (a) => <ActivityTypeBadge type={a.type} /> },
+  {
+    key: "market",
+    header: "Market",
+    cell: (a) => (
+      <div className="min-w-0">
+        <div className="truncate font-medium">{a.market || "—"}</div>
+        {a.outcomeName ? (
+          <div className="text-xs text-(--text-secondary) truncate">{a.outcomeName}</div>
+        ) : null}
+      </div>
+    ),
+  },
+  { key: "shares", header: "Shares", align: "right", cell: (a) => <span className="tabular-nums">{a.shares ?? "—"}</span> },
+  { key: "price", header: "Price", align: "right", cell: (a) => <span className="tabular-nums">{fmtMoney(a.price)}</span> },
+  { key: "amount", header: "Amount", align: "right", cell: (a) => <span className="tabular-nums">{fmtMoney(a.amount)}</span> },
+  { key: "when", header: "When", align: "right", cell: (a) => <span className="text-xs text-(--text-secondary)">{fmtUnixDateTime(a.timestamp)}</span> },
+];
+
+const CHAIN_COLUMNS: DataTableColumn<ChainTransaction>[] = [
+  { key: "type", header: "Type", cell: (tx) => <ActivityTypeBadge type={tx.type} /> },
+  { key: "market", header: "Market", cell: (tx) => <span className="truncate font-medium">{tx.market || "—"}</span> },
+  { key: "amount", header: "Amount", align: "right", cell: (tx) => <span className="tabular-nums">{fmtMoney(tx.amount)}</span> },
+  {
+    key: "when",
+    header: "When",
+    align: "right",
+    cell: (tx) => (
+      <span className="inline-flex items-center gap-1 text-xs text-(--text-secondary)">
+        {fmtUnixDateTime(tx.timestamp)}
+        {tx.txHash ? <ExternalLink className="size-3 opacity-50" /> : null}
+      </span>
+    ),
+  },
+];
+
 function ActivityTypeBadge({ type }: { type: string }) {
-  const variant: "default" | "secondary" | "outline" = type === "Buy"
-    ? "default"
-    : type === "Sell"
-      ? "secondary"
-      : "outline";
-
-  const Icon =
-    type === "DEPOSIT"
-      ? ArrowDownToLine
-      : type === "WITHDRAW"
-        ? ArrowUpFromLine
-        : null;
-
+  const variant: "default" | "secondary" | "outline" =
+    type === "Buy" ? "default" : type === "Sell" ? "secondary" : "outline";
+  const Icon = type === "DEPOSIT" ? ArrowDownToLine : type === "WITHDRAW" ? ArrowUpFromLine : null;
   return (
     <Badge variant={variant} className="gap-1">
       {Icon ? <Icon className="size-3" /> : null}
       {type}
     </Badge>
-  );
-}
-
-function RowsSkeleton({ cols }: { cols: number }) {
-  return (
-    <div className="space-y-2 p-4 border border-(--border) rounded-md">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex gap-3">
-          {Array.from({ length: cols }).map((__, j) => (
-            <Skeleton key={j} className="h-6 flex-1" />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function EmptyRow({ text }: { text: string }) {
-  return (
-    <div className="rounded-md border border-dashed border-(--border) p-8 text-center text-sm text-(--text-secondary)">
-      {text}
-    </div>
   );
 }
