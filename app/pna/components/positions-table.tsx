@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
-import { Badge } from "@/components/ui/shadcn/badge";
 import ProxyImage from "@/components/common/ProxyImage";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { cn } from "@/lib/utils";
@@ -13,7 +12,7 @@ import useGetPositions, { type Position } from "@/lib/hooks/pna/use-get-position
 import useGetClosedPositions, {
   type ClosedPosition,
 } from "@/lib/hooks/pna/use-get-closed-positions";
-import { fmtMoney, fmtPct, fmtUnixDate } from "./formatters";
+import { fmtMoney, fmtPct } from "./formatters";
 
 interface PositionsTableProps {
   targetUserId?: string;
@@ -51,46 +50,65 @@ function ActivePositions({ targetUserId }: { targetUserId?: string }) {
     {
       key: "market",
       header: t.pna.positionHeaders.market,
-      cell: (p) => (
-        <MarketCell
-          icon={p.icon}
-          title={p.question || p.market}
-          eventSlug={p.eventSlug}
-          subtitle={
-            <>
-              <OutcomeBadge label={p.outcome} />
-              <span className="text-xs text-(--text-secondary) tabular-nums">
-                {p.shares.toLocaleString()} {t.pna.activity.shares} · {t.pna.positionHeaders.avg} {fmtMoney(p.avgPrice)}
-              </span>
-              {p.canClaim ? (
-                <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded text-[10px] font-medium bg-(--accent)/15 text-(--accent)">
-                  ● {t.pna.positions.claimable}
+      cell: (p) => {
+        const profit = derivedProfit(p);
+        return (
+          <MarketCell
+            icon={p.icon}
+            title={p.question || p.market}
+            eventSlug={p.eventSlug}
+            subtitle={
+              <>
+                <OutcomeBadge label={p.outcome} tone={profit >= 0 ? "positive" : "negative"} />
+                <span className="text-xs text-(--text-secondary) tabular-nums">
+                  {p.shares.toLocaleString()} {t.pna.activity.shares} at {fmtMoney(p.avgPrice)}
                 </span>
-              ) : null}
-            </>
-          }
-        />
-      ),
+                {p.canClaim ? (
+                  <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded text-[10px] font-medium bg-(--accent) text-black">
+                    {t.pna.positions.claim}
+                  </span>
+                ) : null}
+              </>
+            }
+          />
+        );
+      },
+    },
+    {
+      key: "avg",
+      header: t.pna.positionHeaders.avg,
+      align: "center",
+      cell: (p) => <span className="tabular-nums">{fmtMoney(p.avgPrice)}</span>,
     },
     {
       key: "current",
       header: t.pna.positionHeaders.current,
       align: "right",
       cell: (p) => <span className="tabular-nums">{fmtMoney(p.currentPrice)}</span>,
-      className: "max-md:hidden",
-      headerClassName: "max-md:hidden",
     },
     {
       key: "value",
       header: t.pna.positionHeaders.value,
       align: "right",
-      cell: (p) => <span className="tabular-nums">{fmtMoney(p.value)}</span>,
-    },
-    {
-      key: "profit",
-      header: t.pna.profitLossLabel,
-      align: "right",
-      cell: (p) => <ProfitCell profit={p.profit} pct={p.profitPct} />,
+      cell: (p) => {
+        const value = derivedValue(p);
+        const profit = derivedProfit(p);
+        const pct = derivedProfitPct(p);
+        return (
+          <div className="flex flex-col items-end">
+            <span className="tabular-nums">{fmtMoney(value)}</span>
+            <span
+              className={cn(
+                "text-[11px] tabular-nums",
+                profit >= 0 ? "text-emerald-500" : "text-red-500"
+              )}
+            >
+              {profit >= 0 ? "+" : "-"}
+              {fmtMoney(Math.abs(profit))} ({fmtPct(pct)})
+            </span>
+          </div>
+        );
+      },
     },
   ];
 
@@ -105,6 +123,21 @@ function ActivePositions({ targetUserId }: { targetUserId?: string }) {
   );
 }
 
+// 后端 value/profit 字段不可靠（实际看到 0），用 shares × price 客户端推导，
+// 与 h2-market 原始 PositionsTable 一致。
+function derivedValue(p: Position): number {
+  return (Number(p.shares) || 0) * (Number(p.currentPrice) || 0);
+}
+function derivedProfit(p: Position): number {
+  const cost = (Number(p.shares) || 0) * (Number(p.avgPrice) || 0);
+  return derivedValue(p) - cost;
+}
+function derivedProfitPct(p: Position): number {
+  const cost = (Number(p.shares) || 0) * (Number(p.avgPrice) || 0);
+  if (cost === 0) return 0;
+  return (derivedProfit(p) / cost) * 100;
+}
+
 function ClosedPositions({ targetUserId }: { targetUserId?: string }) {
   const { t } = useTranslation();
   const { positions, isLoading } = useGetClosedPositions({ userId: targetUserId, limit: 100 });
@@ -113,24 +146,22 @@ function ClosedPositions({ targetUserId }: { targetUserId?: string }) {
     {
       key: "market",
       header: t.pna.positionHeaders.market,
-      cell: (p) => (
-        <MarketCell
-          icon={p.icon}
-          title={p.question || p.market}
-          eventSlug={p.eventSlug}
-          subtitle={<OutcomeBadge label={p.outcome} />}
-        />
-      ),
-    },
-    {
-      key: "result",
-      header: t.pna.positions.result,
       cell: (p) => {
         const won = p.result === "Won";
         return (
-          <Badge variant={won ? "default" : "secondary"}>
-            {won ? t.pna.positions.won : t.pna.positions.lost}
-          </Badge>
+          <MarketCell
+            icon={p.icon}
+            title={p.question || p.market}
+            eventSlug={p.eventSlug}
+            subtitle={
+              <>
+                <OutcomeBadge label={p.outcome} tone={won ? "positive" : "negative"} />
+                <span className="text-xs text-(--text-secondary)">
+                  {won ? `🏆 ${t.pna.positions.won}` : `❌ ${t.pna.positions.lost}`}
+                </span>
+              </>
+            }
+          />
         );
       },
     },
@@ -139,32 +170,35 @@ function ClosedPositions({ targetUserId }: { targetUserId?: string }) {
       header: t.pna.positionHeaders.bet,
       align: "right",
       cell: (p) => <span className="tabular-nums">{fmtMoney(p.totalBet)}</span>,
-      className: "max-md:hidden",
-      headerClassName: "max-md:hidden",
     },
     {
-      key: "won",
-      header: t.pna.positions.won,
+      key: "value",
+      header: t.pna.positionHeaders.value,
       align: "right",
       cell: (p) => <span className="tabular-nums">{fmtMoney(p.amountWon)}</span>,
-      className: "max-md:hidden",
-      headerClassName: "max-md:hidden",
     },
     {
       key: "profit",
       header: t.pna.profitLossLabel,
       align: "right",
-      cell: (p) => <ProfitCell profit={p.profit} pct={p.profitPct} />,
-    },
-    {
-      key: "resolved",
-      header: t.pna.positions.resolved,
-      align: "right",
-      cell: (p) => (
-        <span className="text-xs text-(--text-secondary)">{fmtUnixDate(p.resolvedAt)}</span>
-      ),
-      className: "max-md:hidden",
-      headerClassName: "max-md:hidden",
+      cell: (p) => {
+        const positive = p.profit >= 0;
+        const sign = positive ? "+" : "-";
+        return (
+          <div
+            className={cn(
+              "flex flex-col items-end tabular-nums",
+              positive ? "text-emerald-500" : "text-red-500"
+            )}
+          >
+            <span className="font-medium">
+              {sign}
+              {fmtMoney(Math.abs(p.profit))}
+            </span>
+            <span className="text-[11px]">({fmtPct(p.profitPct)})</span>
+          </div>
+        );
+      },
     },
   ];
 
@@ -217,15 +251,21 @@ function MarketCell({ icon, title, eventSlug, subtitle }: MarketCellProps) {
 }
 
 /**
- * Outcome 徽章 —— 按 outcome 文字语义着色（不是按 profit 正负）。
- * up/YES/over → 绿；down/NO/under → 红；其余中性灰。
+ * Outcome 徽章 —— 默认按 outcome 文字语义着色（up/YES/over → 绿；down/NO/under → 红）。
+ * 调用方传 tone 时优先用 tone（如活跃持仓里按 profit 正负着色，与 h2-market 对齐）。
  */
-function OutcomeBadge({ label }: { label: string }) {
-  const tone = outcomeTone(label);
+function OutcomeBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone?: "positive" | "negative" | "neutral";
+}) {
+  const finalTone = tone ?? outcomeTone(label);
   const cls =
-    tone === "positive"
+    finalTone === "positive"
       ? "bg-emerald-500/15 text-emerald-500"
-      : tone === "negative"
+      : finalTone === "negative"
         ? "bg-red-500/15 text-red-500"
         : "bg-(--bg-secondary) text-(--text-secondary)";
   return (
@@ -243,22 +283,6 @@ function outcomeTone(label: string): "positive" | "negative" | "neutral" {
   if (POSITIVE_TOKENS.has(k)) return "positive";
   if (NEGATIVE_TOKENS.has(k)) return "negative";
   return "neutral";
-}
-
-/**
- * 盈亏单元格：profit === 0 时仅显示 "—"，避免 "$0.00 (0.00%)" 视觉噪音。
- */
-function ProfitCell({ profit, pct }: { profit: number; pct: number }) {
-  if (!Number.isFinite(profit) || profit === 0) {
-    return <span className="text-(--text-secondary) tabular-nums">—</span>;
-  }
-  const positive = profit > 0;
-  return (
-    <span className={positive ? "text-emerald-500" : "text-red-500"}>
-      <span className="tabular-nums">{fmtMoney(profit)}</span>{" "}
-      <span className="text-xs opacity-70 tabular-nums">({fmtPct(pct)})</span>
-    </span>
-  );
 }
 
 export { MarketCell };

@@ -75,10 +75,8 @@ function PnaPageContent() {
       : tab;
 
   return (
-    <div className="mx-auto max-w-5xl p-4 space-y-4">
-      <h1 className="text-2xl font-semibold text-(--text-primary)">
-        {t.common?.portfolio ?? "Portfolio"}
-      </h1>
+    <div className="mx-auto max-w-6xl p-4 space-y-4">
+     
 
       <ProfitLossChart targetUserId={targetUserId} />
 

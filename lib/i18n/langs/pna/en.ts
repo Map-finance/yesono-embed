@@ -191,6 +191,71 @@ export default {
    * - Component: `components/pna/WithdrawModal.tsx`
    * - Keep wording neutral and concise.
    */
+  // Asian handicap order book / transaction / open records
+  asian: {
+    // Sub tabs
+    orderBook: "Order Book",
+    transactionRecords: "Transaction History",
+    openRecords: "Market Records",
+
+    // Match / event
+    league: "League",
+    event: "Event",
+    matchTime: "Match Time",
+    matchResult: "Result",
+    status: "Status",
+
+    // Match status labels
+    notStarted: "Not Started",
+    inProgress: "In Progress",
+    finished: "Finished",
+    canceled: "Canceled",
+
+    // Order detail columns
+    handicapType: "Handicap Type",
+    handicap: "Handicap",
+    overUnder: "Over/Under",
+    betSelection: "Selection",
+    betAmount: "Stake",
+    profitLoss: "P/L",
+    claimableAmount: "Claimable",
+    totalVolume: "Total Volume",
+    myShare: "My Share",
+    transactionHash: "Tx Hash",
+    claimStatus: "Claim Status",
+    homeTeamPool: "Home Pool",
+    awayTeamPool: "Away Pool",
+    openingFee: "Setup Fee",
+    createTime: "Created",
+    serialNumber: "#",
+    leagueName: "League",
+    direct: "Outcome",
+    eventStatus: "Status",
+    over: "O ",
+    under: "U ",
+
+    // Claim status
+    notClaimed: "Unclaimed",
+    claimed: "Claimed",
+    claimableAmountZero: "No Claim",
+    unknownStatus: "Unknown",
+
+    // Type labels
+    stake: "Stake",
+    claim: "Claim",
+
+    // Tx status
+    success: "Success",
+    processing: "Processing",
+    failed: "Failed",
+
+    // Empty
+    noOrders: "No records",
+
+    // Misc
+    none: "None",
+  },
+
   withdrawModal: {
     title: "Withdraw",
     toAddressLabel: "Recipient address",

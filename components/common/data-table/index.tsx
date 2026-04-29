@@ -63,7 +63,7 @@ export function DataTable<T>({
                 <TableHead
                   key={col.key}
                   className={cn(
-                    "text-xs font-medium uppercase tracking-wide text-(--text-secondary)",
+                    "text-xs font-medium uppercase tracking-wide text-(--text-secondary) whitespace-nowrap",
                     alignClass(col.align),
                     col.headerClassName
                   )}
@@ -91,7 +91,7 @@ export function DataTable<T>({
                   {columns.map((col) => (
                     <TableCell
                       key={col.key}
-                      className={cn(alignClass(col.align), col.className)}
+                      className={cn("whitespace-nowrap", alignClass(col.align), col.className)}
                     >
                       {col.cell(row, idx)}
                     </TableCell>

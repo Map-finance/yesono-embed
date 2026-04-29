@@ -64,8 +64,6 @@ function TradesList({ targetUserId }: { targetUserId?: string }) {
       header: t.pna.activity.type,
       cell: (a) => <ActivityTypeBadge type={a.type} />,
       // 移动端隐藏：Type 在 Market 副标题里有移动版徽章
-      className: "max-md:hidden",
-      headerClassName: "max-md:hidden",
     },
     {
       key: "market",
@@ -134,8 +132,6 @@ function ChainTxList({ targetUserId }: { targetUserId?: string }) {
       key: "type",
       header: t.pna.activity.type,
       cell: (tx) => <ActivityTypeBadge type={tx.type} />,
-      className: "max-md:hidden",
-      headerClassName: "max-md:hidden",
     },
     {
       key: "market",
@@ -205,11 +201,12 @@ function AmountWithTime({
   timestamp: number | string | null | undefined;
   txHash: string | null | undefined;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-end gap-0.5">
       <span className="font-semibold tabular-nums">{fmtMoney(amount)}</span>
       <div className="flex items-center gap-1 text-[11px] text-(--text-secondary) whitespace-nowrap">
-        {timestamp ? <span>{fmtRelativeTime(timestamp)}</span> : null}
+        {timestamp ? <span>{fmtRelativeTime(timestamp, t.pna.time)}</span> : null}
         {txHash ? (
           <a
             href={getBasescanUrl.transaction(txHash)}

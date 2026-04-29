@@ -24,6 +24,9 @@ export interface DataTableColumn<T> {
 export interface PagePagination {
   page: number;
   pageSize: number;
-  total?: number; // 不传则不显示 "X-Y of Z"
+  total?: number; // 不传则退化成无总数模式：仅按当前页是否满推断 hasNext
   onPageChange: (nextPage: number) => void;
+  /** 可选：每页大小切换。传了 onPageSizeChange + pageSizeOptions 才会渲染下拉 */
+  onPageSizeChange?: (nextSize: number) => void;
+  pageSizeOptions?: number[];
 }
