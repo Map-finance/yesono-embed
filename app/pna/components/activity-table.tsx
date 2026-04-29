@@ -39,7 +39,7 @@ export default function ActivityTable({ targetUserId }: ActivityTableProps) {
   return (
     <div className="space-y-3">
       <Tabs value={tab} onValueChange={(v) => setTab(v as SubTab)}>
-        <TabsList variant="line" className="border-b border-(--border) [&_[data-active]]:after:bg-(--accent) [&_[data-active]]:text-(--text-primary)">
+        <TabsList variant="line">
           <TabsTrigger value="trades">{t.pna.activity.transactionHistory}</TabsTrigger>
           <TabsTrigger value="chain">{t.pna.activity.chainTransactionHistory}</TabsTrigger>
         </TabsList>

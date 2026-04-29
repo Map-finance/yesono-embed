@@ -60,7 +60,7 @@ function PnaPageContent() {
       <ModeBar mode={mode} onChange={setMode} targetUserId={targetUserId} />
 
       <Tabs value={tabValue} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
-        <TabsList variant="line" className="border-b border-(--border) [&_[data-active]]:after:bg-(--accent) [&_[data-active]]:text-(--text-primary)">
+        <TabsList variant="line">
           {mode === "yesNo" && <TabsTrigger value="positions">{t.pna.tabs.positions}</TabsTrigger>}
           {mode === "yesNo" && <TabsTrigger value="activity">{t.pna.tabs.activity}</TabsTrigger>}
           <TabsTrigger value="orders">

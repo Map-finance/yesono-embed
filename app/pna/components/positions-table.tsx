@@ -28,7 +28,7 @@ export default function PositionsTable({ targetUserId }: PositionsTableProps) {
   return (
     <div className="space-y-3">
       <Tabs value={tab} onValueChange={(v) => setTab(v as SubTab)}>
-        <TabsList variant="line" className="border-b border-(--border) [&_[data-active]]:after:bg-(--accent) [&_[data-active]]:text-(--text-primary)">
+        <TabsList variant="line">
           <TabsTrigger value="active">{t.pna.positionFilters.active}</TabsTrigger>
           <TabsTrigger value="closed">{t.pna.positionFilters.closed}</TabsTrigger>
         </TabsList>
