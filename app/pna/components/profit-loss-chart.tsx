@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -35,22 +35,33 @@ interface HoverPayload {
   fullTime: string;
 }
 
+/**
+ * recharts Tooltip 自定义内容。
+ * 关键点：**不能在 render 期直接 setState** —— 那样会导致
+ *   "render → setState → re-render → setState ... ∞" 死循环。
+ * 用 useEffect 在 commit 之后派发，并用 prev 比较保证值真变了才更新。
+ */
 function ChartTooltip({
   active,
   payload,
-  onChange,
+  setHovered,
 }: TooltipProps<number, string> & {
-  onChange: (data: HoverPayload | null) => void;
+  setHovered: React.Dispatch<React.SetStateAction<HoverPayload | null>>;
 }) {
   const point = active && Array.isArray(payload) ? payload[0]?.payload : null;
-  if (point) {
-    onChange({
-      val: Number(point.val ?? 0),
-      fullTime: String(point.fullTime ?? ""),
+  const val = point ? Number(point.val ?? 0) : null;
+  const time = point ? String(point.fullTime ?? "") : "";
+
+  useEffect(() => {
+    setHovered((prev) => {
+      if (active && val !== null) {
+        if (prev && prev.val === val && prev.fullTime === time) return prev;
+        return { val, fullTime: time };
+      }
+      return prev === null ? prev : null;
     });
-  } else {
-    onChange(null);
-  }
+  }, [active, val, time, setHovered]);
+
   return null;
 }
 
@@ -123,7 +134,7 @@ export default function ProfitLossChart({ targetUserId }: ProfitLossChartProps) 
                 <YAxis hide domain={yDomain} />
                 <Tooltip
                   cursor={{ stroke: trendColor, strokeWidth: 1, strokeDasharray: "3 3" }}
-                  content={<ChartTooltip onChange={setHovered} />}
+                  content={<ChartTooltip setHovered={setHovered} />}
                 />
                 <Area
                   type="monotone"
