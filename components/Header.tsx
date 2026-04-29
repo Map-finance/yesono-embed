@@ -158,11 +158,46 @@ const Header: React.FC = () => {
                 "A prediction market for real-world events: create questions or trade outcomes."}
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border border-(--border) p-4">
-            <p className="text-sm leading-6 text-(--text-secondary)">
-              {t.common.howItWorksGuide?.intro ||
-                "On YesONo, prices move in real time as people trade."}
-            </p>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-(--border) p-4">
+              <p className="text-sm leading-6 text-(--text-secondary)">
+                {t.common.howItWorksGuide?.intro ||
+                  "On YesONo, prices move in real time as people trade."}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-(--border) bg-(--bg-secondary) p-4">
+              <h3 className="text-sm font-semibold text-(--text-primary)">
+                {t.common.howItWorksGuide?.step1Title ||
+                  "1) Pick a market (or create one)"}
+              </h3>
+              <p className="mt-1 text-sm text-(--text-secondary)">
+                {t.common.howItWorksGuide?.step1Body ||
+                  "Trade existing Yes/No markets, or click Create Market to submit a new question and outcomes for review."}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-(--border) bg-(--bg-secondary) p-4">
+              <h3 className="text-sm font-semibold text-(--text-primary)">
+                {t.common.howItWorksGuide?.step2Title ||
+                  "2) Deposit and place your trade"}
+              </h3>
+              <p className="mt-1 text-sm text-(--text-secondary)">
+                {t.common.howItWorksGuide?.step2Body ||
+                  "Add funds, then choose buy or sell. You can trade instantly or set a target price and wait."}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-(--border) bg-(--bg-secondary) p-4">
+              <h3 className="text-sm font-semibold text-(--text-primary)">
+                {t.common.howItWorksGuide?.step3Title ||
+                  "3) Exit and settle"}
+              </h3>
+              <p className="mt-1 text-sm text-(--text-secondary)">
+                {t.common.howItWorksGuide?.step3Body ||
+                  "You can close anytime before resolution. After settlement, winning outcomes pay out per rules and losing ones go to zero. Start small."}
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
