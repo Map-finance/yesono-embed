@@ -124,6 +124,11 @@ export default {
     claiming: "领取中...",
     claimSuccess: "领取成功",
     claimFailed: "领取失败",
+    claimable: "可领取",
+    won: "已赢",
+    lost: "已输",
+    resolved: "已结算",
+    result: "结果",
   },
 
   // Loading and empty states

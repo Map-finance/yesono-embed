@@ -18,6 +18,7 @@ import { useSearchParams } from "next/navigation";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 import { useAuthStore } from "@/lib/stores/authStore";
 import ProfileSummary from "./components/profile-summary";
 import ProfitLossChart from "./components/profit-loss-chart";
@@ -35,6 +36,7 @@ function isTabKey(v: string | null): v is TabKey {
 }
 
 function PnaPageContent() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
 
@@ -69,10 +71,12 @@ function PnaPageContent() {
 
       <Tabs value={tabValue} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
         <TabsList className="bg-(--bg-card) border border-(--border)">
-          {mode === "yesNo" && <TabsTrigger value="positions">Positions</TabsTrigger>}
-          {mode === "yesNo" && <TabsTrigger value="activity">Activity</TabsTrigger>}
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          {mode === "yesNo" && <TabsTrigger value="records">Records</TabsTrigger>}
+          {mode === "yesNo" && <TabsTrigger value="positions">{t.pna.tabs.positions}</TabsTrigger>}
+          {mode === "yesNo" && <TabsTrigger value="activity">{t.pna.tabs.activity}</TabsTrigger>}
+          <TabsTrigger value="orders">
+            {mode === "asian" ? t.pna.tabs.asianHandicapOrders : t.pna.tabs.openOrders}
+          </TabsTrigger>
+          {mode === "yesNo" && <TabsTrigger value="records">{t.pna.tabs.marketRecords}</TabsTrigger>}
         </TabsList>
 
         {mode === "yesNo" && (
@@ -103,10 +107,11 @@ function ModeToggle({
   value: PositionMode;
   onChange: (v: PositionMode) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="inline-flex gap-1 rounded-md border border-(--border) bg-(--bg-card) p-1 text-xs">
-      <ModeButton current={value} self="yesNo" label="Yes / No" onClick={onChange} />
-      <ModeButton current={value} self="asian" label="Asian Handicap" onClick={onChange} />
+      <ModeButton current={value} self="yesNo" label={t.pna.profile.modeYesNo} onClick={onChange} />
+      <ModeButton current={value} self="asian" label={t.pna.profile.modeAsianHandicap} onClick={onChange} />
     </div>
   );
 }

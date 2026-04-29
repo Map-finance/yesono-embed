@@ -124,6 +124,11 @@ export default {
     claiming: "Claiming...",
     claimSuccess: "Claim successful",
     claimFailed: "Claim failed",
+    claimable: "Claimable",
+    won: "Won",
+    lost: "Lost",
+    resolved: "Resolved",
+    result: "Result",
   },
 
   // Loading and empty states

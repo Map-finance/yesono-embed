@@ -33,14 +33,15 @@ interface ActivityTableProps {
 type SubTab = "trades" | "chain";
 
 export default function ActivityTable({ targetUserId }: ActivityTableProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<SubTab>("trades");
 
   return (
     <div className="space-y-3">
       <Tabs value={tab} onValueChange={(v) => setTab(v as SubTab)}>
         <TabsList className="bg-(--bg-card) border border-(--border)">
-          <TabsTrigger value="trades">Trades</TabsTrigger>
-          <TabsTrigger value="chain">Chain Tx</TabsTrigger>
+          <TabsTrigger value="trades">{t.pna.activity.transactionHistory}</TabsTrigger>
+          <TabsTrigger value="chain">{t.pna.activity.chainTransactionHistory}</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -54,30 +55,124 @@ export default function ActivityTable({ targetUserId }: ActivityTableProps) {
 }
 
 function TradesList({ targetUserId }: { targetUserId?: string }) {
+  const { t } = useTranslation();
   const { activities, isLoading } = useGetActivity({ userId: targetUserId, limit: 100 });
+
+  const columns: DataTableColumn<Activity>[] = [
+    {
+      key: "type",
+      header: t.pna.activity.type,
+      cell: (a) => <ActivityTypeBadge type={a.type} />,
+      // 移动端隐藏：Type 在 Market 副标题里有移动版徽章
+      className: "max-md:hidden",
+      headerClassName: "max-md:hidden",
+    },
+    {
+      key: "market",
+      header: t.pna.activity.market,
+      cell: (a) => (
+        <MarketCell
+          icon={a.icon ?? null}
+          title={a.question || a.market || "—"}
+          eventSlug={a.eventSlug ?? null}
+          subtitle={
+            <>
+              <span className="md:hidden">
+                <ActivityTypeBadge type={a.type} />
+              </span>
+              {a.outcomeName ? (
+                <>
+                  <span
+                    className={cn(
+                      "py-0.5 px-2 rounded text-xs font-medium whitespace-nowrap",
+                      isCreditSide(a.type)
+                        ? "bg-emerald-500/15 text-emerald-500"
+                        : "bg-red-500/15 text-red-500"
+                    )}
+                  >
+                    {a.outcomeName}
+                    {a.price ? ` ${fmtMoney(a.price)}` : ""}
+                  </span>
+                  <span className="text-xs text-(--text-secondary) tabular-nums">
+                    {(a.shares ?? 0).toLocaleString()} {t.pna.activity.shares}
+                  </span>
+                </>
+              ) : a.marketId ? (
+                <span className="text-xs text-(--text-secondary)">ID: {a.marketId}</span>
+              ) : null}
+            </>
+          }
+        />
+      ),
+    },
+    {
+      key: "amount",
+      header: t.pna.activity.amount,
+      align: "right",
+      cell: (a) => <AmountWithTime amount={a.amount} timestamp={a.timestamp} txHash={a.txHash} />,
+    },
+  ];
 
   return (
     <DataTable
       data={activities}
       loading={isLoading}
       rowKey={(a, i) => `${a.txHash}-${i}`}
-      empty="No activity"
-      columns={TRADE_COLUMNS}
+      empty={t.pna.noActivity}
+      columns={columns}
     />
   );
 }
 
 function ChainTxList({ targetUserId }: { targetUserId?: string }) {
+  const { t } = useTranslation();
   const { transactions, isLoading, isLoadingMore, hasMore, loadMore } =
     useGetChainTransactions({ userId: targetUserId, pageSize: 25 });
+
+  const columns: DataTableColumn<ChainTransaction>[] = [
+    {
+      key: "type",
+      header: t.pna.activity.type,
+      cell: (tx) => <ActivityTypeBadge type={tx.type} />,
+      className: "max-md:hidden",
+      headerClassName: "max-md:hidden",
+    },
+    {
+      key: "market",
+      header: t.pna.activity.market,
+      cell: (tx) => (
+        <MarketCell
+          icon={tx.icon ?? null}
+          title={tx.question || tx.market || "—"}
+          eventSlug={tx.eventSlug ?? null}
+          subtitle={
+            <>
+              <span className="md:hidden">
+                <ActivityTypeBadge type={tx.type} />
+              </span>
+              {tx.marketId ? (
+                <span className="text-xs text-(--text-secondary) font-mono">ID: {tx.marketId}</span>
+              ) : null}
+            </>
+          }
+        />
+      ),
+    },
+    {
+      key: "amount",
+      header: t.pna.activity.amount,
+      align: "right",
+      cell: (tx) => <AmountWithTime amount={tx.amount} timestamp={tx.timestamp} txHash={tx.txHash} />,
+    },
+  ];
 
   return (
     <DataTable
       data={transactions}
       loading={isLoading}
       rowKey={(tx, i) => `${tx.txHash ?? "tx"}-${i}`}
-      empty="No chain transactions"
-      columns={CHAIN_COLUMNS}
+      empty={t.pna.noActivity}
+      columns={columns}
       footer={
         hasMore ? (
           <div className="flex justify-center p-2 border-t border-(--border)">
@@ -88,7 +183,7 @@ function ChainTxList({ targetUserId }: { targetUserId?: string }) {
               disabled={isLoadingMore}
               className="h-7 text-xs"
             >
-              {isLoadingMore ? "Loading…" : "Load more"}
+              {isLoadingMore ? t.pna.loading : t.pna.loadMore}
             </Button>
           </div>
         ) : null
@@ -96,98 +191,6 @@ function ChainTxList({ targetUserId }: { targetUserId?: string }) {
     />
   );
 }
-
-const TRADE_COLUMNS: DataTableColumn<Activity>[] = [
-  {
-    key: "type",
-    header: "Type",
-    cell: (a) => <ActivityTypeBadge type={a.type} />,
-    // 移动端隐藏：Type 在 Market 副标题里有移动版徽章
-    className: "max-md:hidden",
-    headerClassName: "max-md:hidden",
-  },
-  {
-    key: "market",
-    header: "Market",
-    cell: (a) => (
-      <MarketCell
-        icon={a.icon ?? null}
-        title={a.question || a.market || "—"}
-        eventSlug={a.eventSlug ?? null}
-        subtitle={
-          <>
-            <span className="md:hidden">
-              <ActivityTypeBadge type={a.type} />
-            </span>
-            {a.outcomeName ? (
-              <>
-                <span
-                  className={cn(
-                    "py-0.5 px-2 rounded text-xs font-medium whitespace-nowrap",
-                    isCreditSide(a.type)
-                      ? "bg-emerald-500/15 text-emerald-500"
-                      : "bg-red-500/15 text-red-500"
-                  )}
-                >
-                  {a.outcomeName}
-                  {a.price ? ` ${fmtMoney(a.price)}` : ""}
-                </span>
-                <span className="text-xs text-(--text-secondary) tabular-nums">
-                  {(a.shares ?? 0).toLocaleString()} shares
-                </span>
-              </>
-            ) : a.marketId ? (
-              <span className="text-xs text-(--text-secondary)">ID: {a.marketId}</span>
-            ) : null}
-          </>
-        }
-      />
-    ),
-  },
-  {
-    key: "amount",
-    header: "Amount",
-    align: "right",
-    cell: (a) => <AmountWithTime amount={a.amount} timestamp={a.timestamp} txHash={a.txHash} />,
-  },
-];
-
-const CHAIN_COLUMNS: DataTableColumn<ChainTransaction>[] = [
-  {
-    key: "type",
-    header: "Type",
-    cell: (tx) => <ActivityTypeBadge type={tx.type} />,
-    className: "max-md:hidden",
-    headerClassName: "max-md:hidden",
-  },
-  {
-    key: "market",
-    header: "Market",
-    cell: (tx) => (
-      <MarketCell
-        icon={tx.icon ?? null}
-        title={tx.question || tx.market || "—"}
-        eventSlug={tx.eventSlug ?? null}
-        subtitle={
-          <>
-            <span className="md:hidden">
-              <ActivityTypeBadge type={tx.type} />
-            </span>
-            {tx.marketId ? (
-              <span className="text-xs text-(--text-secondary) font-mono">ID: {tx.marketId}</span>
-            ) : null}
-          </>
-        }
-      />
-    ),
-  },
-  {
-    key: "amount",
-    header: "Amount",
-    align: "right",
-    cell: (tx) => <AmountWithTime amount={tx.amount} timestamp={tx.timestamp} txHash={tx.txHash} />,
-  },
-];
 
 /**
  * Amount + 相对时间 + 区块浏览器外链 — 三件叠成一列右对齐。

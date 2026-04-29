@@ -5,6 +5,7 @@ import NumberFlow from "@number-flow/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/shadcn/avatar";
 import { Card, CardContent } from "@/components/ui/shadcn/card";
+import { useTranslation } from "@/lib/i18n";
 import { useAuthStore } from "@/lib/stores/authStore";
 import useGetPositions from "@/lib/hooks/pna/use-get-positions";
 
@@ -17,6 +18,7 @@ export default function ProfileSummary({
   targetUserId,
   isViewingOtherUser,
 }: ProfileSummaryProps) {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
 
   const displayUser = isViewingOtherUser
@@ -65,9 +67,9 @@ export default function ProfileSummary({
         </div>
 
         <div className="hidden sm:flex items-stretch gap-6 text-right">
-          <Stat label="Holdings" value={totalValue} loading={isLoading} />
+          <Stat label={t.pna.profile.positionsValue} value={totalValue} loading={isLoading} />
           <Stat
-            label="Profit"
+            label={t.pna.profitLossLabel}
             value={totalProfit}
             loading={isLoading}
             positive={totalProfit >= 0}

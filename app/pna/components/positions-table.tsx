@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/shadcn/badge";
 import ProxyImage from "@/components/common/ProxyImage";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 import useGetPositions, { type Position } from "@/lib/hooks/pna/use-get-positions";
 import useGetClosedPositions, {
   type ClosedPosition,
@@ -21,14 +22,15 @@ interface PositionsTableProps {
 type SubTab = "active" | "closed";
 
 export default function PositionsTable({ targetUserId }: PositionsTableProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<SubTab>("active");
 
   return (
     <div className="space-y-3">
       <Tabs value={tab} onValueChange={(v) => setTab(v as SubTab)}>
         <TabsList className="bg-(--bg-card) border border-(--border)">
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="closed">Closed</TabsTrigger>
+          <TabsTrigger value="active">{t.pna.positionFilters.active}</TabsTrigger>
+          <TabsTrigger value="closed">{t.pna.positionFilters.closed}</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -42,128 +44,140 @@ export default function PositionsTable({ targetUserId }: PositionsTableProps) {
 }
 
 function ActivePositions({ targetUserId }: { targetUserId?: string }) {
+  const { t } = useTranslation();
   const { positions, isLoading } = useGetPositions({ userId: targetUserId, limit: 100 });
+
+  const columns: DataTableColumn<Position>[] = [
+    {
+      key: "market",
+      header: t.pna.positionHeaders.market,
+      cell: (p) => (
+        <MarketCell
+          icon={p.icon}
+          title={p.question || p.market}
+          eventSlug={p.eventSlug}
+          subtitle={
+            <>
+              <OutcomeBadge label={p.outcome} positive={p.profit >= 0} />
+              <span className="text-xs text-(--text-secondary) tabular-nums">
+                {p.shares.toLocaleString()} {t.pna.activity.shares} · {t.pna.positionHeaders.avg} {fmtMoney(p.avgPrice)}
+              </span>
+              {p.canClaim ? (
+                <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4">
+                  {t.pna.positions.claimable}
+                </Badge>
+              ) : null}
+            </>
+          }
+        />
+      ),
+    },
+    {
+      key: "current",
+      header: t.pna.positionHeaders.current,
+      align: "right",
+      cell: (p) => <span className="tabular-nums">{fmtMoney(p.currentPrice)}</span>,
+      className: "max-md:hidden",
+      headerClassName: "max-md:hidden",
+    },
+    {
+      key: "value",
+      header: t.pna.positionHeaders.value,
+      align: "right",
+      cell: (p) => <span className="tabular-nums">{fmtMoney(p.value)}</span>,
+    },
+    {
+      key: "profit",
+      header: t.pna.profitLossLabel,
+      align: "right",
+      cell: (p) => <ProfitCell profit={p.profit} pct={p.profitPct} />,
+    },
+  ];
 
   return (
     <DataTable
       data={positions}
       loading={isLoading}
       rowKey={(p) => p.id}
-      empty="No active positions"
-      columns={ACTIVE_COLUMNS}
+      empty={t.pna.noPositions}
+      columns={columns}
     />
   );
 }
 
 function ClosedPositions({ targetUserId }: { targetUserId?: string }) {
+  const { t } = useTranslation();
   const { positions, isLoading } = useGetClosedPositions({ userId: targetUserId, limit: 100 });
+
+  const columns: DataTableColumn<ClosedPosition>[] = [
+    {
+      key: "market",
+      header: t.pna.positionHeaders.market,
+      cell: (p) => (
+        <MarketCell
+          icon={p.icon}
+          title={p.question || p.market}
+          eventSlug={p.eventSlug}
+          subtitle={<OutcomeBadge label={p.outcome} positive={p.result === "Won"} />}
+        />
+      ),
+    },
+    {
+      key: "result",
+      header: t.pna.positions.result,
+      cell: (p) => {
+        const won = p.result === "Won";
+        return (
+          <Badge variant={won ? "default" : "secondary"}>
+            {won ? t.pna.positions.won : t.pna.positions.lost}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: "bet",
+      header: t.pna.positionHeaders.bet,
+      align: "right",
+      cell: (p) => <span className="tabular-nums">{fmtMoney(p.totalBet)}</span>,
+      className: "max-md:hidden",
+      headerClassName: "max-md:hidden",
+    },
+    {
+      key: "won",
+      header: t.pna.positions.won,
+      align: "right",
+      cell: (p) => <span className="tabular-nums">{fmtMoney(p.amountWon)}</span>,
+      className: "max-md:hidden",
+      headerClassName: "max-md:hidden",
+    },
+    {
+      key: "profit",
+      header: t.pna.profitLossLabel,
+      align: "right",
+      cell: (p) => <ProfitCell profit={p.profit} pct={p.profitPct} />,
+    },
+    {
+      key: "resolved",
+      header: t.pna.positions.resolved,
+      align: "right",
+      cell: (p) => (
+        <span className="text-xs text-(--text-secondary)">{fmtUnixDate(p.resolvedAt)}</span>
+      ),
+      className: "max-md:hidden",
+      headerClassName: "max-md:hidden",
+    },
+  ];
 
   return (
     <DataTable
       data={positions}
       loading={isLoading}
       rowKey={(p, i) => `${p.eventSlug ?? "p"}-${i}`}
-      empty="No closed positions"
-      columns={CLOSED_COLUMNS}
+      empty={t.pna.noPositions}
+      columns={columns}
     />
   );
 }
-
-const ACTIVE_COLUMNS: DataTableColumn<Position>[] = [
-  {
-    key: "market",
-    header: "Market",
-    cell: (p) => (
-      <MarketCell
-        icon={p.icon}
-        title={p.question || p.market}
-        eventSlug={p.eventSlug}
-        subtitle={
-          <>
-            <OutcomeBadge label={p.outcome} positive={p.profit >= 0} />
-            <span className="text-xs text-(--text-secondary) tabular-nums">
-              {p.shares.toLocaleString()} shares · avg {fmtMoney(p.avgPrice)}
-            </span>
-            {p.canClaim ? (
-              <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4">
-                Claimable
-              </Badge>
-            ) : null}
-          </>
-        }
-      />
-    ),
-  },
-  {
-    key: "current",
-    header: "Current",
-    align: "right",
-    cell: (p) => <span className="tabular-nums">{fmtMoney(p.currentPrice)}</span>,
-    className: "max-md:hidden",
-    headerClassName: "max-md:hidden",
-  },
-  {
-    key: "value",
-    header: "Value",
-    align: "right",
-    cell: (p) => <span className="tabular-nums">{fmtMoney(p.value)}</span>,
-  },
-  {
-    key: "profit",
-    header: "Profit",
-    align: "right",
-    cell: (p) => <ProfitCell profit={p.profit} pct={p.profitPct} />,
-  },
-];
-
-const CLOSED_COLUMNS: DataTableColumn<ClosedPosition>[] = [
-  {
-    key: "market",
-    header: "Market",
-    cell: (p) => (
-      <MarketCell
-        icon={p.icon}
-        title={p.question || p.market}
-        eventSlug={p.eventSlug}
-        subtitle={<OutcomeBadge label={p.outcome} positive={p.result === "Won"} />}
-      />
-    ),
-  },
-  {
-    key: "result",
-    header: "Result",
-    cell: (p) => (
-      <Badge variant={p.result === "Won" ? "default" : "secondary"}>{p.result}</Badge>
-    ),
-  },
-  {
-    key: "bet",
-    header: "Bet",
-    align: "right",
-    cell: (p) => <span className="tabular-nums">{fmtMoney(p.totalBet)}</span>,
-    className: "max-md:hidden",
-    headerClassName: "max-md:hidden",
-  },
-  {
-    key: "won",
-    header: "Won",
-    align: "right",
-    cell: (p) => <span className="tabular-nums">{fmtMoney(p.amountWon)}</span>,
-    className: "max-md:hidden",
-    headerClassName: "max-md:hidden",
-  },
-  { key: "profit", header: "Profit", align: "right", cell: (p) => <ProfitCell profit={p.profit} pct={p.profitPct} /> },
-  {
-    key: "resolved",
-    header: "Resolved",
-    align: "right",
-    cell: (p) => (
-      <span className="text-xs text-(--text-secondary)">{fmtUnixDate(p.resolvedAt)}</span>
-    ),
-    className: "max-md:hidden",
-    headerClassName: "max-md:hidden",
-  },
-];
 
 interface MarketCellProps {
   icon: string | null;
