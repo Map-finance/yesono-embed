@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/shadcn/badge";
-import ProxyImage from "@/components/common/ProxyImage";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
+import { MarketCell } from "./positions-table";
 import useGetOracleResultEvents, {
   type MarketCreatedRecord,
 } from "@/lib/hooks/pna/use-get-oracle-result-events";
@@ -41,15 +41,16 @@ const COLUMNS: DataTableColumn<MarketCreatedRecord>[] = [
     key: "market",
     header: "Market",
     cell: (m) => (
-      <div className="flex items-center gap-2 min-w-0">
-        {m.icon || m.image ? (
-          <ProxyImage src={m.icon || m.image || ""} alt="" className="size-6 rounded shrink-0 object-cover" />
-        ) : null}
-        <div className="min-w-0">
-          <div className="truncate font-medium">{m.title || m.slug || "—"}</div>
-          {m.category ? <div className="text-xs text-(--text-secondary) truncate">{m.category}</div> : null}
-        </div>
-      </div>
+      <MarketCell
+        icon={m.icon || m.image || null}
+        title={m.title || m.slug || "—"}
+        eventSlug={m.slug ?? null}
+        subtitle={
+          m.category ? (
+            <span className="text-xs text-(--text-secondary)">{m.category}</span>
+          ) : null
+        }
+      />
     ),
   },
   {

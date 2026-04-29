@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
 import { Badge } from "@/components/ui/shadcn/badge";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
+import { cn } from "@/lib/utils";
+import { MarketCell } from "./positions-table";
 import useGetOrders from "@/lib/hooks/pna/use-get-orders";
 import useAsianOrderBook from "@/lib/hooks/pna/use-asian-order-book";
 import useAsianTransactions from "@/lib/hooks/pna/use-asian-transactions";
@@ -37,11 +39,20 @@ interface YesNoOrder {
   question?: string;
   side?: "Buy" | "Sell";
   outcome?: string;
+  outComeUnionKey?: string;
   price?: number;
+  orderPrice?: number;
   filled?: number;
+  filledSize?: number;
   shares?: number;
+  placedSize?: number;
   total?: number;
+  placedAmount?: number;
   expiresAt?: number | string;
+  // 下面这几个原 API 返回但旧 interface 没声明
+  icon?: string | null;
+  eventImage?: string | null;
+  eventSlug?: string | null;
 }
 
 function YesNoOrders({ targetUserId }: { targetUserId?: string }) {
@@ -62,26 +73,53 @@ const YESNO_COLUMNS: DataTableColumn<YesNoOrder>[] = [
   {
     key: "market",
     header: "Market",
-    cell: (o) => (
-      <div className="min-w-0">
-        <div className="truncate font-medium">{o.question || "—"}</div>
-        {o.outcome ? <div className="text-xs text-(--text-secondary) truncate">{o.outcome}</div> : null}
-      </div>
-    ),
+    cell: (o) => {
+      const side = o.side ?? "Buy";
+      const outcomeLabel = o.outcome ?? o.outComeUnionKey;
+      const price = o.price ?? o.orderPrice;
+      return (
+        <MarketCell
+          icon={o.eventImage ?? o.icon ?? null}
+          title={o.question || "—"}
+          eventSlug={o.eventSlug ?? null}
+          subtitle={
+            <>
+              <span
+                className={cn(
+                  "text-xs font-medium capitalize",
+                  side === "Sell" ? "text-red-500" : "text-emerald-500"
+                )}
+              >
+                {side}
+              </span>
+              {outcomeLabel ? (
+                <span className="py-0.5 px-2 rounded text-xs font-medium bg-(--bg-secondary) text-(--text-primary)">
+                  {outcomeLabel}
+                  {price ? ` · ${fmtCents(price)}` : ""}
+                </span>
+              ) : null}
+            </>
+          }
+        />
+      );
+    },
   },
-  {
-    key: "side",
-    header: "Side",
-    cell: (o) => <Badge variant={o.side === "Sell" ? "secondary" : "default"}>{o.side ?? "Buy"}</Badge>,
-  },
-  { key: "price", header: "Price", align: "right", cell: (o) => <span className="tabular-nums">{fmtMoney(o.price)}</span> },
   {
     key: "filled",
     header: "Filled",
     align: "right",
-    cell: (o) => <span className="tabular-nums">{o.filled ?? 0} / {o.shares ?? 0}</span>,
+    cell: (o) => (
+      <span className="tabular-nums">
+        {o.filled ?? o.filledSize ?? 0} / {o.shares ?? o.placedSize ?? 0}
+      </span>
+    ),
   },
-  { key: "total", header: "Total", align: "right", cell: (o) => <span className="tabular-nums">{fmtMoney(o.total)}</span> },
+  {
+    key: "total",
+    header: "Total",
+    align: "right",
+    cell: (o) => <span className="tabular-nums">{fmtMoney(o.total ?? o.placedAmount)}</span>,
+  },
   {
     key: "expires",
     header: "Expires",
@@ -93,6 +131,13 @@ const YESNO_COLUMNS: DataTableColumn<YesNoOrder>[] = [
     ),
   },
 ];
+
+/** 价格 cents 格式：0.65 → "65¢"；其他保留 2 位 */
+function fmtCents(price: number): string {
+  if (!Number.isFinite(price)) return "—";
+  if (price > 0 && price < 1) return `${(price * 100).toFixed(0)}¢`;
+  return fmtMoney(price);
+}
 
 // ────────────────────────────────────────────────────────────
 // Asian 模式：3 个子 tab（订单簿 / 交易记录 / 开盘记录）

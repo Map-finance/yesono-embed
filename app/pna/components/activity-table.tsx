@@ -1,17 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDownToLine, ArrowUpFromLine, ExternalLink } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ArrowDown,
+  ArrowUp,
+  GitMerge,
+  CircleDollarSign,
+} from "lucide-react";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
 import { Badge } from "@/components/ui/shadcn/badge";
 import { Button } from "@/components/ui/shadcn/button";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
+import { cn } from "@/lib/utils";
 import useGetActivity, { type Activity } from "@/lib/hooks/pna/use-get-activity";
 import useGetChainTransactions, {
   type ChainTransaction,
 } from "@/lib/hooks/pna/use-get-chain-transactions";
 import { fmtMoney, fmtUnixDateTime } from "./formatters";
+import { MarketCell } from "./positions-table";
 
 interface ActivityTableProps {
   targetUserId?: string;
@@ -90,18 +99,42 @@ const TRADE_COLUMNS: DataTableColumn<Activity>[] = [
     key: "market",
     header: "Market",
     cell: (a) => (
-      <div className="min-w-0">
-        <div className="truncate font-medium">{a.market || "—"}</div>
-        {a.outcomeName ? (
-          <div className="text-xs text-(--text-secondary) truncate">{a.outcomeName}</div>
-        ) : null}
-      </div>
+      <MarketCell
+        icon={a.icon ?? null}
+        title={a.question || a.market || "—"}
+        eventSlug={a.eventSlug ?? null}
+        subtitle={
+          a.outcomeName ? (
+            <>
+              <span
+                className={cn(
+                  "py-0.5 px-2 rounded text-xs font-medium whitespace-nowrap",
+                  isCreditSide(a.type)
+                    ? "bg-emerald-500/15 text-emerald-500"
+                    : "bg-red-500/15 text-red-500"
+                )}
+              >
+                {a.outcomeName}
+                {a.price ? ` ${fmtMoney(a.price)}` : ""}
+              </span>
+              <span className="text-xs text-(--text-secondary) tabular-nums">
+                {(a.shares ?? 0).toLocaleString()} shares
+              </span>
+            </>
+          ) : a.marketId ? (
+            <span className="text-xs text-(--text-secondary)">ID: {a.marketId}</span>
+          ) : null
+        }
+      />
     ),
   },
-  { key: "shares", header: "Shares", align: "right", cell: (a) => <span className="tabular-nums">{a.shares ?? "—"}</span> },
-  { key: "price", header: "Price", align: "right", cell: (a) => <span className="tabular-nums">{fmtMoney(a.price)}</span> },
   { key: "amount", header: "Amount", align: "right", cell: (a) => <span className="tabular-nums">{fmtMoney(a.amount)}</span> },
-  { key: "when", header: "When", align: "right", cell: (a) => <span className="text-xs text-(--text-secondary)">{fmtUnixDateTime(a.timestamp)}</span> },
+  {
+    key: "when",
+    header: "When",
+    align: "right",
+    cell: (a) => <span className="text-xs text-(--text-secondary)">{fmtUnixDateTime(a.timestamp)}</span>,
+  },
 ];
 
 const CHAIN_COLUMNS: DataTableColumn<ChainTransaction>[] = [
@@ -112,23 +145,36 @@ const CHAIN_COLUMNS: DataTableColumn<ChainTransaction>[] = [
     key: "when",
     header: "When",
     align: "right",
-    cell: (tx) => (
-      <span className="inline-flex items-center gap-1 text-xs text-(--text-secondary)">
-        {fmtUnixDateTime(tx.timestamp)}
-        {tx.txHash ? <ExternalLink className="size-3 opacity-50" /> : null}
-      </span>
-    ),
+    cell: (tx) => <span className="text-xs text-(--text-secondary)">{fmtUnixDateTime(tx.timestamp)}</span>,
   },
 ];
 
 function ActivityTypeBadge({ type }: { type: string }) {
-  const variant: "default" | "secondary" | "outline" =
-    type === "Buy" ? "default" : type === "Sell" ? "secondary" : "outline";
-  const Icon = type === "DEPOSIT" ? ArrowDownToLine : type === "WITHDRAW" ? ArrowUpFromLine : null;
+  const meta = TYPE_META[type] ?? DEFAULT_META;
+  const Icon = meta.icon;
   return (
-    <Badge variant={variant} className="gap-1">
+    <Badge
+      variant="outline"
+      className={cn("gap-1 border-current", meta.color)}
+    >
       {Icon ? <Icon className="size-3" /> : null}
-      {type}
+      {meta.label}
     </Badge>
   );
+}
+
+const TYPE_META: Record<string, { label: string; icon?: typeof ArrowDown; color: string }> = {
+  Buy: { label: "Buy", icon: ArrowDown, color: "text-emerald-500" },
+  Sell: { label: "Sell", icon: ArrowUp, color: "text-red-500" },
+  REDEEM: { label: "Redeem", icon: CircleDollarSign, color: "text-emerald-500" },
+  MERGE: { label: "Merge", icon: GitMerge, color: "text-(--text-secondary)" },
+  DEPOSIT: { label: "Deposit", icon: ArrowDownToLine, color: "text-emerald-500" },
+  WITHDRAW: { label: "Withdraw", icon: ArrowUpFromLine, color: "text-red-500" },
+};
+
+const DEFAULT_META = { label: "—", color: "text-(--text-secondary)" };
+
+function isCreditSide(type: string): boolean {
+  // 视觉色：买入 / 赎回 / 入账 都是"获得"侧 → 绿；卖出 / 转出 → 红
+  return type === "Buy" || type === "REDEEM" || type === "DEPOSIT";
 }
