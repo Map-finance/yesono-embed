@@ -65,13 +65,14 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                // 项目用 data-theme 切主题，shadcn ghost 的 dark: 链不触发，
+                // 直接用项目 token 让 X 在暗主题下清晰可见
+                className="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                 size="icon-sm"
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
