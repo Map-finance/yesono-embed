@@ -25,6 +25,7 @@ import ProfitLossChart from "./components/profit-loss-chart";
 import PositionsTable from "./components/positions-table";
 import ActivityTable from "./components/activity-table";
 import OrdersTable from "./components/orders-table";
+import MarketRecordsTable from "./components/market-records-table";
 
 const TAB_KEYS = ["positions", "activity", "orders", "records"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
@@ -75,17 +76,9 @@ function PnaPageContent() {
           <OrdersTable targetUserId={targetUserId} />
         </TabsContent>
         <TabsContent value="records" className="mt-3">
-          <TabPlaceholder name="Records" />
+          <MarketRecordsTable />
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function TabPlaceholder({ name }: { name: string }) {
-  return (
-    <div className="rounded-md border border-dashed border-(--border) p-8 text-center text-sm text-(--text-secondary)">
-      {name} — 即将上线（PR2-4 实现）
     </div>
   );
 }
