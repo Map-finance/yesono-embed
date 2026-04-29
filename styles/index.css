@@ -495,3 +495,51 @@ a[href*="tradingview.com"][title*="Charting"] {
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+
+/*
+  项目用 data-theme="dark" 切主题，shadcn 自带的 .dark class 选择器不会触发。
+  把 shadcn token 在 data-theme 选择器下重新映射到项目自己的颜色变量，
+  避免 shadcn :root 默认 light 值穿透（典型症状：--border ≈ oklch(0.922) 近白
+  → Header.border-b 的两条线在暗主题下闪一片白）。
+*/
+:root[data-theme="dark"] {
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--bg-secondary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-secondary);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--bg-secondary);
+  --accent-foreground: var(--text-primary);
+  --border: #2a2a2a;
+  --input: var(--bg-input);
+  --ring: var(--accent);
+  --sidebar: var(--bg-card);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-border: #2a2a2a;
+}
+
+:root[data-theme="light"] {
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--bg-secondary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-secondary);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--bg-secondary);
+  --accent-foreground: var(--text-primary);
+  --border: #e0e0e0;
+  --input: var(--bg-input);
+  --ring: var(--accent);
+  --sidebar: var(--bg-card);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-border: #e0e0e0;
+}

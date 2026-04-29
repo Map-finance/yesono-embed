@@ -10,6 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import MarketCard from "./MarketCard";
 import { Market } from "@/types/types";
 import { trackEvent } from "@/lib/sentryClient";
+import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import Link from "next/link";
 
 interface MarketGridProps {
@@ -88,7 +89,8 @@ export default function MarketGrid({
     return items;
   }, [markets, columnCount]);
 
-  // 骨架屏加载状态
+  // 骨架屏加载状态：用 shadcn Skeleton（项目里统一调过的 6% 白叠加），
+  // 不再用 bg-(--bg-secondary) / bg-(--bg-primary) 实色——后者在深色页面上反而显白刺眼。
   if (loading && markets.length === 0) {
     return (
       <div className="my-5">
@@ -96,12 +98,13 @@ export default function MarketGrid({
           {Array.from({ length: columnCount || 3 }).map((_, colIndex) => (
             <div key={colIndex} className="masonry-grid_column">
               {Array.from({ length: 6 }).map((_, itemIndex) => (
-                <div key={itemIndex} className="mb-4">
-                  <div className="bg-(--bg-secondary) rounded-lg p-4 animate-pulse">
-                    <div className="h-4 bg-(--bg-primary) rounded w-3/4 mb-3"></div>
-                    <div className="h-3 bg-(--bg-primary) rounded w-1/2 mb-2"></div>
-                    <div className="h-3 bg-(--bg-primary) rounded w-2/3"></div>
-                  </div>
+                <div
+                  key={itemIndex}
+                  className="mb-4 rounded-lg p-4 border border-(--border) bg-(--bg-card) space-y-3"
+                >
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                  <Skeleton className="h-3 w-2/3" />
                 </div>
               ))}
             </div>

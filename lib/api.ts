@@ -246,8 +246,9 @@ export async function cancelOrderApi(params: {
 
 /**
  * 获取市场创建记录
- * GET /api/market/created-record?page=1&size=20
- * 返回 Pagination<Market> 分页结构
+ * GET /api/events/user?limit=20&offset=0
+ * 后端用的是 limit/offset 风格分页（不是 page/size），这里入参兼容 page/size，
+ * 内部换算成 offset = (page-1) * size。
  */
 export async function getMarketCreatedRecords(params: {
   page?: number;
@@ -255,9 +256,10 @@ export async function getMarketCreatedRecords(params: {
 }) {
   const page = params.page ?? 1;
   const size = params.size ?? 20;
+  const offset = Math.max(0, (page - 1) * size);
   const queryParams = new URLSearchParams({
-    page: page.toString(),
-    size: size.toString(),
+    limit: size.toString(),
+    offset: offset.toString(),
   });
 
   return request(
