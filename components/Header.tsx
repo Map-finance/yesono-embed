@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
 import { HelpCircle, Bell } from "lucide-react";
 import SearchBox from "./SearchBox";
+import UserMenu from "./user-menu";
 import MobileSidebar from "./mobile/MobileSidebar";
 import { useNavigation } from "@/lib/hooks/useNavigation";
 import { Dialog } from "@/components/ui/Dialog";
@@ -76,6 +77,7 @@ const Header: React.FC = () => {
                 <HelpCircle size={16} />
                 <span>{t.common.howItWorks}</span>
               </button>
+              <UserMenu />
             </div>
 
             <div className="lg:hidden flex items-center gap-2">

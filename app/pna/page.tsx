@@ -27,7 +27,6 @@ import PositionsTable from "./components/positions-table";
 import ActivityTable from "./components/activity-table";
 import OrdersTable from "./components/orders-table";
 import MarketRecordsTable from "./components/market-records-table";
-import UserMenu from "./components/user-menu";
 
 const TAB_KEYS = ["positions", "activity", "orders", "records"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
@@ -77,10 +76,6 @@ function PnaPageContent() {
 
   return (
     <div className="mx-auto max-w-5xl p-4 space-y-4">
-      <div className="flex items-center justify-end">
-        <UserMenu />
-      </div>
-
       <ProfitLossChart targetUserId={targetUserId} />
 
       {/* ModeBar 仅自己看：mode 切换、持仓总额（充提总额）只对当前用户有意义 */}
