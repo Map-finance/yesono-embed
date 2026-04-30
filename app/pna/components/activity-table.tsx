@@ -19,10 +19,10 @@ import { DataTable, type DataTableColumn } from "@/components/common/data-table"
 import { cn } from "@/lib/utils";
 import { getBasescanUrl } from "@/lib/config";
 import { useTranslation } from "@/lib/i18n";
-import useGetActivity, { type Activity } from "@/lib/hooks/pna/use-get-activity";
+import useGetActivity, { type Activity } from "@/app/pna/hooks/use-get-activity";
 import useGetChainTransactions, {
   type ChainTransaction,
-} from "@/lib/hooks/pna/use-get-chain-transactions";
+} from "@/app/pna/hooks/use-get-chain-transactions";
 import { fmtMoney, fmtRelativeTime } from "./formatters";
 import { MarketCell } from "./positions-table";
 

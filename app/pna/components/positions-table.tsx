@@ -8,10 +8,10 @@ import ProxyImage from "@/components/common/ProxyImage";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
-import useGetPositions, { type Position } from "@/lib/hooks/pna/use-get-positions";
+import useGetPositions, { type Position } from "@/app/pna/hooks/use-get-positions";
 import useGetClosedPositions, {
   type ClosedPosition,
-} from "@/lib/hooks/pna/use-get-closed-positions";
+} from "@/app/pna/hooks/use-get-closed-positions";
 import { fmtMoney, fmtPct } from "./formatters";
 
 interface PositionsTableProps {

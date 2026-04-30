@@ -5,8 +5,8 @@ import NumberFlow from "@number-flow/react";
 
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
-import useGetPositions from "@/lib/hooks/pna/use-get-positions";
-import useAsianSummary from "@/lib/hooks/pna/use-asian-summary";
+import useGetPositions from "@/app/pna/hooks/use-get-positions";
+import useAsianSummary from "@/app/pna/hooks/use-asian-summary";
 
 export type PositionMode = "yesNo" | "asian";
 

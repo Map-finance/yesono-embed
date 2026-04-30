@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import useGetOracleResultEvents, {
   type MarketCreatedRecord,
-} from "@/lib/hooks/pna/use-get-oracle-result-events";
+} from "@/app/pna/hooks/use-get-oracle-result-events";
 import useGetReviewRecords, {
   type ReviewRecordItem,
-} from "@/lib/hooks/pna/use-get-review-records";
+} from "@/app/pna/hooks/use-get-review-records";
 
 const PAGE_SIZE = 20;
 

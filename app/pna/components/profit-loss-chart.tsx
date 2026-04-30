@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/shadcn/card";
 import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
-import useProfitLossChart from "@/lib/hooks/pna/use-profit-loss-chart";
+import useProfitLossChart from "@/app/pna/hooks/use-profit-loss-chart";
 
 interface ProfitLossChartProps {
   targetUserId?: string;
