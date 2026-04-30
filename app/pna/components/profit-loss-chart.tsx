@@ -6,7 +6,7 @@ import {
   AreaChart,
   ResponsiveContainer,
   Tooltip,
-  type TooltipProps,
+  type TooltipContentProps,
   YAxis,
 } from "recharts";
 import NumberFlow from "@number-flow/react";
@@ -46,7 +46,7 @@ function ChartTooltip({
   active,
   payload,
   setHovered,
-}: TooltipProps<number, string> & {
+}: Partial<TooltipContentProps<number, string>> & {
   setHovered: React.Dispatch<React.SetStateAction<HoverPayload | null>>;
 }) {
   const point = active && Array.isArray(payload) ? payload[0]?.payload : null;
