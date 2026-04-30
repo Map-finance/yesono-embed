@@ -85,7 +85,7 @@ function PnaPageContent() {
         <ModeBar mode={mode} onChange={setMode} targetUserId={targetUserId} />
       )}
 
-      <Tabs value={tabValue} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
+      <Tabs value={tabValue} onValueChange={(v) => setTab(v as TabKey)} className="w-full flex-col">
         <TabsList variant="line">
           {/* 看别人：仅 2 个 tab */}
           {isViewingOtherUser ? (
