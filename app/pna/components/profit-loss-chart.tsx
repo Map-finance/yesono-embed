@@ -14,6 +14,7 @@ import NumberFlow from "@number-flow/react";
 import { Card, CardContent } from "@/components/ui/shadcn/card";
 import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 import useProfitLossChart from "@/lib/hooks/pna/use-profit-loss-chart";
 
 interface ProfitLossChartProps {
@@ -66,6 +67,7 @@ function ChartTooltip({
 }
 
 export default function ProfitLossChart({ targetUserId }: ProfitLossChartProps) {
+  const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState<string>("1D");
   const [hovered, setHovered] = useState<HoverPayload | null>(null);
 
@@ -89,9 +91,12 @@ export default function ProfitLossChart({ targetUserId }: ProfitLossChartProps) 
 
   return (
     <Card className="w-full bg-(--bg-card) border-(--border)">
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 py-1 space-y-3">
         <div className="flex items-end justify-between gap-4">
           <div>
+            <div className="text-xs text-(--text-secondary) mb-1">
+              {t.pna.profitLossLabel}
+            </div>
             <div className={cn("text-3xl font-semibold", isPositive ? "text-(--text-primary)" : "text-red-500")}>
               {isLoading ? (
                 <Skeleton className="h-8 w-32" />

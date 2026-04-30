@@ -33,8 +33,14 @@ export default function ModeBar({ mode, onChange, targetUserId }: ModeBarProps) 
     userId: targetUserId,
   });
 
+  // 后端 p.value 字段不可靠（实际看到 0）；和 positions-table 保持一致，
+  // 用 shares × currentPrice 客户端推导。
   const yesNoTotal = useMemo(
-    () => positions.reduce((sum, p) => sum + (p.value ?? 0), 0),
+    () =>
+      positions.reduce(
+        (sum, p) => sum + (Number(p.shares) || 0) * (Number(p.currentPrice) || 0),
+        0
+      ),
     [positions]
   );
 
