@@ -7,7 +7,7 @@ export default {
   positionFilters: { active: "نشط", closed: "مغلق", searchPlaceholder: "البحث في المراكز" },
   sort: { value: "القيمة", profitLossDollar: "الربح/الخسارة $", profitLossPercent: "الربح/الخسارة %", bet: "الرهان", alphabetically: "أبجدياً", averagePrice: "متوسط السعر", currentPrice: "السعر الحالي" },
   positionHeaders: { market: "السوق", outcome: "النتيجة", bet: "الرهان", shares: "أسهم", avg: "متوسط", current: "حالي", value: "القيمة", profitLoss: "الربح/الخسارة" },
-  activity: { type: "النوع", market: "السوق", amount: "المبلغ", shares: "الأسهم", buy: "شراء", sell: "بيع", merge: "دمج", redeem: "استرداد", deposit: "إيداع", withdraw: "سحب", transactionHistory: "سجل المعاملات", chainTransactionHistory: "سجل البلوكتشين" },
+  activity: { type: "النوع", market: "السوق", amount: "المبلغ", shares: "الأسهم", buy: "شراء", sell: "بيع", merge: "دمج", redeem: "استرداد", deposit: "إيداع", withdraw: "سحب", split: "تقسيم", transactionHistory: "سجل المعاملات", chainTransactionHistory: "سجل البلوكتشين" },
   time: { minutesAgo: "دقائق مضت", hourAgo: "ساعة مضت", hoursAgo: "ساعات مضت", dayAgo: "يوم مضى", daysAgo: "أيام مضت" },
   positions: { claim: "مطالبة", claiming: "جارٍ المطالبة...", claimSuccess: "تمت المطالبة بنجاح", claimFailed: "فشلت المطالبة" },
   loading: "جارٍ التحميل...", noPositions: "لا توجد مراكز", noActivity: "لا يوجد نشاط", loadMore: "تحميل المزيد", noMore: "لا مزيد من البيانات", profitLossLabel: "الربح/الخسارة",

@@ -18,6 +18,10 @@ export interface Activity {
     timestamp: number;
     marketId: number | null;
     txHash: string;
+    // 后端实际还会带这几个字段（原 ActivityTable 用），但旧接口声明遗漏。
+    icon?: string | null;
+    eventSlug?: string | null;
+    question?: string | null;
 }
 
 interface UseGetActivityOptions {

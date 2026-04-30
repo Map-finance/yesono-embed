@@ -5,6 +5,7 @@ import FilterSidebar, {
   FilterSidebarStyles,
 } from "../common/FilterSidebar";
 import { useLocale } from "@/lib/i18n";
+import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { TagTreeNode } from "@/types/home";
 import { getTagTree } from "@/lib/services/homeService";
 
@@ -149,34 +150,34 @@ const CryptoSideBar: React.FC<CryptoSideBarProps> = ({
     return (
       <>
         <aside className="hidden lg:flex flex-col w-[260px] p-4 gap-4 bg-(--bg-primary) border-(--border) overflow-y-auto h-[calc(100vh-120px)] sticky top-[120px] scrollbar-hide">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={`crypto-sidebar-freq-skeleton-${idx}`}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-(--bg-secondary) animate-pulse"
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded bg-(--bg-primary)" />
-                  <div className="h-4 w-20 rounded bg-(--bg-primary)" />
+                  <Skeleton className="w-5 h-5 rounded" />
+                  <Skeleton className="h-4 w-20 rounded" />
                 </div>
-                <div className="h-3 w-6 rounded bg-(--bg-primary)" />
+                <Skeleton className="h-3 w-6 rounded" />
               </div>
             ))}
           </div>
 
           <div className="h-px bg-(--border) mx-1 my-2 shrink-0" />
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, idx) => (
               <div
                 key={`crypto-sidebar-asset-skeleton-${idx}`}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-(--bg-secondary) animate-pulse"
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-(--bg-primary)" />
-                  <div className="h-4 w-16 rounded bg-(--bg-primary)" />
+                  <Skeleton className="w-5 h-5 rounded-full" />
+                  <Skeleton className="h-4 w-16 rounded" />
                 </div>
-                <div className="h-3 w-6 rounded bg-(--bg-primary)" />
+                <Skeleton className="h-3 w-6 rounded" />
               </div>
             ))}
           </div>
@@ -185,9 +186,9 @@ const CryptoSideBar: React.FC<CryptoSideBarProps> = ({
         <div className="lg:hidden w-full bg-(--bg-primary) border-b border-(--border)">
           <div className="flex overflow-x-auto py-2 px-4 gap-2 scrollbar-hide">
             {Array.from({ length: 8 }).map((_, idx) => (
-              <div
+              <Skeleton
                 key={`crypto-sidebar-mobile-skeleton-${idx}`}
-                className="w-[38px] h-[38px] min-w-[38px] rounded-lg bg-(--bg-secondary) animate-pulse"
+                className="w-[38px] h-[38px] min-w-[38px] rounded-lg"
               />
             ))}
           </div>

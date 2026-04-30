@@ -7,6 +7,10 @@ import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
 import '@/styles/index.css';
 import ClientWrapper from './ClientWrapper';
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +63,7 @@ export default async function RootLayout({
         backgroundColor: isLight ? '#ffffff' : '#111111',
         color: isLight ? '#000000' : '#ffffff',
         colorScheme: isLight ? 'light' : 'dark',
-      }}
+      }} className={cn("font-sans", geist.variable)}
     >
       <head nonce={nonce}>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />

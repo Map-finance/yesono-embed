@@ -81,6 +81,7 @@ export default {
     redeem: "Đổi",
     deposit: "Nạp tiền",
     withdraw: "Rút tiền",
+    split: "Tách",
     transactionHistory: "Lịch sử giao dịch ",
     chainTransactionHistory: "Lịch sử chuỗi ",
   },

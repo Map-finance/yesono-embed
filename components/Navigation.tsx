@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TrendingUp, Sparkles } from "lucide-react";
+import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { useNavigation } from "@/lib/hooks/useNavigation";
 import { NavigationItem } from "@/types/home";
 
@@ -94,10 +95,7 @@ const Navigation: React.FC = () => {
         {isLoading && (
           <>
             {[1, 2, 3].map((i) => (
-              <div
-                key={`skeleton-${i}`}
-                className="h-9 w-20 rounded-md bg-(--bg-secondary) animate-pulse"
-              />
+              <Skeleton key={`skeleton-${i}`} className="h-9 w-20 rounded-md" />
             ))}
           </>
         )}

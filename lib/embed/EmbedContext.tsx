@@ -18,8 +18,15 @@ export function getEmbedToken(): string | null {
   return externalTokenGetter();
 }
 
+// 仅本地开发期 fallback：线上构建（NODE_ENV=production）下编译期常量为 null，
+// 不会把 token 打进 bundle。线上 iframe 仍走 ?token= / postMessage 注入真 token。
+const DEV_FALLBACK_TOKEN: string | null =
+  process.env.NODE_ENV === 'development'
+    ? process.env.NEXT_PUBLIC_EMBED_DEV_TOKEN || null
+    : null;
+
 export function EmbedProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(DEV_FALLBACK_TOKEN);
 
   useEffect(() => {
     externalTokenGetter = () => token;
