@@ -17,20 +17,30 @@ export function I18nProvider({ children, initialLocale }: { children: React.Reac
   const [locale, setLocaleState] = useState<Locale>(initialLocale ?? 'en');
   const router = useRouter();
 
-  // 初始化时从 localStorage 读取语言设置
+  // 初始化时按优先级解析 locale：?lang= URL 参数 > localStorage > initialLocale > 'en'
+  // ?lang= 主要给 iframe 嵌入场景：宿主可以通过 URL 直接指定语言，或测试切换。
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedLocale = localStorage.getItem('locale') as Locale | null;
-      if (!initialLocale && savedLocale && translations[savedLocale]) {
-        setLocaleState(savedLocale);
-      } else if (initialLocale) {
-        // 如果 server 提供了初始 locale，优先使用并写入 localStorage
-        try {
-          localStorage.setItem('locale', initialLocale);
-        } catch (e) {
-          // localStorage may be unavailable (incognito mode, quota exceeded), graceful degradation
-          console.warn('[I18nContext] Failed to save initial locale to localStorage', e);
-        }
+    if (typeof window === 'undefined') return;
+
+    const urlLang = new URL(window.location.href).searchParams.get('lang') as Locale | null;
+    if (urlLang && translations[urlLang]) {
+      setLocaleState(urlLang);
+      try {
+        localStorage.setItem('locale', urlLang);
+      } catch (e) {
+        console.warn('[I18nContext] Failed to save URL locale to localStorage', e);
+      }
+      return;
+    }
+
+    const savedLocale = localStorage.getItem('locale') as Locale | null;
+    if (!initialLocale && savedLocale && translations[savedLocale]) {
+      setLocaleState(savedLocale);
+    } else if (initialLocale) {
+      try {
+        localStorage.setItem('locale', initialLocale);
+      } catch (e) {
+        console.warn('[I18nContext] Failed to save initial locale to localStorage', e);
       }
     }
   }, [initialLocale]);

@@ -7,7 +7,7 @@ export default {
   positionFilters: { active: "Активные", closed: "Закрытые", searchPlaceholder: "Поиск позиций" },
   sort: { value: "Стоимость", profitLossDollar: "Прибыль/Убыток $", profitLossPercent: "Прибыль/Убыток %", bet: "Ставка", alphabetically: "По алфавиту", averagePrice: "Средняя цена", currentPrice: "Текущая цена" },
   positionHeaders: { market: "Рынок", outcome: "Исход", bet: "Ставка", shares: "акций", avg: "Сред", current: "Текущий", value: "Стоимость", profitLoss: "Прибыль/Убыток" },
-  activity: { type: "Тип", market: "Рынок", amount: "Сумма", shares: "Акции", buy: "Покупка", sell: "Продажа", merge: "Объединение", redeem: "Погашение", deposit: "Пополнение", withdraw: "Вывод", transactionHistory: "История сделок", chainTransactionHistory: "История в блокчейне" },
+  activity: { type: "Тип", market: "Рынок", amount: "Сумма", shares: "Акции", buy: "Покупка", sell: "Продажа", merge: "Объединение", redeem: "Погашение", deposit: "Пополнение", withdraw: "Вывод", split: "Разделить", transactionHistory: "История сделок", chainTransactionHistory: "История в блокчейне" },
   time: { minutesAgo: "минут назад", hourAgo: "час назад", hoursAgo: "часов назад", dayAgo: "день назад", daysAgo: "дней назад" },
   positions: { claim: "Получить", claiming: "Получение...", claimSuccess: "Успешно получено", claimFailed: "Ошибка получения" },
   loading: "Загрузка...", noPositions: "Позиции не найдены", noActivity: "Активность не найдена", loadMore: "Загрузить ещё", noMore: "Больше нет данных", profitLossLabel: "Прибыль/Убыток",

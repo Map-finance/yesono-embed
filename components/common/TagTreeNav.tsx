@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Skeleton } from '@/components/ui/shadcn/skeleton';
 import { TagTreeNode } from '@/types/home';
 
 interface TagTreeNavProps {
@@ -135,16 +136,13 @@ const VerticalNav: React.FC<{
   );
 };
 
-// 加载骨架屏
+// 加载骨架屏：统一用 shadcn Skeleton，避免实色 bg-(--bg-secondary) 在深色页面显白
 const LoadingSkeleton: React.FC<{ layout: 'horizontal' | 'vertical' }> = ({ layout }) => {
   if (layout === 'horizontal') {
     return (
       <div className="flex items-center gap-2 py-2">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className="h-9 w-20 rounded-full bg-(--bg-secondary) animate-pulse"
-          />
+          <Skeleton key={i} className="h-9 w-20 rounded-full" />
         ))}
       </div>
     );
@@ -153,9 +151,9 @@ const LoadingSkeleton: React.FC<{ layout: 'horizontal' | 'vertical' }> = ({ layo
   return (
     <div className="space-y-2">
       {[1, 2, 3, 4].map((i) => (
-        <div
+        <Skeleton
           key={i}
-          className="h-8 rounded bg-(--bg-secondary) animate-pulse"
+          className="h-8 rounded"
           style={{ width: `${100 - i * 10}%` }}
         />
       ))}

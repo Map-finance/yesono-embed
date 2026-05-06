@@ -81,6 +81,7 @@ export default {
     redeem: "ដូរ",
     deposit: "ដាក់ប្រាក់",
     withdraw: "ដកប្រាក់",
+    split: "បំបែក",
     transactionHistory: "ប្រវត្តិប្រតិបត្តិការ ",
     chainTransactionHistory: "ប្រវត្តិលើខ្សែសង្វាក់ ",
   },

@@ -246,8 +246,9 @@ export async function cancelOrderApi(params: {
 
 /**
  * 获取市场创建记录
- * GET /api/market/created-record?page=1&size=20
- * 返回 Pagination<Market> 分页结构
+ * GET /api/events/user?limit=20&offset=0
+ * 后端用的是 limit/offset 风格分页（不是 page/size），这里入参兼容 page/size，
+ * 内部换算成 offset = (page-1) * size。
  */
 export async function getMarketCreatedRecords(params: {
   page?: number;
@@ -255,9 +256,10 @@ export async function getMarketCreatedRecords(params: {
 }) {
   const page = params.page ?? 1;
   const size = params.size ?? 20;
+  const offset = Math.max(0, (page - 1) * size);
   const queryParams = new URLSearchParams({
-    page: page.toString(),
-    size: size.toString(),
+    limit: size.toString(),
+    offset: offset.toString(),
   });
 
   return request(
@@ -337,26 +339,16 @@ export async function getUserTransactions(page: number, size: number) {
   return response;
 }
 
-export interface UserOrder {
-    id: number;
-    marketId: number;
-    optionId: number;
-    userId: number;
-    email: string;
-    amount: number;
-    txHash: string;
-    address: string;
-    chainTimestamp: number;
-    status: "SUCCESS" | "PENDING" | "FAIL";
-    type: "stake" | "claim";
-    createdAt: number;
-    username: string;
-    avatar: string;
-    smartAccount: string;
-}
+/**
+ * 亚盘订单簿后端返回结构（与 h2-market 保持一致；详见 types/pna.ts）。
+ * 注意：旧版本这里曾是扁平的 transaction 字段（id/marketId/amount/...），
+ * 实际 `/user/order` 返回的是嵌套的 ApiOrderBookRecord（含 options + orderDetails）。
+ */
+export type { ApiOrderBookRecord as UserOrder } from "@/types/pna";
+import type { ApiOrderBookRecord } from "@/types/pna";
 
 export interface ApiUserOrdersResponse {
-    records: UserOrder[];
+    records: ApiOrderBookRecord[];
     total: number;
     page: number;
     size: number;

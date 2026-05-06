@@ -7,7 +7,7 @@ export default {
   positionFilters: { active: "فعال", closed: "بسته شده", searchPlaceholder: "جستجوی موقعیت‌ها" },
   sort: { value: "ارزش", profitLossDollar: "سود/زیان $", profitLossPercent: "سود/زیان %", bet: "شرط", alphabetically: "حروف الفبا", averagePrice: "قیمت میانگین", currentPrice: "قیمت فعلی" },
   positionHeaders: { market: "بازار", outcome: "نتیجه", bet: "شرط", shares: "سهام", avg: "میانگین", current: "فعلی", value: "ارزش", profitLoss: "سود/زیان" },
-  activity: { type: "نوع", market: "بازار", amount: "مبلغ", shares: "سهام", buy: "خرید", sell: "فروش", merge: "ادغام", redeem: "بازخرید", deposit: "واریز", withdraw: "برداشت", transactionHistory: "تاریخچه معاملات", chainTransactionHistory: "تاریخچه بلاکچین" },
+  activity: { type: "نوع", market: "بازار", amount: "مبلغ", shares: "سهام", buy: "خرید", sell: "فروش", merge: "ادغام", redeem: "بازخرید", deposit: "واریز", withdraw: "برداشت", split: "تقسیم", transactionHistory: "تاریخچه معاملات", chainTransactionHistory: "تاریخچه بلاکچین" },
   time: { minutesAgo: "دقیقه پیش", hourAgo: "ساعت پیش", hoursAgo: "ساعت پیش", dayAgo: "روز پیش", daysAgo: "روز پیش" },
   positions: { claim: "دریافت", claiming: "در حال دریافت...", claimSuccess: "دریافت موفق", claimFailed: "دریافت ناموفق" },
   loading: "در حال بارگذاری...", noPositions: "موقعیتی یافت نشد", noActivity: "فعالیتی یافت نشد", loadMore: "بارگذاری بیشتر", noMore: "داده بیشتری نیست", profitLossLabel: "سود/زیان",

@@ -81,6 +81,7 @@ export default {
     redeem: "แลก",
     deposit: "ฝากเงิน",
     withdraw: "ถอนเงิน",
+    split: "แยก",
     transactionHistory: "ประวัติการซื้อขาย ",
     chainTransactionHistory: "ประวัติบนเชน ",
   },

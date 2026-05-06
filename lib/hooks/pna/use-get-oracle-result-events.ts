@@ -140,14 +140,25 @@ async function fetchMarketCreatedRecords(
 
   if (Array.isArray(data)) {
     items = data;
+    totalCount = items.length;
   } else if (data && typeof data === "object") {
-    items = data.data ?? data.list ?? data.records ?? [];
-    const totalRaw = data.total ?? data.totalCount;
+    items =
+      data.data ??
+      data.list ??
+      data.records ??
+      data.results ??
+      data.items ??
+      data.rows ??
+      [];
+    const totalRaw =
+      data.total ?? data.totalCount ?? data.totalRows ?? data.count;
     totalCount =
       typeof totalRaw === "string" ? parseInt(totalRaw, 10) : totalRaw ?? 0;
-    if (isNaN(totalCount)) totalCount = items.length;
+    if (!Number.isFinite(totalCount) || totalCount < items.length) {
+      // 后端漏返 total 或返回错（比如只是当前页 size），用 items.length 兜底
+      totalCount = items.length;
+    }
   }
-
   return {
     items: Array.isArray(items) ? items : [],
     totalCount,

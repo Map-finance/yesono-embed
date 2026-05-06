@@ -321,11 +321,9 @@ export default function OutcomeDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-(--bg-primary) px-4 py-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-(--bg-secondary) rounded w-1/3 mb-4"></div>
-          <div className="h-52 bg-(--bg-secondary) rounded mb-4"></div>
-        </div>
+      <div className="min-h-screen bg-(--bg-primary) px-4 py-6 space-y-4">
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-52 w-full" />
       </div>
     );
   }

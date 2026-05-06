@@ -7,7 +7,7 @@ export default {
   positionFilters: { active: "Aktív", closed: "Zárt", searchPlaceholder: "Pozíciók keresése" },
   sort: { value: "Érték", profitLossDollar: "Nyereség/Veszteség $", profitLossPercent: "Nyereség/Veszteség %", bet: "Tét", alphabetically: "Betűrendben", averagePrice: "Átlagár", currentPrice: "Aktuális ár" },
   positionHeaders: { market: "Piac", outcome: "Eredmény", bet: "Tét", shares: "részesedés", avg: "Átlag", current: "Aktuális", value: "Érték", profitLoss: "Nyereség/Veszteség" },
-  activity: { type: "Típus", market: "Piac", amount: "Összeg", shares: "Részesedés", buy: "Vétel", sell: "Eladás", merge: "Összevonás", redeem: "Beváltás", deposit: "Befizetés", withdraw: "Kivétel", transactionHistory: "Tranzakciótörténet", chainTransactionHistory: "Blokklánc történet" },
+  activity: { type: "Típus", market: "Piac", amount: "Összeg", shares: "Részesedés", buy: "Vétel", sell: "Eladás", merge: "Összevonás", redeem: "Beváltás", deposit: "Befizetés", withdraw: "Kivétel", split: "Felosztás", transactionHistory: "Tranzakciótörténet", chainTransactionHistory: "Blokklánc történet" },
   time: { minutesAgo: "perce", hourAgo: "órája", hoursAgo: "órája", dayAgo: "napja", daysAgo: "napja" },
   positions: { claim: "Igénylés", claiming: "Igénylés...", claimSuccess: "Sikeres igénylés", claimFailed: "Sikertelen igénylés" },
   loading: "Betöltés...", noPositions: "Nincs pozíció", noActivity: "Nincs tevékenység", loadMore: "Továbbiak betöltése", noMore: "Nincs több adat", profitLossLabel: "Nyereség/Veszteség",

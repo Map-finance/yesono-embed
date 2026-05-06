@@ -104,6 +104,7 @@ export default {
     redeem: "赎回",
     deposit: "充值",
     withdraw: "提现",
+    split: "拆分",
     transactionHistory: "交易记录",
     chainTransactionHistory: "链上交易记录",
   },
@@ -123,6 +124,11 @@ export default {
     claiming: "领取中...",
     claimSuccess: "领取成功",
     claimFailed: "领取失败",
+    claimable: "可领取",
+    won: "已赢",
+    lost: "已输",
+    resolved: "已结算",
+    result: "结果",
   },
 
   // Loading and empty states
@@ -176,6 +182,62 @@ export default {
     cancelAllFailed: "取消订单失败",
     noOrdersToCancel: "没有可取消的未完成订单",
     searchPlaceholder: "搜索市场或结果",
+  },
+
+  // 亚盘订单簿 / 交易记录 / 开盘记录
+  asian: {
+    orderBook: "订单簿",
+    transactionRecords: "交易记录",
+    openRecords: "开盘记录",
+
+    league: "联赛",
+    event: "赛事",
+    matchTime: "比赛时间",
+    matchResult: "比分",
+    status: "状态",
+
+    notStarted: "未开始",
+    inProgress: "进行中",
+    finished: "已结束",
+    canceled: "已取消",
+
+    handicapType: "盘口类型",
+    handicap: "让球",
+    overUnder: "大小球",
+    betSelection: "投注选择",
+    betAmount: "下注金额",
+    profitLoss: "盈亏",
+    claimableAmount: "可领金额",
+    totalVolume: "盘口总额",
+    myShare: "我的占比",
+    transactionHash: "交易哈希",
+    claimStatus: "领取状态",
+    homeTeamPool: "主队池",
+    awayTeamPool: "客队池",
+    openingFee: "开盘费",
+    createTime: "创建时间",
+    serialNumber: "序号",
+    leagueName: "联赛",
+    direct: "投注方向",
+    eventStatus: "赛事状态",
+    over: "大 ",
+    under: "小 ",
+
+    notClaimed: "未领取",
+    claimed: "已领取",
+    claimableAmountZero: "无可领",
+    unknownStatus: "未知",
+
+    stake: "投注",
+    claim: "领取",
+
+    success: "成功",
+    processing: "处理中",
+    failed: "失败",
+
+    noOrders: "暂无订单",
+
+    none: "无",
   },
 
   withdrawModal: {
