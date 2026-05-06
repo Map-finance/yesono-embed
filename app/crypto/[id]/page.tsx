@@ -1,35 +1,29 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useMemo } from "react";
+/**
+ * CryptoDetailPage - Crypto 市场详情页主入口。
+ * 大块逻辑已拆出：
+ *   - CryptoOutcomeGraph.tsx    展开后的价格走势图
+ *   - CryptoOrderBookView.tsx   展开后的 mock 订单簿视图
+ *   - CryptoResolvedList.tsx    "View Resolved" 折叠列表
+ *   - CryptoRelatedSidebar.tsx  右侧相关推荐侧栏
+ */
+
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMarketStore } from "@/lib/store/cryptoStore";
 import { useTranslation, useLocale } from "@/lib/i18n";
-import { formatDate } from "@/utils/format";
-import {
-  ArrowLeft,
-  Globe,
-  ChevronDown,
-  Gift,
-  RotateCw,
-  ChevronUp,
-  RefreshCw,
-  Settings,
-} from "lucide-react";
+import { Gift, RotateCw, RefreshCw } from "lucide-react";
 import { MarketItem } from "@/types/crypto";
-import { mockOutcomes, resolvedOutcomes } from "../mockData";
+import { mockOutcomes } from "../mockData";
 import MarketDetailTabs from "@/components/detail/MarketDetailTabs";
 import MarketContext from "@/components/crypto/MarketContext";
 import Rules from "@/components/crypto/Rules";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import ProxyImage from "@/components/common/ProxyImage";
+import OutcomeGraph from "./CryptoOutcomeGraph";
+import CryptoOrderBookView, { generateOrderBook } from "./CryptoOrderBookView";
+import CryptoResolvedList from "./CryptoResolvedList";
+import CryptoRelatedSidebar from "./CryptoRelatedSidebar";
 
 // 获取资产图标的辅助函数
 const getAssetIcon = (asset: string) => {
@@ -47,321 +41,6 @@ const getAssetIcon = (asset: string) => {
     default:
       return "https://cryptologos.cc/logos/bitcoin-btc-logo.png";
   }
-};
-
-// ========== Order Book 相关 ==========
-interface OrderBookEntry {
-  price: number;
-  shares: number;
-  total: number;
-}
-
-// 生成模拟订单簿数据
-const generateOrderBook = (
-  percentage: number
-): { asks: OrderBookEntry[]; bids: OrderBookEntry[] } => {
-  const basePrice = percentage / 100;
-  const asks: OrderBookEntry[] = [];
-  const bids: OrderBookEntry[] = [];
-
-  // Asks (卖单) - 价格从低到高
-  for (let i = 0; i < 4; i++) {
-    const price = Math.round((basePrice + 0.001 + i * 0.001) * 1000) / 10;
-    const shares = Math.round(Math.random() * 400000 + 3000);
-    asks.push({ price, shares, total: Math.round((shares * price) / 100) });
-  }
-
-  // Bids (买单) - 价格从高到低
-  for (let i = 0; i < 4; i++) {
-    const price = Math.round((basePrice - 0.001 - i * 0.001) * 1000) / 10;
-    const shares = Math.round(Math.random() * 400000 + 3000);
-    bids.push({ price, shares, total: Math.round((shares * price) / 100) });
-  }
-
-  return { asks: asks.reverse(), bids };
-};
-
-// ========== Graph 相关 ==========
-// 使用种子生成伪随机数
-const seededRandom = (seed: number) => {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
-
-type TimeRange = "1D" | "1W" | "1M" | "ALL";
-const timeRanges: TimeRange[] = ["1D", "1W", "1M", "ALL"];
-
-// 生成图表数据
-const generateGraphData = (
-  percentage: number,
-  range: TimeRange,
-  locale: string = "en-US"
-) => {
-  const data: { date: string; value: number }[] = [];
-  const now = new Date();
-
-  let points: number;
-  let getDate: (i: number) => Date;
-  let fmtOpts: Intl.DateTimeFormatOptions = {};
-
-  switch (range) {
-    case "1D":
-      points = 48;
-      getDate = (i) => new Date(now.getTime() - (points - i) * 30 * 60 * 1000);
-      fmtOpts = { hour: "numeric", minute: "2-digit", hour12: true };
-      break;
-    case "1W":
-      points = 84;
-      getDate = (i) =>
-        new Date(now.getTime() - (points - i) * 2 * 60 * 60 * 1000);
-      fmtOpts = { month: "short", day: "numeric" };
-      break;
-    case "1M":
-      points = 60;
-      getDate = (i) =>
-        new Date(now.getTime() - (points - i) * 12 * 60 * 60 * 1000);
-      fmtOpts = { month: "short", day: "numeric" };
-      break;
-    case "ALL":
-      points = 90;
-      getDate = (i) =>
-        new Date(now.getTime() - (points - i) * 24 * 60 * 60 * 1000);
-      fmtOpts = { month: "short", year: "numeric" };
-      break;
-  }
-
-  for (let i = 0; i < points; i++) {
-    const date = getDate(i);
-    const seed = percentage * 100 + i + range.charCodeAt(0);
-    const trend = Math.sin(i * 0.08) * 8;
-    const noise = seededRandom(seed) * 6 - 3;
-    data.push({
-      date: formatDate(date, locale === "zh" ? "zh-CN" : "en-US", fmtOpts),
-      value: Math.max(1, Math.min(99, percentage + trend + noise)),
-    });
-  }
-
-  return data;
-};
-
-// Outcome Graph 组件
-interface OutcomeGraphProps {
-  percentage: number;
-  change?: number;
-  label?: string;
-}
-
-const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
-  percentage,
-  change,
-  label,
-}) => {
-  const { t } = useTranslation();
-  const { locale } = useLocale();
-  const [selectedRange, setSelectedRange] = useState<TimeRange>("1W");
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState({
-    autoscale: true,
-    xAxis: true,
-    yAxis: true,
-    horizontalGrid: true,
-    verticalGrid: false,
-    annotations: true,
-  });
-
-  // 生成图表数据
-  const chartData = useMemo(
-    () =>
-      generateGraphData(
-        percentage,
-        selectedRange,
-        locale === "zh-CN" || locale === "zh-TW" ? "zh-CN" : "en-US"
-      ),
-    [percentage, selectedRange, locale]
-  );
-
-  // 计算当前百分比
-  const currentValue = useMemo(() => {
-    if (!chartData || chartData.length === 0) return percentage;
-    return chartData[chartData.length - 1].value;
-  }, [chartData, percentage]);
-
-  // 自定义工具提示
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 shadow-lg">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#ED6432]" />
-            <span className="text-white text-sm">
-              {label || t.market.chart.valueLabel}:{" "}
-              {payload[0].value.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // 创建最后一个数据点的 dot 渲染函数
-  const createLastDot = (props: any) => {
-    const { cx, cy, index } = props;
-    if (chartData && chartData.length > 0 && index === chartData.length - 1) {
-      return <circle cx={cx} cy={cy} r={5} fill="#ED6432" />;
-    }
-    return null;
-  };
-
-  // 发光效果 CSS
-  const glowStyles = `
-    path[stroke="#ED6432"] { filter: drop-shadow(rgb(237, 100, 50) 0px 0px 8px) drop-shadow(rgb(237, 100, 50) 0px 0px 4px) !important; }
-    circle[fill="#ED6432"] { filter: drop-shadow(rgb(237, 100, 50) 0px 0px 8px) drop-shadow(rgb(237, 100, 50) 0px 0px 4px) !important; }
-  `;
-
-  return (
-    <div className="relative bg-[#111111] rounded-lg p-4">
-      {/* 标题 */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-3 h-3 rounded-full bg-[#ED6432]" />
-        <span className="text-white text-sm">{label || t.market.outcome}</span>
-        <span className="text-[#b0b0b0] text-sm">
-          {currentValue.toFixed(1)}%
-        </span>
-        {change !== undefined && (
-          <span
-            className={`text-sm ${
-              change >= 0 ? "text-(--green)" : "text-(--red)"
-            }`}
-          >
-            {change >= 0 ? "▲" : "▼"}
-            {Math.abs(change)}%
-          </span>
-        )}
-      </div>
-
-      {/* 时间范围选择器 */}
-      <div className="flex gap-1 mb-4">
-        {timeRanges.map((range) => (
-          <button
-            key={range}
-            onClick={() => setSelectedRange(range)}
-            className={`h-7 px-3 rounded-full text-sm font-normal transition-all ${
-              selectedRange === range
-                ? "bg-[#ED6432] text-[#030303]"
-                : "bg-white/10 text-white hover:bg-white/20"
-            }`}
-          >
-            {range}
-          </button>
-        ))}
-      </div>
-
-      {/* 图表 */}
-      <div className="relative" style={{ height: "180px" }}>
-        <style dangerouslySetInnerHTML={{ __html: glowStyles }} />
-
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 10, right: 20, left: 0, bottom: 20 }}
-          >
-            <CartesianGrid
-              stroke="rgba(255, 255, 255, 0.06)"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="date"
-              stroke="transparent"
-              tick={{ fill: "rgb(167, 167, 167)", fontSize: 12 }}
-              axisLine={{ stroke: "transparent" }}
-              interval="preserveStartEnd"
-              minTickGap={50}
-            />
-            <YAxis hide domain={["dataMin - 5", "dataMax + 5"]} />
-            <Tooltip content={<CustomTooltip />} />
-            <Line
-              type="stepAfter"
-              dataKey="value"
-              stroke="#ED6432"
-              strokeWidth={1.5}
-              dot={createLastDot}
-              activeDot={{ r: 6, fill: "#ED6432" }}
-              connectNulls
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* 底部工具栏 */}
-      <div className="flex items-center justify-end mt-2 pt-2 border-t border-[rgba(255,255,255,0.1)]">
-        <div className="flex gap-1">
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="p-1.5 rounded hover:bg-white/10 text-[#b0b0b0]"
-            title={t.market.common.settings}
-          >
-            <Settings size={14} />
-          </button>
-        </div>
-      </div>
-
-      {/* Settings Modal */}
-      {settingsOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setSettingsOpen(false)}
-        >
-          <div
-            className="bg-(--bg-card) border border-(--border) rounded-xl p-4 w-[260px]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-sm font-medium text-(--text-primary) mb-3">
-              {t.market.common.settings}
-            </div>
-            {[
-              { key: "autoscale", label: t.market.chart.autoscale },
-              { key: "xAxis", label: t.market.chart.xAxis },
-              { key: "yAxis", label: t.market.chart.yAxis },
-              { key: "horizontalGrid", label: t.market.chart.horizontalGrid },
-              { key: "verticalGrid", label: t.market.chart.verticalGrid },
-              { key: "annotations", label: t.market.chart.annotations },
-            ].map((item) => (
-              <div
-                key={item.key}
-                className="flex items-center justify-between py-2"
-              >
-                <span className="text-sm text-(--text-secondary)">
-                  {item.label}
-                </span>
-                <button
-                  onClick={() =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      [item.key]: !prev[item.key as keyof typeof prev],
-                    }))
-                  }
-                  className={`w-10 h-5 rounded-full transition-colors relative ${
-                    settings[item.key as keyof typeof settings]
-                      ? "bg-[#3b82f6]"
-                      : "bg-(--bg-secondary)"
-                  }`}
-                >
-                  <div
-                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${
-                      settings[item.key as keyof typeof settings]
-                        ? "left-5"
-                        : "left-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 };
 
 export default function CryptoDetailPage() {
@@ -392,6 +71,7 @@ export default function CryptoDetailPage() {
   const [hasTyped, setHasTyped] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const MOCK_CONTEXT_TEXT = `In the past week, as of December 25, 2025, recent news and market sentiment around Bitcoin's price predictions for the year highlight a mix of cautious optimism and volatility. Bitcoin is currently trading near $87,000, with reports of ETF outflows and a miner hashrate drop adding downward pressure. However, wallet accumulation and institutional buying interest between $80,000–$90,000 provide support. Forecasts range widely, from a potential rebound to $105,000 by year-end to bearish corrections targeting $75,000–$85,000. Macro factors like gold's outperformance and global financial trends continue to influence probabilities for various price outcomes.`;
+
   // 获取市场数据
   useEffect(() => {
     if (markets.length === 0) {
@@ -530,13 +210,13 @@ export default function CryptoDetailPage() {
                     { val: "07", label: "DAYS" },
                     { val: "17", label: "HRS" },
                     { val: "51", label: "MINS" },
-                  ].map((t, idx) => (
+                  ].map((tItem, idx) => (
                     <div key={idx} className="flex flex-col items-center">
                       <span className="text-[24px] font-bold text-(--text-primary) leading-none">
-                        {t.val}
+                        {tItem.val}
                       </span>
                       <span className="text-[9px] text-(--text-secondary) font-black mt-1.5 tracking-wider uppercase">
-                        {t.label}
+                        {tItem.label}
                       </span>
                     </div>
                   ))}
@@ -681,98 +361,10 @@ export default function CryptoDetailPage() {
 
                             {/* Order Book 内容 */}
                             {activeTab === "orderbook" && (
-                              <div>
-                                {/* Trade Yes 表格 */}
-                                <div className="text-xs text-(--text-secondary) uppercase mb-2 flex items-center gap-2">
-                                  {t.market.buyYes}
-                                  <span className="text-(--text-tertiary)">
-                                    ⊡
-                                  </span>
-                                </div>
-
-                                {/* 表头 */}
-                                <div className="grid grid-cols-3 text-xs text-(--text-secondary) py-1 border-b border-(--border)">
-                                  <span className="text-center">Price</span>
-                                  <span className="text-right">Shares</span>
-                                  <span className="text-right">Total</span>
-                                </div>
-
-                                {/* Asks */}
-                                {orderBook.asks.map((entry, i) => (
-                                  <div
-                                    key={`ask-${i}`}
-                                    className="grid grid-cols-3 text-xs py-1.5 relative"
-                                  >
-                                    <div
-                                      className="absolute left-0 top-0 bottom-0 bg-[rgba(239,68,68,0.15)]"
-                                      style={{
-                                        width: `${Math.min(
-                                          entry.shares / 5000,
-                                          100
-                                        )}%`,
-                                      }}
-                                    />
-                                    <span className="text-center text-(--green) relative z-10">
-                                      {entry.price}¢
-                                    </span>
-                                    <span className="text-right text-(--text-primary) relative z-10">
-                                      {entry.shares.toLocaleString()}
-                                    </span>
-                                    <span className="text-right text-(--text-secondary) relative z-10">
-                                      ${entry.total.toLocaleString()}
-                                    </span>
-                                  </div>
-                                ))}
-
-                                {/* Asks 标签 */}
-                                <div className="flex items-center gap-2 py-2">
-                                  <span className="px-2 py-0.5 rounded text-[10px] bg-[rgba(239,68,68,0.2)] text-(--red)">
-                                    {t.market.asks}
-                                  </span>
-                                </div>
-
-                                {/* Last / Spread */}
-                                <div className="flex justify-between text-xs text-(--text-secondary) py-2 border-y border-(--border)">
-                                  <span>
-                                    {t.market.last} {percentage.toFixed(1)}¢
-                                  </span>
-                                  <span>{t.market.spread} 0.1¢</span>
-                                </div>
-
-                                {/* Bids 标签 */}
-                                <div className="flex items-center gap-2 py-2">
-                                  <span className="px-2 py-0.5 rounded text-[10px] bg-[rgba(34,197,94,0.2)] text-(--green)">
-                                    {t.market.bids}
-                                  </span>
-                                </div>
-
-                                {/* Bids */}
-                                {orderBook.bids.map((entry, i) => (
-                                  <div
-                                    key={`bid-${i}`}
-                                    className="grid grid-cols-3 text-xs py-1.5 relative"
-                                  >
-                                    <div
-                                      className="absolute left-0 top-0 bottom-0 bg-[rgba(34,197,94,0.15)]"
-                                      style={{
-                                        width: `${Math.min(
-                                          entry.shares / 5000,
-                                          100
-                                        )}%`,
-                                      }}
-                                    />
-                                    <span className="text-center text-(--green) relative z-10">
-                                      {entry.price}¢
-                                    </span>
-                                    <span className="text-right text-(--text-primary) relative z-10">
-                                      {entry.shares.toLocaleString()}
-                                    </span>
-                                    <span className="text-right text-(--text-secondary) relative z-10">
-                                      ${entry.total.toLocaleString()}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
+                              <CryptoOrderBookView
+                                orderBook={orderBook}
+                                percentage={percentage}
+                              />
                             )}
 
                             {/* Graph 内容 */}
@@ -802,76 +394,10 @@ export default function CryptoDetailPage() {
           </div>
 
           {/* 已结算的市场列表 */}
-          <div className="mt-8">
-            <button
-              onClick={() => setShowResolved(!showResolved)}
-              className="flex items-center gap-1.5 text-[15px] font-bold text-white hover:text-slate-300 transition-colors px-2 py-4"
-            >
-              {showResolved ? t.market.hideResolved : t.market.viewResolved}
-              {showResolved ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-            </button>
-
-            {showResolved && (
-              <div className="mt-2 transition-all duration-300 border-t border-slate-800/30">
-                {/* 1. 移除了这里的 divide-y，改为 flex-col */}
-                <div className="flex flex-col">
-                  {resolvedOutcomes.map((item, index) => (
-                    // 2. 新增外层 Wrapper：专门负责画底部的直线 (border-b)
-                    // last:border-0 确保最后一个没有线条
-                    <div
-                      key={index}
-                      className="border-b border-slate-800/30 last:border-0 px-2" // px-2 给左右留白，让线和圆角对齐更好看
-                    >
-                      {/* 3. 内层 Item：负责圆角背景和悬浮效果 */}
-                      {/* 添加了 my-1 (上下间距)，让圆角背景和上下直线之间有空隙 */}
-                      <div className="group flex items-center justify-between py-4 px-3 my-1 hover:bg-[rgb(37,52,69)] transition-all duration-100 cursor-pointer rounded-lg">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-3">
-                            <span className="text-slate-500 text-[15px] font-bold w-4 text-center">
-                              {item.trend === "up"
-                                ? "↑"
-                                : item.trend === "down"
-                                ? "↓"
-                                : ""}
-                            </span>
-                            <span className="text-[17px] font-bold text-white leading-none group-hover:underline underline-offset-[5px] decoration-1 transition-all">
-                              {item.label}
-                            </span>
-                          </div>
-                          <div className="text-[12px] text-slate-500 font-bold ml-7">
-                            {item.vol} {t.common.volume}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 pr-2">
-                          <span className="text-[15px] font-bold text-white">
-                            Yes
-                          </span>
-                          <div className="w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center">
-                            <svg
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              className="w-3 h-3 text-white"
-                              stroke="currentColor"
-                              strokeWidth="4.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <CryptoResolvedList
+            showResolved={showResolved}
+            onToggle={() => setShowResolved(!showResolved)}
+          />
 
           {/* Market Context 组件 */}
           <MarketContext
@@ -894,68 +420,7 @@ export default function CryptoDetailPage() {
         </div>
 
         {/* 右侧边栏 - Sticky */}
-        <div className="col-span-12 lg:col-span-4 pt-8">
-          <div className="sticky top-[calc(120px+2rem)] max-h-[calc(100vh-var(--topbar-height))] overflow-y-auto flex flex-col gap-8 py-8 scrollbar-hide">
-            {/* 相关推荐 */}
-            <div className="pt-4 border-t border-(--border)">
-              <div className="flex overflow-x-auto gap-3 mb-6 scrollbar-hide">
-                {["All", "Crypto", "Bitcoin", "Crypto Prices"].map((tab) => (
-                  <button
-                    key={tab}
-                    className={`text-[12px] font-bold whitespace-nowrap px-4 py-2 rounded-full transition-all ${
-                      tab === "All"
-                        ? "bg-(--bg-hover) text-(--text-primary)"
-                        : "text-(--text-secondary) hover:text-(--text-primary) hover:bg-(--bg-secondary)"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              <div className="space-y-6">
-                {[
-                  {
-                    q: "Will Gold close at $3,200 or more at the end of 2025?",
-                    p: "100%",
-                    img: "https://images.unsplash.com/photo-1589118949245-7d38baf380d6?w=100&h=100&fit=crop",
-                  },
-                  {
-                    q: "Will inflation reach more than 3% in 2025?",
-                    p: "6%",
-                    img: "https://images.unsplash.com/photo-1589118949245-7d38baf380d6?w=100&h=100&fit=crop",
-                  },
-                  {
-                    q: "Will inflation reach more than 3% in 2025?",
-                    p: "19%",
-                    img: "https://images.unsplash.com/photo-1589118949245-7d38baf380d6?w=100&h=100&fit=crop",
-                  },
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-4 group cursor-pointer"
-                  >
-                    <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-(--border) group-hover:border-(--text-secondary) transition-all">
-                      <img
-                        src={item.img}
-                        className="w-full h-full object-cover"
-                        alt="related"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-[14px] font-bold text-(--text-secondary) group-hover:text-(--text-primary) leading-tight line-clamp-2 transition-colors">
-                        {item.q}
-                      </h4>
-                    </div>
-                    <span className="text-[15px] font-black text-(--text-primary)">
-                      {item.p}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        <CryptoRelatedSidebar />
       </div>
     </div>
   );

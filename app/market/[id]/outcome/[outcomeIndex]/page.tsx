@@ -1,33 +1,28 @@
 "use client";
 
 /**
- * Outcome Detail Page - 移动端 Outcome 详情页
- * 对齐 /market/{slug} 页面功能：真实 Rules、Comments/Holders/Activity、ChartToggleSwitch、底部 buy 按钮
+ * Outcome Detail Page - 移动端 Outcome 详情页。
+ * 对齐 /market/{slug} 页面功能：真实 Rules、Comments/Holders/Activity、ChartToggleSwitch、底部 buy 按钮。
+ *
+ * 大块逻辑已拆出：
+ *   - OutcomeProbabilityChart.tsx  概率折线图（含 tooltip / cursor / 时间范围选择器）
+ *   - OutcomeMobileCountdown.tsx   移动端 live 倒计时
+ *   - OutcomeBottomBuyBar.tsx      底部固定 Buy 按钮
+ *   - outcomePage.helpers.ts       UITimeRange / mapToApiRange / COIN_ALIAS / 倒计时默认文案
  */
 
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Market } from "@/types/types";
 
 import { getEventBySlug, getNeedTimeTagTags } from "@/lib/services/homeService";
 import { polymarketEventToMarket } from "@/lib/utils/eventToMarket";
 import { PolymarketEventResp, PolymarketMarketResp } from "@/types/home";
-import { ArrowLeft, ChevronDown, ChevronUp, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import SpotOrderbook from "@/components/detail/SpotOrderbook";
 import MarketDetailTabs from "@/components/detail/MarketDetailTabs";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-} from "recharts";
 import ProxyImage from "@/components/common/ProxyImage";
-import {
-  useSingleMarketPriceHistory,
-  TimeRange as ApiTimeRange,
-} from "@/lib/hooks/usePriceHistory";
+import { useSingleMarketPriceHistory } from "@/lib/hooks/usePriceHistory";
 import { formatNumber } from "@/utils/format";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -38,6 +33,15 @@ import {
 } from "@/lib/utils/outcomes";
 import dynamic from "next/dynamic";
 import { useToast } from "@/components/ui/Toast";
+import {
+  COIN_ALIAS,
+  DEFAULT_LIVE_COUNTDOWN_LABELS,
+  mapToApiRange,
+  type UITimeRange,
+} from "./outcomePage.helpers";
+import OutcomeProbabilityChart from "./OutcomeProbabilityChart";
+import OutcomeMobileCountdown from "./OutcomeMobileCountdown";
+import OutcomeBottomBuyBar from "./OutcomeBottomBuyBar";
 
 const ChartToggleSwitch = dynamic(
   () => import("@/components/detail/ChartToggleSwitch"),
@@ -50,45 +54,6 @@ const LivePriceChart = dynamic(
 const TimeCapsule = dynamic(() => import("@/components/detail/TimeCapsule"), {
   ssr: false,
 });
-
-// UI time range options
-type UITimeRange = "1H" | "6H" | "1D" | "1W" | "1M" | "ALL";
-const timeRanges: UITimeRange[] = ["1H", "6H", "1D", "1W", "1M", "ALL"];
-
-const mapToApiRange = (range: UITimeRange): ApiTimeRange => {
-  switch (range) {
-    case "1H":
-      return "1H";
-    case "6H":
-      return "6H";
-    case "1D":
-      return "1D";
-    case "1W":
-      return "1W";
-    case "1M":
-      return "1M";
-    case "ALL":
-      return "ALL";
-    default:
-      return "1D";
-  }
-};
-
-// slug 前缀别名修正（与 market page 一致）
-const COIN_ALIAS: Record<string, string> = {
-  bitcoin: "btc",
-  ethereum: "eth",
-  solana: "sol",
-  ripple: "xrp",
-  dogecoin: "doge",
-};
-
-const DEFAULT_LIVE_COUNTDOWN_LABELS = {
-  days: "Days",
-  hours: "Hours",
-  minutes: "Mins",
-  seconds: "Secs",
-};
 
 export default function OutcomeDetailPage() {
   const { t } = useTranslation();
@@ -216,14 +181,12 @@ export default function OutcomeDetailPage() {
 
   const option = market?.options[outcomeIndex];
   const percentage = option?.percentage || 50;
-  const change = option?.change;
 
   // Chart data
   const effectiveMarketId = eventMarket ? String(eventMarket.id) : "";
   const {
     data: apiData,
     loading: chartLoading,
-    currentPrices,
   } = useSingleMarketPriceHistory(
     effectiveMarketId,
     mapToApiRange(selectedRange),
@@ -238,197 +201,6 @@ export default function OutcomeDetailPage() {
       value: (point[effectiveMarketId] as number) || 0,
     }));
   }, [apiData, effectiveMarketId]);
-
-  const MAX_DISPLAY_POINTS = 300;
-  const displayData = useMemo(() => {
-    if (!chartData || chartData.length <= MAX_DISPLAY_POINTS) return chartData;
-    const kept = [chartData[0]];
-    for (let i = 1; i < chartData.length; i++) {
-      const prev = chartData[i - 1];
-      const curr = chartData[i];
-      if (curr.value !== prev.value || i === chartData.length - 1) {
-        if (kept[kept.length - 1] !== prev) kept.push(prev);
-        kept.push(curr);
-      }
-    }
-    if (kept.length <= MAX_DISPLAY_POINTS) return kept;
-    const step = (kept.length - 2) / (MAX_DISPLAY_POINTS - 2);
-    const thinned = [kept[0]];
-    for (let i = 1; i < MAX_DISPLAY_POINTS - 1; i++) {
-      thinned.push(kept[Math.round(i * step)]);
-    }
-    thinned.push(kept[kept.length - 1]);
-    return thinned;
-  }, [chartData]);
-
-  const currentValue = useMemo(() => {
-    const apiPrice = currentPrices[effectiveMarketId];
-    if (apiPrice !== undefined) return apiPrice;
-    if (chartData.length > 0) return chartData[chartData.length - 1].value;
-    return percentage;
-  }, [currentPrices, effectiveMarketId, chartData, percentage]);
-
-  const yDomain = useMemo<[number, number]>(() => {
-    if (!chartData || chartData.length === 0) return [0, 100];
-    let min = Infinity,
-      max = -Infinity;
-    for (const point of chartData) {
-      if (typeof point.value === "number") {
-        if (point.value < min) min = point.value;
-        if (point.value > max) max = point.value;
-      }
-    }
-    if (!isFinite(min) || !isFinite(max)) return [0, 100];
-    const buf = Math.max((max - min) * 0.05, 1);
-    return [
-      Math.max(0, Math.floor((min - buf) / 5) * 5),
-      Math.min(100, Math.ceil((max + buf) / 5) * 5),
-    ];
-  }, [chartData]);
-
-  const createLastDot = useCallback(
-    (props: any) => {
-      const { cx, cy, index } = props;
-      if (
-        displayData &&
-        displayData.length > 0 &&
-        index === displayData.length - 1
-      ) {
-        return <circle cx={cx} cy={cy} r={5} fill="#ED6432" />;
-      }
-      return null;
-    },
-    [displayData]
-  );
-
-  // Tooltip refs
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const cursorRef = useRef<HTMLDivElement>(null);
-  const activeIdxRef = useRef<number>(-1);
-
-  const formatTooltipTime = useCallback(
-    (ts: number) => {
-      const d = new Date(ts);
-      if (["1H", "6H"].includes(selectedRange)) {
-        return d.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-      }
-      if (selectedRange === "1D") {
-        return d.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        });
-      }
-      return d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      });
-    },
-    [selectedRange]
-  );
-
-  const CHART_LEFT = 35;
-  const CHART_RIGHT_PAD = 10;
-
-  const handleChartMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const container = chartContainerRef.current;
-      const tooltip = tooltipRef.current;
-      const cursor = cursorRef.current;
-      if (
-        !container ||
-        !tooltip ||
-        !cursor ||
-        !displayData ||
-        displayData.length === 0
-      )
-        return;
-
-      const rect = container.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const chartRight = rect.width - CHART_RIGHT_PAD;
-      const chartWidth = chartRight - CHART_LEFT;
-
-      if (mouseX < CHART_LEFT || mouseX > chartRight || chartWidth <= 0) {
-        tooltip.style.display = "none";
-        cursor.style.display = "none";
-        activeIdxRef.current = -1;
-        return;
-      }
-
-      const ratio = (mouseX - CHART_LEFT) / chartWidth;
-      const idx = Math.max(
-        0,
-        Math.min(
-          displayData.length - 1,
-          Math.round(ratio * (displayData.length - 1))
-        )
-      );
-      if (idx === activeIdxRef.current) return;
-      activeIdxRef.current = idx;
-
-      const point = displayData[idx];
-      const pointX =
-        CHART_LEFT + (idx / Math.max(displayData.length - 1, 1)) * chartWidth;
-
-      cursor.style.display = "block";
-      cursor.style.left = `${pointX}px`;
-
-      const ts = point.timestamp as number;
-      const val =
-        typeof point.value === "number" ? point.value.toFixed(1) : "—";
-      tooltip.replaceChildren();
-      if (ts) {
-        const header = document.createElement("div");
-        header.style.cssText =
-          "font-size:11px;color:var(--text-tertiary);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)";
-        header.textContent = formatTooltipTime(ts);
-        tooltip.appendChild(header);
-      }
-      const row = document.createElement("div");
-      row.style.cssText =
-        "display:flex;align-items:center;justify-content:space-between;gap:8px";
-      const left = document.createElement("div");
-      left.style.cssText = "display:flex;align-items:center;gap:6px";
-      const dot = document.createElement("div");
-      dot.style.cssText =
-        "width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#ED6432";
-      const name = document.createElement("span");
-      name.style.cssText = "font-size:11px;color:var(--text-secondary)";
-      name.textContent = String(option?.label || "Value");
-      left.appendChild(dot);
-      left.appendChild(name);
-      const right = document.createElement("span");
-      right.style.cssText =
-        "font-size:11px;font-weight:500;color:var(--text-primary)";
-      right.textContent = `${val}%`;
-      row.appendChild(left);
-      row.appendChild(right);
-      tooltip.appendChild(row);
-      tooltip.style.display = "block";
-      const tw = tooltip.offsetWidth || 120;
-      let tx = pointX + 12;
-      if (tx + tw > rect.width) tx = pointX - tw - 12;
-      tooltip.style.left = `${tx}px`;
-      tooltip.style.top = `${Math.max(8, e.clientY - rect.top - 16)}px`;
-    },
-    [displayData, formatTooltipTime, option?.label]
-  );
-
-  const handleChartMouseLeave = useCallback(() => {
-    if (tooltipRef.current) tooltipRef.current.style.display = "none";
-    if (cursorRef.current) cursorRef.current.style.display = "none";
-    activeIdxRef.current = -1;
-  }, []);
 
   const realVolume = eventMarket?.volume || 0;
 
@@ -469,11 +241,11 @@ export default function OutcomeDetailPage() {
         prices[1] !== undefined
           ? Math.round(prices[1] * 100)
           : yes > 0
-          ? 100 - yes
-          : 0;
+            ? 100 - yes
+            : 0;
       return [`${yes}¢`, `${no}¢`];
     } catch (e) {
-      console.error('[OutcomeDetailPage] Failed to parse outcome prices', e);
+      console.error("[OutcomeDetailPage] Failed to parse outcome prices", e);
       return ["0¢", "0¢"];
     }
   }, [eventMarket]);
@@ -483,15 +255,18 @@ export default function OutcomeDetailPage() {
     const outcomes = Array.isArray(outcomesRaw)
       ? outcomesRaw
       : typeof outcomesRaw === "string"
-      ? (() => {
-          try {
-            return JSON.parse(outcomesRaw);
-          } catch (e) {
-            console.error('[OutcomeDetailPage] Failed to parse marketOutcomes', e);
-            return [];
-          }
-        })()
-      : [];
+        ? (() => {
+            try {
+              return JSON.parse(outcomesRaw);
+            } catch (e) {
+              console.error(
+                "[OutcomeDetailPage] Failed to parse marketOutcomes",
+                e
+              );
+              return [];
+            }
+          })()
+        : [];
     const sorted = sortOutcomesByOriginalIndex(outcomes);
     if (sorted.length >= 2) {
       const label0 = getOutcomeLabel(sorted[0]);
@@ -539,7 +314,7 @@ export default function OutcomeDetailPage() {
   }, [market?.slug]);
 
   // Bottom buy button handlers
-  const handleBuyClick = (side: "yes" | "no") => {
+  const handleBuyClick = (_side: "yes" | "no") => {
     if (isResolved) return;
     setShowMobileTrading(true);
   };
@@ -623,154 +398,22 @@ export default function OutcomeDetailPage() {
             </h1>
           </div>
           {showMobileLiveCountdown && (
-            <div className="flex shrink-0 items-center gap-2 sm:hidden">
-              {mobileLiveCountdown.days > 0 && (
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold leading-none text-[#FF453A] tabular-nums">
-                    {String(mobileLiveCountdown.days).padStart(2, "0")}
-                  </span>
-                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-(--text-secondary)">
-                    {mobileCountdownLabels.days}
-                  </span>
-                </div>
-              )}
-              {mobileLiveCountdown.hours > 0 && (
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold leading-none text-[#FF453A] tabular-nums">
-                    {String(mobileLiveCountdown.hours).padStart(2, "0")}
-                  </span>
-                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-(--text-secondary)">
-                    {mobileCountdownLabels.hours}
-                  </span>
-                </div>
-              )}
-              <div className="flex flex-col items-center">
-                <span className="text-2xl font-bold leading-none text-[#FF453A] tabular-nums">
-                  {String(mobileLiveCountdown.minutes).padStart(2, "0")}
-                </span>
-                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-(--text-secondary)">
-                  {mobileCountdownLabels.minutes}
-                </span>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-2xl font-bold leading-none text-[#FF453A] tabular-nums">
-                  {String(mobileLiveCountdown.seconds).padStart(2, "0")}
-                </span>
-                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-(--text-secondary)">
-                  {mobileCountdownLabels.seconds}
-                </span>
-              </div>
-            </div>
+            <OutcomeMobileCountdown
+              countdown={mobileLiveCountdown}
+              labels={mobileCountdownLabels}
+            />
           )}
         </div>
 
-        {/* 百分比和变化 */}
-        {/* <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg font-bold text-[#ED6432]">
-            {currentValue.toFixed(1)}% {t.market.chance}
-          </span>
-          {change !== undefined && change !== 0 && (
-            <span className={`text-xs ${change >= 0 ? "text-(--green)" : "text-(--red)"}`}>
-              {change >= 0 ? "▲" : "▼"}{Math.abs(change)}%
-            </span>
-          )}
-        </div> */}
-
         {/* 图表区域 */}
         {activeChart === "probability" && (
-          <div ref={chartContainerRef} className="relative h-[200px] mb-1">
-            <style
-              dangerouslySetInnerHTML={{
-                __html: `
-              path[stroke="#ED6432"] { filter: drop-shadow(rgb(237, 100, 50) 0px 0px 8px) drop-shadow(rgb(237, 100, 50) 0px 0px 4px) !important; }
-              circle[fill="#ED6432"] { filter: drop-shadow(rgb(237, 100, 50) 0px 0px 8px) drop-shadow(rgb(237, 100, 50) 0px 0px 4px) !important; }
-            `,
-              }}
-            />
-            {chartLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="w-5 h-5 border-2 border-(--text-secondary) border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : displayData.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-(--text-secondary) text-xs">
-                {t.market.common.noData}
-              </div>
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={displayData}
-                    margin={{ top: 8, right: 8, left: -12, bottom: 4 }}
-                  >
-                    <CartesianGrid
-                      stroke="var(--border-light)"
-                      strokeOpacity={0.5}
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="date"
-                      stroke="transparent"
-                      tick={{ fill: "var(--text-tertiary)", fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                      interval="preserveStartEnd"
-                      minTickGap={50}
-                    />
-                    <YAxis
-                      domain={yDomain}
-                      tickFormatter={(v: number) => `${v}%`}
-                      tick={{ fill: "var(--text-tertiary)", fontSize: 9 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={40}
-                      tickCount={5}
-                    />
-                    <Line
-                      type="stepAfter"
-                      dataKey="value"
-                      stroke="#ED6432"
-                      strokeWidth={2}
-                      dot={createLastDot}
-                      activeDot={false}
-                      connectNulls
-                      isAnimationActive={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-                <div
-                  className="absolute inset-0 z-10"
-                  onMouseMove={handleChartMouseMove}
-                  onMouseLeave={handleChartMouseLeave}
-                  onTouchMove={(e) => {
-                    const touch = e.touches[0];
-                    if (touch)
-                      handleChartMouseMove({
-                        clientX: touch.clientX,
-                        clientY: touch.clientY,
-                        currentTarget: e.currentTarget,
-                      } as any);
-                  }}
-                  onTouchEnd={handleChartMouseLeave}
-                />
-                <div
-                  ref={cursorRef}
-                  className="absolute pointer-events-none z-20"
-                  style={{
-                    display: "none",
-                    top: 8,
-                    bottom: 20,
-                    width: 0,
-                    borderLeft: "1px dashed var(--text-tertiary)",
-                  }}
-                />
-                <div
-                  ref={tooltipRef}
-                  className="absolute pointer-events-none z-20 border bg-(--bg-primary) border-(--border) rounded-lg p-2 shadow-xl min-w-[120px]"
-                  style={{ display: "none" }}
-                />
-              </>
-            )}
-          </div>
+          <OutcomeProbabilityChart
+            chartData={chartData}
+            chartLoading={chartLoading}
+            optionLabel={option?.label}
+            selectedRange={selectedRange}
+            onRangeChange={setSelectedRange}
+          />
         )}
 
         {/* Price Chart (如果支持) */}
@@ -811,25 +454,6 @@ export default function OutcomeDetailPage() {
             </div>
           )}
         </div>
-
-        {/* 时间范围选择器 */}
-        {activeChart === "probability" && (
-          <div className="flex items-center gap-0.5 mb-4">
-            {timeRanges.map((range) => (
-              <button
-                key={range}
-                onClick={() => setSelectedRange(range)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                  selectedRange === range
-                    ? "bg-(--bg-secondary) text-(--text-primary)"
-                    : "text-(--text-secondary)"
-                }`}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
-        )}
 
         <div className="border border-(--border) rounded-xl mb-3">
           <button
@@ -899,29 +523,15 @@ export default function OutcomeDetailPage() {
       </div>
 
       {/* 底部固定买入按钮 / 已解决状态 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-(--bg-card) border-t border-(--border) p-3 safe-area-bottom z-40">
-        {isResolved ? (
-          <div className="py-2.5 rounded-lg text-center text-sm font-semibold bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)]">
-            {t.market.resolved}: {resolvedOutcome || t.market.common.yes}
-          </div>
-        ) : (
-          <div className="flex gap-2.5">
-            <button
-              onClick={() => handleBuyClick("yes")}
-              className="flex-1 py-2.5 rounded-lg text-sm font-bold bg-[#22c55e] text-white active:opacity-80 transition-opacity"
-            >
-              {t.common.buy || "Buy"} {yesLabel} {yesPrice}
-            </button>
-            <button
-              onClick={() => handleBuyClick("no")}
-              className="flex-1 py-2.5 rounded-lg text-sm font-bold bg-[#ef4444] text-white active:opacity-80 transition-opacity"
-            >
-              {t.common.buy || "Buy"} {noLabel} {noPrice}
-            </button>
-          </div>
-        )}
-      </div>
-
+      <OutcomeBottomBuyBar
+        isResolved={isResolved}
+        resolvedOutcome={resolvedOutcome}
+        yesLabel={yesLabel}
+        noLabel={noLabel}
+        yesPrice={yesPrice}
+        noPrice={noPrice}
+        onBuyClick={handleBuyClick}
+      />
     </div>
   );
 }
