@@ -14,7 +14,9 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export function I18nProvider({ children, initialLocale }: { children: React.ReactNode; initialLocale?: Locale }) {
-  const [locale, setLocaleState] = useState<Locale>(initialLocale ?? 'en');
+  const [locale, setLocaleState] = useState<Locale>(
+    (initialLocale && translations[initialLocale as Locale]) ? initialLocale as Locale : 'en'
+  );
   const router = useRouter();
 
   // 初始化时按优先级解析 locale：?lang= URL 参数 > localStorage > initialLocale > 'en'
@@ -73,7 +75,7 @@ export function I18nProvider({ children, initialLocale }: { children: React.Reac
     }
   }, [locale, router]);
 
-  const t = translations[locale] as TranslationKeys;
+  const t = (translations[locale] ?? translations.en) as TranslationKeys;
 
   return (
     <I18nContext.Provider value={{ locale, setLocale, t }}>

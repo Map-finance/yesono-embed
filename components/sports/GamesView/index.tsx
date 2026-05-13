@@ -21,6 +21,9 @@ import MarketGrid from "@/components/MarketGrid";
 import { Market } from "@/types/types";
 import { useTradingStore } from "@/lib/store/tradingStore";
 import ProxyImage from "@/components/common/ProxyImage";
+import { TOB_FEATURE_FLAGS } from "@/lib/hooks/tob";
+import MobileTradingPanel from "@/components/tob/MobileTradingPanel";
+import type { TradingOutcome } from "@/components/tob/TradingForm";
 
 interface SportsGamesViewProps {
   tagSlug: string;
@@ -435,6 +438,38 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
     return last.charAt(0).toUpperCase() + last.slice(1);
   }, [localizedDisplayName, tagName, chainSlugs, tagSlug]);
 
+  // ==================== 交易区渲染（flag-on 时显示 To-B 下单面板，否则保留占位）====================
+  const renderTradingArea = () => {
+    if (
+      TOB_FEATURE_FLAGS.useNewOrder &&
+      selectedMarket &&
+      selectedEvent
+    ) {
+      const outcomes: TradingOutcome[] = (selectedMarket.outcomes || []).map(
+        (o) => ({
+          name: o.outcome,
+          tokenId: o.tokenId || o.id,
+          // SportsMarketOutcome 暂未下发 clobPairId；form 内会禁用提交
+          clobPairId: null,
+          price: Number(o.price) || 0,
+        })
+      );
+      return (
+        <MobileTradingPanel
+          eventId={selectedEvent.id}
+          outcomes={outcomes}
+          marketTitle={selectedEvent.title}
+          marketSubtitle={selectedMarket.marketTitle}
+        />
+      );
+    }
+    return (
+      <div className="text-xs text-(--text-tertiary) py-4 text-center">
+        Trading disabled in embedded view
+      </div>
+    );
+  };
+
   // ==================== 详情视图模式 ====================
   if (detailSlug) {
     return (
@@ -475,7 +510,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-(--text-tertiary) py-4 text-center">Trading disabled in embedded view</div>
+              {renderTradingArea()}
             </div>
           ) : (
             <div className="rounded-lg border border-(--border) p-8 text-center text-(--text-tertiary) text-sm">
@@ -518,7 +553,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-(--text-tertiary) py-4 text-center">Trading disabled in embedded view</div>
+              {renderTradingArea()}
             </div>
           </div>
         )}
@@ -727,7 +762,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-(--text-tertiary) py-4 text-center">Trading disabled in embedded view</div>
+              {renderTradingArea()}
             </div>
           ) : (
             <div className="rounded-lg border border-(--border) p-8 text-center text-(--text-tertiary) text-sm">
@@ -771,7 +806,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                 </div>
               </div>
             </div>
-            <div className="text-xs text-(--text-tertiary) py-4 text-center">Trading disabled in embedded view</div>
+            {renderTradingArea()}
           </div>
         </div>
       )}

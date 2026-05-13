@@ -5,7 +5,11 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
-import { getEmbedToken } from "@/lib/embed/EmbedContext";
+import {
+  getEmbedToken,
+  requestEmbedAuthRefresh,
+} from "@/lib/embed/EmbedContext";
+import { authQueue } from "@/lib/embed/auth-queue";
 import { captureException } from "@/lib/sentryClient";
 
 interface RequestConfig extends AxiosRequestConfig {
@@ -23,8 +27,18 @@ interface ApiResponse<T = any> {
   success: boolean;
 }
 
+/**
+ * 默认 60s 超时：UMA 市场创建会触发后端链上初始化，单请求耗时较长，10s 不够用。
+ * 可通过 env `NEXT_PUBLIC_HTTP_TIMEOUT_MS` 覆盖。
+ */
+const DEFAULT_TIMEOUT_MS = (() => {
+  const raw = process.env.NEXT_PUBLIC_HTTP_TIMEOUT_MS;
+  const n = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : 60_000;
+})();
+
 const request: AxiosInstance = axios.create({
-  timeout: 10000,
+  timeout: DEFAULT_TIMEOUT_MS,
   headers: {
     "Content-Type": "application/json",
   },
@@ -167,7 +181,29 @@ request.interceptors.response.use(
 
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    /* ---------- FR-2.3: 401 → 通知父页续期 → 拿到新 token 后重放 ---------- */
+    if (
+      error.response?.status === 401 &&
+      error.config &&
+      !(error.config as any).__embedAuthRetried
+    ) {
+      const cfg = error.config as InternalAxiosRequestConfig & {
+        __embedAuthRetried?: boolean;
+      };
+      cfg.__embedAuthRetried = true;
+      try {
+        // 通知父页（去重由 authQueue.markRequesting 控制）
+        requestEmbedAuthRefresh("expired");
+        await authQueue.waitForRefresh();
+        // 等待期间 EmbedContext 已写新 token；request 拦截器会自动注入新 Bearer
+        return await request.request(cfg);
+      } catch (e) {
+        // 续期超时/失败 → 按原 401 抛出
+        console.warn("[request] 401 retry failed:", e);
+      }
+    }
+
     if (error.response) {
       const { status, data } = error.response;
 

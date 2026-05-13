@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>YesONo Embed · Mock Parent (FR-1 Harness)</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0e1014;
+        --panel: #161a22;
+        --border: #2a2f3a;
+        --text: #e7e9ee;
+        --muted: #9aa3b2;
+        --accent: #4f8cff;
+        --ok: #2bb673;
+        --warn: #e0a30c;
+        --err: #e3514f;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        grid-template-rows: 1fr;
+      }
+      aside {
+        border-right: 1px solid var(--border);
+        background: var(--panel);
+        padding: 14px 14px 24px;
+        overflow: auto;
+      }
+      main {
+        display: grid;
+        grid-template-rows: auto 1fr 200px;
+        min-width: 0;
+      }
+      header {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      header .url {
+        flex: 1;
+        min-width: 240px;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      input[type="text"], textarea, select {
+        background: #0b0d12;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 6px 8px;
+        font: inherit;
+        width: 100%;
+      }
+      textarea { font-family: var(--mono); resize: vertical; min-height: 60px; }
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font: inherit;
+      }
+      button.ghost {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      button:hover { filter: brightness(1.08); }
+      h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 0 6px; }
+      h2:first-child { margin-top: 0; }
+      label { display: block; margin: 6px 0 2px; color: var(--muted); font-size: 12px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+      .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #fff;
+        display: block;
+      }
+      .status {
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: #2a2f3a;
+        color: var(--muted);
+      }
+      .status.ok { background: rgba(43,182,115,.15); color: var(--ok); }
+      .status.err { background: rgba(227,81,79,.15); color: var(--err); }
+      .log {
+        border-top: 1px solid var(--border);
+        background: #0b0d12;
+        overflow: auto;
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+      .log .entry { padding: 2px 0; border-bottom: 1px dashed #1f2330; white-space: pre-wrap; word-break: break-all; }
+      .log .in { color: #9bd0ff; }
+      .log .out { color: #b8e2ad; }
+      .log .err { color: var(--err); }
+      .pill { display:inline-block; padding: 0 6px; border-radius: 4px; background: #1f2330; margin-right: 6px; font-size: 11px; }
+      details { margin-top: 8px; }
+      summary { cursor: pointer; color: var(--muted); }
+      .hint { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <h2>父页控制台 (Mock Parent · FR-1)</h2>
+      <p class="hint">
+        本页面模拟渠道方父页，用于联调子页 <code>postMessage</code> 协议。
+        子页 origin 校验在开发模式下会自动放行 same-origin / localhost。
+        生产请通过 <code>NEXT_PUBLIC_EMBED_ALLOWED_PARENT_ORIGINS</code> 严格枚举。
+      </p>
+
+      <h2>1. 鉴权握手</h2>
+      <label>token (Bearer)</label>
+      <input id="token" type="text" value="mock-jwt-token-abcdef" />
+      <div class="row">
+        <div>
+          <label>过期 (相对秒)</label>
+          <input id="ttl" type="text" value="3600" />
+        </div>
+        <div>
+          <label>userCode</label>
+          <input id="userCode" type="text" value="u_demo_001" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>channel</label>
+          <input id="channel" type="text" value="channel-mock" />
+        </div>
+        <div>
+          <label>locale</label>
+          <select id="locale">
+            <option>en</option><option>zh-cn</option><option>zh-tw</option>
+            <option>ja</option><option>ko</option><option>es</option>
+            <option>pt</option><option>fr</option><option>de</option>
+            <option>ar</option>
+          </select>
+        </div>
+      </div>
+      <label>theme</label>
+      <select id="theme">
+        <option value="dark">dark</option>
+        <option value="light">light</option>
+      </select>
+      <div class="actions">
+        <button onclick="sendAuth()">发送 embed:auth</button>
+        <button class="ghost" onclick="sendAuth(true)">发"快过期"token</button>
+      </div>
+
+      <h2>2. 续期 / 切换</h2>
+      <div class="actions">
+        <button onclick="sendTokenRefresh()">embed:token-refresh</button>
+        <button class="ghost" onclick="sendLocale()">embed:locale-change</button>
+        <button class="ghost" onclick="sendTheme()">embed:theme-change</button>
+        <button class="ghost" onclick="sendPing()">embed:ping</button>
+      </div>
+
+      <h2>3. 故意制造异常</h2>
+      <details>
+        <summary>测试非法消息（应被子页拒绝）</summary>
+        <div class="actions">
+          <button class="ghost" onclick="sendMalformed()">无 type 字段</button>
+          <button class="ghost" onclick="sendUnknownType()">未知 type</button>
+        </div>
+        <p class="hint">
+          跨 origin 拒绝必须把本页托管到不同域名才能验证；
+          本地可用 <code>npx serve public -l 5173</code> 在另一端口启动，
+          再设置 <code>NEXT_PUBLIC_EMBED_ALLOWED_PARENT_ORIGINS</code> 为不同的域来观察行为。
+        </p>
+      </details>
+
+      <h2>4. 自定义消息</h2>
+      <textarea id="custom" rows="4">{ "type": "embed:auth", "token": "abc", "expiresAt": 0, "v": 1 }</textarea>
+      <div class="actions">
+        <button onclick="sendCustom()">postMessage</button>
+      </div>
+    </aside>
+
+    <main>
+      <header>
+        <div class="url">
+          <input id="src" type="text" />
+          <button onclick="reload()">加载</button>
+        </div>
+        <span id="status" class="status">未挂载</span>
+      </header>
+      <iframe id="frame" title="yesono-embed"></iframe>
+      <div id="log" class="log"></div>
+    </main>
+
+    <script>
+      // 默认子页 URL：当前页所在的同源根，方便本地直接打开
+      const defaultSrc = (() => {
+        const here = new URL(window.location.href);
+        // 推荐子页路由（项目首页会重定向到 /trending）
+        return `${here.origin}/trending`;
+      })();
+      const params = new URL(location.href).searchParams;
+      document.getElementById("src").value = params.get("src") || defaultSrc;
+
+      const logEl = document.getElementById("log");
+      const statusEl = document.getElementById("status");
+      const frameEl = document.getElementById("frame");
+
+      function log(kind, label, data) {
+        const div = document.createElement("div");
+        div.className = `entry ${kind}`;
+        const ts = new Date().toLocaleTimeString();
+        div.textContent = `[${ts}] ${kind === "in" ? "← 子页" : kind === "out" ? "→ 子页" : "·"} ${label} ${
+          data === undefined ? "" : JSON.stringify(data)
+        }`;
+        logEl.prepend(div);
+      }
+
+      function setStatus(text, cls = "") {
+        statusEl.className = `status ${cls}`;
+        statusEl.textContent = text;
+      }
+
+      function post(msg) {
+        if (!frameEl.contentWindow) {
+          log("err", "iframe 未就绪");
+          return;
+        }
+        // 真实使用时应该指定 child origin，本 demo 用 '*' 便于本地切换端口
+        frameEl.contentWindow.postMessage(msg, "*");
+        log("out", msg.type || "(no-type)", msg);
+      }
+
+      function sendAuth(nearExpiry = false) {
+        const ttl = nearExpiry ? 60 : Number(document.getElementById("ttl").value || 3600);
+        post({
+          v: 1,
+          type: "embed:auth",
+          token: document.getElementById("token").value.trim(),
+          expiresAt: Date.now() + ttl * 1000,
+          userCode: document.getElementById("userCode").value.trim(),
+          channel: document.getElementById("channel").value.trim(),
+          locale: document.getElementById("locale").value,
+          theme: document.getElementById("theme").value,
+        });
+      }
+
+      function sendTokenRefresh() {
+        const ttl = Number(document.getElementById("ttl").value || 3600);
+        post({
+          v: 1,
+          type: "embed:token-refresh",
+          token: document.getElementById("token").value.trim() + "-refreshed",
+          expiresAt: Date.now() + ttl * 1000,
+        });
+      }
+
+      function sendLocale() {
+        post({ v: 1, type: "embed:locale-change", locale: document.getElementById("locale").value });
+      }
+      function sendTheme() {
+        post({ v: 1, type: "embed:theme-change", theme: document.getElementById("theme").value });
+      }
+      function sendPing() {
+        post({ v: 1, type: "embed:ping", nonce: Math.random().toString(36).slice(2, 10) });
+      }
+      function sendMalformed() {
+        post({ v: 1, foo: "bar" });
+      }
+      function sendUnknownType() {
+        post({ v: 1, type: "embed:not-a-real-type" });
+      }
+      function sendCustom() {
+        try {
+          const obj = JSON.parse(document.getElementById("custom").value);
+          post(obj);
+        } catch (e) {
+          log("err", "JSON 解析失败：" + e.message);
+        }
+      }
+
+      function reload() {
+        const src = document.getElementById("src").value;
+        setStatus("加载中…");
+        frameEl.src = src;
+      }
+
+      // 监听子→父消息
+      window.addEventListener("message", (ev) => {
+        const data = ev.data;
+        if (!data || typeof data !== "object") return;
+        if (typeof data.type !== "string" || !data.type.startsWith("embed:")) return;
+        log("in", data.type, { ...data, _origin: ev.origin });
+
+        if (data.type === "embed:ready") {
+          setStatus(`子页就绪 · proto v${data.protocolVersion ?? "?"}`, "ok");
+          // 自动握手：演示鉴权流程
+          if (autoAuth.checked) sendAuth();
+        }
+        if (data.type === "embed:auth-required") {
+          setStatus(`子页请求续期 (${data.reason})`, "err");
+        }
+        if (data.type === "embed:resize" && typeof data.height === "number") {
+          // 真实集成时建议把 iframe 高度设为子页高度；
+          // demo 不做（保留 main 网格布局），仅记录。
+        }
+      });
+
+      // 自动握手开关
+      const ctrl = document.createElement("label");
+      ctrl.style.cssText = "display:flex;gap:6px;align-items:center;color:var(--muted);font-size:12px;margin-left:auto;";
+      ctrl.innerHTML = `<input id="autoAuth" type="checkbox" checked /> 收到 ready 自动 auth`;
+      document.querySelector("header").appendChild(ctrl);
+      const autoAuth = document.getElementById("autoAuth");
+
+      reload();
+    </script>
+  </body>
+</html>

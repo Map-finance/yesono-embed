@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
+import { Button } from "@/components/ui/shadcn/button";
 import ProxyImage from "@/components/common/ProxyImage";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,11 @@ import useGetClosedPositions, {
   type ClosedPosition,
 } from "@/app/pna/hooks/use-get-closed-positions";
 import { fmtMoney, fmtPct } from "./formatters";
+import { TOB_FEATURE_FLAGS } from "@/lib/hooks/tob";
+import CtfActionDialog, {
+  type CtfActionContext,
+  type CtfActionMode,
+} from "@/components/tob/CtfActionDialog";
 
 interface PositionsTableProps {
   targetUserId?: string;
@@ -44,7 +50,28 @@ export default function PositionsTable({ targetUserId }: PositionsTableProps) {
 
 function ActivePositions({ targetUserId }: { targetUserId?: string }) {
   const { t } = useTranslation();
-  const { positions, isLoading } = useGetPositions({ userId: targetUserId, limit: 100 });
+  const { positions, isLoading, refresh } = useGetPositions({
+    userId: targetUserId,
+    limit: 100,
+  });
+
+  const showCtfActions = TOB_FEATURE_FLAGS.useNewCtf;
+  const [dialogState, setDialogState] = useState<{
+    mode: CtfActionMode;
+    ctx: CtfActionContext;
+  } | null>(null);
+
+  const openCtf = (mode: CtfActionMode, p: Position) => {
+    setDialogState({
+      mode,
+      ctx: {
+        marketTitle: p.question || p.market,
+        marketId: String(p.marketId ?? p.marketNumericId ?? ""),
+        outcome: p.outcome,
+        shares: Number(p.shares) || 0,
+      },
+    });
+  };
 
   const columns: DataTableColumn<Position>[] = [
     {
@@ -110,16 +137,71 @@ function ActivePositions({ targetUserId }: { targetUserId?: string }) {
         );
       },
     },
+    ...(showCtfActions
+      ? ([
+          {
+            key: "actions",
+            header: "Actions",
+            align: "right",
+            cell: (p: Position) => {
+              const hasMarketId = !!String(
+                p.marketId ?? p.marketNumericId ?? ""
+              );
+              return (
+                <div className="flex gap-1 justify-end">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!hasMarketId || (p.shares ?? 0) <= 0}
+                    onClick={() => openCtf("split", p)}
+                  >
+                    Split
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!hasMarketId || (p.shares ?? 0) <= 0}
+                    onClick={() => openCtf("merge", p)}
+                  >
+                    Merge
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={p.canClaim ? "default" : "secondary"}
+                    disabled={!hasMarketId || !p.canClaim}
+                    onClick={() => openCtf("redeem", p)}
+                  >
+                    Redeem
+                  </Button>
+                </div>
+              );
+            },
+          },
+        ] as DataTableColumn<Position>[])
+      : []),
   ];
 
   return (
-    <DataTable
-      data={positions}
-      loading={isLoading}
-      rowKey={(p) => p.id}
-      empty={t.pna.noPositions}
-      columns={columns}
-    />
+    <>
+      <DataTable
+        data={positions}
+        loading={isLoading}
+        rowKey={(p) => p.id}
+        empty={t.pna.noPositions}
+        columns={columns}
+      />
+      {showCtfActions && dialogState ? (
+        <CtfActionDialog
+          open
+          mode={dialogState.mode}
+          ctx={dialogState.ctx}
+          onClose={() => setDialogState(null)}
+          onSuccess={() => {
+            refresh();
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 
