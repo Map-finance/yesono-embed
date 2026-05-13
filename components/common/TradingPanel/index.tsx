@@ -644,6 +644,7 @@ export default function TradingPanel({
 
       const tobPayload = {
         betId,
+        clientId,
         eventId: String(eventId ?? ""),
         tokenId: String(selectOutcomeId ?? ""),
         side: direction as "BUY" | "SELL",

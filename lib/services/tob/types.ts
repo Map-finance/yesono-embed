@@ -29,6 +29,12 @@ export interface TobApiResp<T> {
 export interface TobOrderCreateReq {
   /** 幂等键 = 业务订单 ID；防止重复提交。前端生成唯一值（建议 uuid） */
   betId: string;
+  /**
+   * dYdX 链上 clientId（uint32 随机数）。
+   * 与下单流程中传给链上 buy/sell 的 clientId 保持一致，
+   * 用于在多笔订单/重试场景下做端到端追踪。
+   */
+  clientId: number;
   eventId: string;
   tokenId: string;
   side: string;

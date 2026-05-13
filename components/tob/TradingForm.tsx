@@ -101,8 +101,13 @@ export default function TradingForm({
         ? crypto.randomUUID()
         : `bet-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+    // dYdX uint32 clientId：时间戳低 16 位 + 16 位随机数，端到端追踪
+    const clientId =
+      (((Date.now() & 0xffff) << 16) | Math.floor(Math.random() * 65536)) >>> 0;
+
     const r = await create.mutate({
       betId,
+      clientId,
       eventId: String(eventId),
       tokenId: String(outcome.tokenId),
       side,
