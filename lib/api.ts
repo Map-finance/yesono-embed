@@ -221,9 +221,11 @@ export interface OrderCancelResponse {
 }
 
 /**
- * 调用 /api/order/cancel 接口，通知后端取消指定订单
+ * 调用 router 老接口取消订单。
  *
- * @param orderId  订单 ID（字符串，如 "1234567890123"）
+ * @deprecated 请使用 `cancelOrder(betId)`。新代码不应再直接调本函数；
+ *   保留作为 `NEXT_PUBLIC_TOB_USE_NEW_CANCEL=0` 灰度下的实现。
+ * @param orderId  router 订单 ID（字符串，如 "1234567890123"）
  */
 export async function cancelOrderApi(params: {
   orderId: string;
@@ -241,6 +243,40 @@ export async function cancelOrderApi(params: {
   );
 
   return response;
+}
+
+/**
+ * 取消订单 — feature flag 分发版（P1 推荐入口）
+ *
+ * - `NEXT_PUBLIC_TOB_USE_NEW_CANCEL=1` → 走 `POST /api/tob/order/{betId}/cancel`
+ * - 否则 → 走老 `POST ${ROUTER_BASE_URL}/order/cancel`（兼容期）
+ *
+ * 注意：参数语义在新旧实现间不同：
+ * - **新实现** `betId` = 前端在创建订单时生成的幂等键（uuid），等价于旧 router 视角的 clientId
+ * - **老实现** 期望 router 生成的 orderId（纯数字字符串）
+ *
+ * 灰度切换前必须确认调用方已能拿到正确的 `betId`（通常来自 `TobOrderCreateResp.betId`）。
+ */
+export async function cancelOrder(betId: string): Promise<{
+  /** 是否成功 */
+  ok: boolean;
+  /** 新接口返回的 status；老接口下为空 */
+  status?: string;
+  /** 原始响应（调试用） */
+  raw: unknown;
+}> {
+  const useNew = process.env.NEXT_PUBLIC_TOB_USE_NEW_CANCEL === "1";
+  if (useNew) {
+    const { cancelTobOrder } = await import("@/lib/services/tob/tobOrderCancel");
+    const r = await cancelTobOrder(betId);
+    return {
+      ok: (r?.status || "").toUpperCase() === "CANCELED",
+      status: r?.status,
+      raw: r,
+    };
+  }
+  const r = await cancelOrderApi({ orderId: betId });
+  return { ok: !!r?.data, raw: r };
 }
 
 
@@ -527,3 +563,238 @@ export async function getPriceHistory(
 }
 
 export type { ApiResponse };
+
+/* ============================================================ */
+/* CTF 余额 / Order Create 类型（端口自 h2-market lib/api.ts）   */
+/* yesono-embed 不直接调 createOrderNew，但 TradingPanel 端口   */
+/* 过程中仍引用相关类型（CreateOrderTx / CreateOrderToken）。   */
+/* getUserCtfBalance 是旧后端接口，按用户要求沿用。             */
+/* ============================================================ */
+
+export type UserCtfBalance = string | number;
+
+export async function getUserCtfBalance(
+  unionKey: string
+): Promise<ApiResponse<UserCtfBalance>> {
+  return request(
+    `${AUTH_BASE_URL}/user/ctf-balance?unionKey=${encodeURIComponent(unionKey)}`,
+    { method: "GET" },
+    getLanguageHeaders()
+  );
+}
+
+export interface CreateOrderTx {
+  orderId: string;
+  chainId: string;
+  chainName: string;
+  txType: "Bridge" | "Trade";
+  tradingAccount: string;
+  amount: number;
+  size: number;
+  estimatedGasFee: number;
+  bridgeAmount: number;
+}
+
+export interface CreateOrderToken {
+  originalIndex: 0 | 1;
+  tokenId: string | null;
+  tradingPair: string | null;
+  clobPairId: string | null;
+  atomicResolution: number | null;
+  quantumConversionExponent: number | null;
+  stepBaseQuantums: string | null;
+  subticksPerTick: string | null;
+}
+
+export interface CreateOrderData {
+  orderId: string;
+  expiresAt: number;
+  txs: CreateOrderTx[];
+  tokens: CreateOrderToken[];
+  totalGasFee: number;
+}
+
+export interface CreateOrderResponse {
+  code: number;
+  message: string;
+  data: CreateOrderData;
+}
+
+export interface CreateOrderParams {
+  eventId: string;
+  tokenId: string;
+  side: "BUY" | "SELL";
+  amount: number;
+  size: number;
+  orderType: "MARKET" | "LIMIT";
+  orderPrice?: number;
+  expiryTime?: string;
+  subaccountId?: string;
+  clientId?: string;
+  orderFlags?: number;
+  clobPairId?: string;
+}
+
+/**
+ * yesono-embed 不直接调用此接口；保留签名是为了让 TradingPanel 端口代码能编译，
+ * 调用方已被改写为 `tobApi.createOrder(...)`。如果被意外调用会抛错以便尽早发现。
+ */
+export async function createOrderNew(
+  _params: CreateOrderParams
+): Promise<CreateOrderResponse> {
+  throw new Error(
+    "[yesono-embed] createOrderNew should not be called; use tobApi.createOrder instead"
+  );
+}
+
+/* ============================================================ */
+/* CreateMarket flow (端口自 h2-market lib/api.ts)               */
+/* ============================================================ */
+
+export interface MarketGameOutcomeRequest {
+  marketType: string;
+  outcomes: string[];
+}
+
+export interface MarketNewGameReq {
+  gameId: number;
+  markets: MarketGameOutcomeRequest[];
+}
+
+export interface MarketOutcomeSimpleResp {
+  id: number;
+  name: string;
+  outcomeKey: string;
+  originalIndex: number;
+}
+
+export interface MarketBatchItemResp {
+  marketId: number;
+  eventId: number;
+  type: string;
+  option: string;
+  line: number | null;
+  question: string;
+  outcomes: MarketOutcomeSimpleResp[];
+}
+
+export interface CandidateMarketItemResp {
+  marketId: number;
+  type: "MONEYLINE" | "TOTAL" | "SPREADS" | "BINARY" | string;
+  option: string;
+  question: string;
+  line: number | null;
+  status: string;
+  outcomes: MarketOutcomeSimpleResp[];
+}
+
+export interface CandidateMarketsResp {
+  eventId: number | null;
+  eventSlug: string | null;
+  eventTitle: string | null;
+  markets: CandidateMarketItemResp[];
+}
+
+export interface MarketBatchFailedItemResp {
+  option: string;
+  type: string;
+  line: number | null;
+  reason: string;
+}
+
+export interface MarketBatchCreateResp {
+  eventId: number;
+  slug: string;
+  title: string;
+  markets: MarketBatchItemResp[];
+  failed?: MarketBatchFailedItemResp[];
+}
+
+async function authJson<T>(
+  url: string,
+  init: RequestInit = {}
+): Promise<{ code: number; success: boolean; msg: string; data: T }> {
+  const resp = await authFetch(url, init);
+  return (await resp.json()) as {
+    code: number;
+    success: boolean;
+    msg: string;
+    data: T;
+  };
+}
+
+export async function createSportsMarkets(req: MarketNewGameReq) {
+  return authJson<MarketBatchCreateResp>(`${AUTH_BASE_URL}/market/sports`, {
+    method: "POST",
+    body: JSON.stringify(req),
+    headers: getLanguageHeaders(),
+  });
+}
+
+export async function getGameplayOracle(category: string, gameplay: string) {
+  return authJson<string>(
+    `${AUTH_BASE_URL}/market/category/${encodeURIComponent(
+      category
+    )}/gameplay/${encodeURIComponent(gameplay)}/oracle`,
+    { method: "GET", headers: getLanguageHeaders() }
+  );
+}
+
+export async function getCandidateCreatedMarkets(candidateId: number | string) {
+  return authJson<CandidateMarketsResp>(
+    `${AUTH_BASE_URL}/market/candidate/${candidateId}/markets`,
+    { method: "GET", headers: getLanguageHeaders() }
+  );
+}
+
+export interface UploadResponse {
+  id: string;
+  key: string;
+  contentType: string;
+  url: string;
+  etag: string;
+  size: string;
+  provider: string;
+}
+
+export async function uploadFile(file: File) {
+  const accessToken = await getValidAccessToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const resp = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL!}/upload`, {
+    method: "POST",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    body: formData,
+  });
+  return (await resp.json()) as {
+    code: number;
+    success: boolean;
+    msg: string;
+    data: UploadResponse;
+  };
+}
+
+export interface ImageReviewData {
+  status: boolean;
+  error_message: string;
+}
+
+export async function reviewMarketImage(imageUrl: string) {
+  const reviewHost =
+    process.env.NEXT_PUBLIC_REVIEW_API_HOST || "https://review.yesono.trade";
+  const token = await getValidAccessToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers["tk"] = token;
+  const resp = await fetch(`${reviewHost}/review_api/review/v1/market/image/`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ image_url: imageUrl }),
+  });
+  return (await resp.json()) as {
+    code: number;
+    message: string;
+    data: ImageReviewData;
+  };
+}

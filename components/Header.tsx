@@ -4,12 +4,16 @@ import React, { Suspense, useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
-import { HelpCircle, Bell, Menu } from "lucide-react";
+import { HelpCircle, Bell, Menu, Plus } from "lucide-react";
 import SearchBox from "./SearchBox";
+import { TOB_FEATURE_FLAGS } from "@/lib/hooks/tob";
+import CreateMarketNew from "./common/CreateMarket/CreateMarketNew";
 import UserMenu from "./user-menu";
 import MobileSidebar from "./mobile/MobileSidebar";
 import { useNavigation } from "@/lib/hooks/useNavigation";
 import { Button } from "@/components/ui/shadcn/button";
+import { useEmbed } from "@/lib/embed/EmbedContext";
+import { usePortfolioStore } from "@/lib/stores/portfolioStore";
 import {
   Dialog,
   DialogContent,
@@ -24,10 +28,28 @@ type NavItem = { label: string; path: string; icon?: string };
 const Header: React.FC = () => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const showCreateBtn = TOB_FEATURE_FLAGS.useNewMarket;
   const { t } = useTranslation();
   const pathname = usePathname();
 
   const { data: navData, dynamicItems } = useNavigation();
+
+  // 认证状态 + 钱包余额（样式对齐 h2-market 的 HybridButton Portfolio/Cash 区）
+  const { status: embedStatus } = useEmbed();
+  const isAuthed = embedStatus === "authed";
+  const {
+    cash,
+    portfolio,
+    isLoading: isPortfolioLoading,
+  } = usePortfolioStore();
+  const fmtUsd = (n: number) =>
+    Number.isFinite(n)
+      ? n.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : "0.00";
 
   const guide = (t.common as any).howItWorksGuide as
     | {
@@ -113,14 +135,49 @@ const Header: React.FC = () => {
             </div>
 
             <div className="hidden md:flex items-center gap-2 xl:gap-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsHowItWorksOpen(true)}
-              >
-                <HelpCircle />
-                <span>{t.common.howItWorks}</span>
-              </Button>
+              {showCreateBtn ? (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setIsCreateOpen(true)}
+                >
+                  <Plus />
+                  <span>Create</span>
+                </Button>
+              ) : null}
+              {isAuthed ? (
+                /* 余额区（Portfolio / Cash）—— 样式参考 h2-market HybridButton */
+                <Link
+                  href="/pna"
+                  className="hidden lg:flex items-center gap-5 xl:gap-8 hover:opacity-80 transition-opacity cursor-pointer"
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="text-[#94a3b8] text-[12px] font-medium mb-0.5">
+                      {t.common.portfolio ?? "Portfolio"}
+                    </span>
+                    <span className="text-[#22c55e] text-[16px] font-bold font-number">
+                      ${isPortfolioLoading ? "0.00" : fmtUsd(portfolio)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-[#94a3b8] text-[12px] font-medium mb-0.5">
+                      {t.common.cash ?? "Cash"}
+                    </span>
+                    <span className="text-[#22c55e] text-[16px] font-bold font-number">
+                      ${isPortfolioLoading ? "0.00" : fmtUsd(cash)}
+                    </span>
+                  </div>
+                </Link>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsHowItWorksOpen(true)}
+                >
+                  <HelpCircle />
+                  <span>{t.common.howItWorks}</span>
+                </Button>
+              )}
               <UserMenu />
             </div>
 
@@ -185,6 +242,13 @@ const Header: React.FC = () => {
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
       />
+
+      {showCreateBtn ? (
+        <CreateMarketNew
+          open={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
+        />
+      ) : null}
 
       <Dialog open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen}>
         <DialogContent>

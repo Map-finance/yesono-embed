@@ -9,6 +9,17 @@ import IframeBridge from '@/lib/embed/IframeBridge';
 import Header from '@/components/Header';
 import MobileBottomNav from '@/components/mobile/MobileBottomNav';
 import { ToastProvider } from '@/components/ui/Toast';
+import { usePortfolio } from '@/lib/hooks/usePortfolio';
+
+/**
+ * 全局 portfolio 轮询挂载点
+ * 必须在 EmbedProvider 内才能拿到 status === "authed"；
+ * 让 TradingPanel / Split / Merge 等共享同一份 cash/portfolio 状态。
+ */
+function PortfolioPoller() {
+  usePortfolio();
+  return null;
+}
 
 export default function ClientWrapper({
   children,
@@ -32,6 +43,7 @@ export default function ClientWrapper({
       <EmbedProvider>
         <ToastProvider>
           <NavigationProvider initialData={initialNavigation}>
+            <PortfolioPoller />
             <div className="min-h-screen bg-(--bg-primary) pb-14 lg:pb-0">
               <Header />
               {children}

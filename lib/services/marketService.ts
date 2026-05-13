@@ -19,11 +19,13 @@ import {
   ConfirmMarketReq,
 } from '@/types/market';
 import { authFetch, getLanguageHeaders, getValidAccessToken } from '../api';
-import { getAuthApiUrl } from '@/lib/config/authApiUrl';
+
+// API 基础配置 - 直接访问，不使用代理
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_AUTH_API_URL!}`;
 
 // 直接访问 API
 const getApiUrl = (path: string) => {
-  return getAuthApiUrl(path);
+  return `${API_BASE_URL}${path}`;
 };
 
 /**
@@ -126,7 +128,7 @@ export async function getCandidateDetail(candidateId: number): Promise<Candidate
  */
 export async function createMarket(req: CreateMarketReq): Promise<MarketCreateResp> {
   // 直接访问 API
-  const url = getApiUrl('/api/market');
+  const url = `${API_BASE_URL}/api/market`;
 
   console.log('[marketService] createMarket POST to:', url);
   console.log('[marketService] createMarket body:', JSON.stringify(req));
@@ -348,45 +350,6 @@ export async function getCryptoExchanges(params?: { search?: string; limit?: num
   }
 
   return result.data as CryptoExchange[];
-}
-
-/** Chainlink 价格查询响应 */
-export interface CryptoChainlinkPrice {
-  id: string;
-  symbol: string;
-  payloadTimestamp: string;
-  /** 四舍五入后的价格 */
-  fullAccuracyValue: number;
-  /** 完整精度价格 */
-  value: number;
-  createdAt: string;
-}
-
-/**
- * 根据币种 id 查询当前 Chainlink 价格
- * GET /api/crypto/chainlink/price/bySymbolId?symbol=xxx&payloadTimestamp=xxx
- */
-export async function getCryptoChainlinkPrice(params: {
-  symbol: string | number;
-  payloadTimestamp?: number;
-}): Promise<CryptoChainlinkPrice | null> {
-  const query = new URLSearchParams();
-  query.append('symbol', String(params.symbol));
-  query.append('payloadTimestamp', String(params.payloadTimestamp ?? Date.now()));
-
-  const url = getApiUrl(`/api/crypto/chainlink/price/bySymbolId?${query.toString()}`);
-  const response = await authFetch(url, { method: 'GET' });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch crypto price: ${response.status}`);
-  }
-
-  const result = await response.json();
-
-  if (result.code !== 200 || !result.data) {
-    return null;
-  }
-  return result.data as CryptoChainlinkPrice;
 }
 
 /** 已创建的加密事件 */

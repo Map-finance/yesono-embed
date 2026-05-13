@@ -134,7 +134,7 @@ const OutcomeRow = memo(
 
     const yesRaw = useMemo(() => {
       if (market?.id === option.marketId) {
-        const side = direction === "buy" ? yesOrderBook?.asks?.[0] : yesOrderBook?.bids?.[0];
+        const side = direction === "BUY" ? yesOrderBook?.asks?.[0] : yesOrderBook?.bids?.[0];
         const px = side ? Number(side.price) : NaN;
         return Number.isFinite(px) && px > 0 ? px : option.yesPriceRaw;
       }
@@ -143,7 +143,7 @@ const OutcomeRow = memo(
 
     const noRaw = useMemo(() => {
       if (market?.id === option.marketId) {
-        const side = direction === "buy" ? noOrderBook?.asks?.[0] : noOrderBook?.bids?.[0];
+        const side = direction === "BUY" ? noOrderBook?.asks?.[0] : noOrderBook?.bids?.[0];
         const px = side ? Number(side.price) : NaN;
         return Number.isFinite(px) && px > 0 ? px : option.noPriceRaw;
       }
@@ -207,14 +207,14 @@ const OutcomeRow = memo(
             ) : (
               <>
                 <BuyButton
-                  label={`${direction === "buy" ? t.common.buy : t.common.sell} ${yesLabel}`}
+                  label={`${direction === "BUY" ? t.common.buy : t.common.sell} ${yesLabel}`}
                   price={yesPrice}
                   color="yes"
                   selected={selectOutcomeId === yesTokenId}
                   onClick={() => onSelectOutcome(option, yesTokenId)}
                 />
                 <BuyButton
-                  label={`${direction === "buy" ? t.common.buy : t.common.sell} ${noLabel}`}
+                  label={`${direction === "BUY" ? t.common.buy : t.common.sell} ${noLabel}`}
                   price={noPrice}
                   color="no"
                   selected={selectOutcomeId === noTokenId}
@@ -258,7 +258,7 @@ const OutcomeRow = memo(
           ) : (
             <div className="flex gap-3 mt-3">
               <BuyButton
-                label={`${direction === "buy" ? t.common.buy : t.common.sell} ${yesLabel}`}
+                label={`${direction === "BUY" ? t.common.buy : t.common.sell} ${yesLabel}`}
                 price={yesPrice}
                 color="yes"
                 selected={selectOutcomeId === yesTokenId}
@@ -269,7 +269,7 @@ const OutcomeRow = memo(
                 className="flex-1"
               />
               <BuyButton
-                label={`${direction === "buy" ? t.common.buy : t.common.sell} ${noLabel}`}
+                label={`${direction === "BUY" ? t.common.buy : t.common.sell} ${noLabel}`}
                 price={noPrice}
                 color="no"
                 selected={selectOutcomeId === noTokenId}

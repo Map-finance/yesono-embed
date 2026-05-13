@@ -30,12 +30,16 @@ import {
 } from "./protocol";
 import { Bridge, createBridge } from "./bridge";
 import { normalizeLocale, normalizeTheme } from "./config";
+import { authQueue } from "./auth-queue";
+import { TobAuthError, TobAuthUser, verifyTobAuth } from "./tobAuth";
 
-type Status = "idle" | "ready" | "authed" | "error";
+type Status = "idle" | "ready" | "verifying" | "authed" | "error";
 
 export interface EmbedUserInfo {
   userCode?: string;
   channel?: string;
+  /** verify 成功后回填的本系统用户信息 */
+  profile?: TobAuthUser | null;
 }
 
 interface EmbedState {
@@ -45,13 +49,15 @@ interface EmbedState {
   expiresAt: number;
   /** 鉴权握手状态 */
   status: Status;
-  /** 父页注入的用户信息 */
+  /** 父页注入的基础用户信息 */
   user: EmbedUserInfo | null;
   /** 已锁定的父页 origin（首次合法消息后） */
   trustedOrigin: string | null;
+  /** 错误信息（status='error' 时有值） */
+  error: string | null;
   /** 主动写 token（debug / 单测用） */
   setToken: (token: string | null, expiresAt?: number) => void;
-  /** 请求父页续期 */
+  /** 请求父页续期（FR-2.3） */
   requestAuthRefresh: (reason?: AuthRequiredReason) => void;
   /** 上报埋点 */
   trackMetric: (event: string, payload?: Record<string, unknown>) => void;
@@ -69,6 +75,7 @@ const EmbedContext = createContext<EmbedState>({
   status: "idle",
   user: null,
   trustedOrigin: null,
+  error: null,
   setToken: () => {},
   requestAuthRefresh: () => {},
   trackMetric: () => {},
@@ -129,6 +136,7 @@ export function EmbedProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("idle");
   const [user, setUser] = useState<EmbedUserInfo | null>(null);
   const [trustedOrigin, setTrustedOrigin] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const bridgeRef = useRef<Bridge | null>(null);
   const [bridgeReady, setBridgeReady] = useState(false);
@@ -152,7 +160,10 @@ export function EmbedProvider({ children }: { children: React.ReactNode }) {
     (reason: AuthRequiredReason = "expired") => {
       const b = bridgeRef.current;
       if (!b) return;
-      b.send({ type: ChildMsgType.AuthRequired, reason });
+      // 去重：多个 401 同时发生只发一次 auth-required
+      if (authQueue.markRequesting()) {
+        b.send({ type: ChildMsgType.AuthRequired, reason });
+      }
     },
     []
   );
@@ -186,20 +197,17 @@ export function EmbedProvider({ children }: { children: React.ReactNode }) {
     bridgeRef.current = bridge;
     setBridgeReady(true);
 
-    /* 父→子：auth */
-    bridge.on(ParentMsgType.Auth, (msg) => {
+    /* 父→子：auth（FR-3 握手时序第 3-5 步）
+     * 协议：父页下发的 `token` 视为「渠道 JWT」，子页调 GET /api/tob/auth/verify
+     * 完成 TOB 登录，拿到本系统 accessToken 后再写入 token 状态。
+     * 后续业务接口的 401 走 FR-2.3 重放队列（让父页重新下发渠道 JWT）。 */
+    bridge.on(ParentMsgType.Auth, async (msg) => {
       const m = msg as ParentMessage & AuthPayload;
-      if (typeof m.token === "string" && m.token.length > 0) {
-        setTokenState(m.token);
-        const exp = typeof m.expiresAt === "number" ? m.expiresAt : 0;
-        setExpiresAt(exp);
-        writeSessionToken(m.token, exp);
-      }
       setUser({
         userCode: m.userCode,
         channel: m.channel,
+        profile: null,
       });
-      setStatus("authed");
       setTrustedOrigin(bridge.getTrustedOrigin());
 
       // 同步 locale / theme（白名单校验）
@@ -207,19 +215,65 @@ export function EmbedProvider({ children }: { children: React.ReactNode }) {
       if (loc) applyLocale(loc);
       const th = normalizeTheme((m as AuthPayload).theme);
       if (th) applyTheme(th);
+
+      if (typeof m.token !== "string" || m.token.length === 0) {
+        setError("Missing channel token");
+        setStatus("error");
+        return;
+      }
+
+      setStatus("verifying");
+      try {
+        const r = await verifyTobAuth(m.token);
+        setTokenState(r.accessToken);
+        tokenRef.current = r.accessToken;
+        setExpiresAt(r.expiresAt);
+        expiresAtRef.current = r.expiresAt;
+        writeSessionToken(r.accessToken, r.expiresAt);
+        setUser({
+          userCode: m.userCode,
+          channel: m.channel,
+          profile: r.user,
+        });
+        setError(null);
+        setStatus("authed");
+      } catch (e) {
+        const err = e as TobAuthError;
+        setError(err.message || "TOB auth verify failed");
+        setStatus("error");
+        // 限流场景额外通过 error 消息上报详情，便于父页埋点
+        if (err.code === 429) {
+          bridge.send({
+            type: ChildMsgType.Error,
+            code: "tob_auth_rate_limited",
+            message: err.message,
+          });
+        }
+        // 向父页回报：让父页决定是否重新下发渠道 JWT
+        bridge.send({
+          type: ChildMsgType.AuthRequired,
+          reason: "invalid",
+        });
+      }
     });
 
-    /* 父→子：token-refresh */
-    bridge.on(ParentMsgType.TokenRefresh, (msg) => {
-      const m = msg as ParentMessage & {
-        token: string;
-        expiresAt?: number;
-      };
-      if (typeof m.token === "string" && m.token.length > 0) {
-        const exp = typeof m.expiresAt === "number" ? m.expiresAt : 0;
-        setTokenState(m.token);
-        setExpiresAt(exp);
-        writeSessionToken(m.token, exp);
+    /* 父→子：token-refresh（FR-2.3）— 父页下发新「渠道 JWT」后再走一次 verify */
+    bridge.on(ParentMsgType.TokenRefresh, async (msg) => {
+      const m = msg as ParentMessage & { token: string; expiresAt?: number };
+      if (typeof m.token !== "string" || m.token.length === 0) return;
+      try {
+        const r = await verifyTobAuth(m.token);
+        setTokenState(r.accessToken);
+        tokenRef.current = r.accessToken;
+        setExpiresAt(r.expiresAt);
+        expiresAtRef.current = r.expiresAt;
+        writeSessionToken(r.accessToken, r.expiresAt);
+        setStatus("authed");
+        setError(null);
+        authQueue.resolveAll();
+      } catch (e) {
+        // verify 失败：保留 401 重试队列等待，由 auth-queue 超时机制处理
+        console.warn("[embed] token-refresh verify failed:", e);
       }
     });
 
@@ -251,7 +305,10 @@ export function EmbedProvider({ children }: { children: React.ReactNode }) {
       if (!exp) return;
       const left = exp - Date.now();
       if (left > 0 && left < TOKEN_NEAR_EXPIRY_MS) {
-        bridge.send({ type: ChildMsgType.AuthRequired, reason: "expired" });
+        // 去重：同一个临近过期窗口内只发一次 auth-required
+        if (authQueue.markRequesting()) {
+          bridge.send({ type: ChildMsgType.AuthRequired, reason: "expired" });
+        }
       }
     }, TOKEN_CHECK_INTERVAL_MS);
 
@@ -291,6 +348,7 @@ export function EmbedProvider({ children }: { children: React.ReactNode }) {
       status,
       user,
       trustedOrigin,
+      error,
       setToken,
       requestAuthRefresh,
       trackMetric,
@@ -302,6 +360,7 @@ export function EmbedProvider({ children }: { children: React.ReactNode }) {
       status,
       user,
       trustedOrigin,
+      error,
       setToken,
       requestAuthRefresh,
       trackMetric,

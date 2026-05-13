@@ -46,13 +46,13 @@
   --font-weight-semibold: var(--font-weight-semibold);
   --font-weight-bold: var(--font-weight-bold);
 
-  --spacing-xs: var(--spacing-xs);
-  --spacing-sm: var(--spacing-sm);
-  --spacing-md: var(--spacing-md);
-  --spacing-lg: var(--spacing-lg);
-  --spacing-xl: var(--spacing-xl);
-  --spacing-2xl: var(--spacing-2xl);
-  --spacing-3xl: var(--spacing-3xl);
+  /*
+   * 不要在这里 re-export --spacing-xs/sm/md/lg/xl/2xl/3xl！
+   * Tailwind v4 的 @theme 会把命名 spacing token 暴露成同名工具类，
+   * 把 `max-w-md` 从默认的 28rem（--container-md）覆写成 `--spacing-md=16px`，
+   * 导致所有 Dialog 弹窗变成 16px 宽的细条。
+   * `--spacing-*` 仍由 :root 定义，组件需要直接读时用 `var(--spacing-md)` 即可。
+   */
 
   --radius-none: var(--radius-none);
   --radius-sm: var(--radius-sm);
