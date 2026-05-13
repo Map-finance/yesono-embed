@@ -14,8 +14,9 @@ import useSWR, { mutate } from "swr";
 import { authFetch } from "@/lib/api";
 import { usePortfolioStore } from "@/lib/stores/portfolioStore";
 import { useEmbed } from "@/lib/embed/EmbedContext";
+import { getAuthApiUrl } from "@/lib/config/authApiUrl";
 
-const AUTH_BASE_URL = `${process.env.NEXT_PUBLIC_AUTH_API_URL!}/api`;
+const AUTH_BASE_URL = getAuthApiUrl("/api");
 const SWR_KEY = "user-portfolio";
 
 async function fetchPortfolio() {

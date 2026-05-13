@@ -761,7 +761,7 @@ export async function uploadFile(file: File) {
   const accessToken = await getValidAccessToken();
   const formData = new FormData();
   formData.append("file", file);
-  const resp = await fetch(`${process.env.NEXT_PUBLIC_AUTH_API_URL!}/upload`, {
+  const resp = await fetch(`${API_HOST}/upload`, {
     method: "POST",
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     body: formData,

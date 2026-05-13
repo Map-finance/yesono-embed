@@ -19,9 +19,10 @@ import {
   ConfirmMarketReq,
 } from '@/types/market';
 import { authFetch, getLanguageHeaders, getValidAccessToken } from '../api';
+import { getAuthApiHost } from '@/lib/config/authApiUrl';
 
 // API 基础配置 - 直接访问，不使用代理
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_AUTH_API_URL!}`;
+const API_BASE_URL = getAuthApiHost();
 
 // 直接访问 API
 const getApiUrl = (path: string) => {

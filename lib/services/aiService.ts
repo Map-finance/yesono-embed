@@ -4,11 +4,12 @@
  */
 
 import { getValidAccessToken, getLanguageHeaders } from '../api';
+import { getAuthApiUrl } from '@/lib/config/authApiUrl';
 
 const REVIEW_API_HOST = process.env.NEXT_PUBLIC_REVIEW_API_HOST || 'https://review.yesono.trade';
 // Base URL for review/AI APIs (host + /review_api prefix)
 const AI_API_BASE = `${REVIEW_API_HOST}/review_api`;
-const AUTH_API_BASE = `${process.env.NEXT_PUBLIC_AUTH_API_URL!}/api`;
+const AUTH_API_BASE = getAuthApiUrl('/api');
 
 /** 获取 AI 接口请求头，包含 tk 鉴权 token */
 async function getAIHeaders(): Promise<Record<string, string>> {

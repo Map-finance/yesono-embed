@@ -22,6 +22,7 @@ import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import SpotOrderbook from "@/components/detail/SpotOrderbook";
 import MarketDetailTabs from "@/components/detail/MarketDetailTabs";
 import ProxyImage from "@/components/common/ProxyImage";
+import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { useSingleMarketPriceHistory } from "@/lib/hooks/usePriceHistory";
 import { formatNumber } from "@/utils/format";
 import { useTranslation } from "@/lib/i18n";
