@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// 从 wrangler.jsonc 抽出某个环境的 vars，按 `export KEY=VALUE` 输出到 stdout。
-// 用法：node scripts/extract-wrangler-vars.mjs [prod|dev]
+// 从 wrangler.jsonc 抽出某个环境的 vars 输出到 stdout。
+// 用法：node scripts/extract-wrangler-vars.mjs [prod|dev] [shell|env-file]
+//   - shell（默认）：`export KEY="VALUE"`，给 bash `eval $(...)` 用（本地 deploy.sh）
+//   - env-file：`KEY=VALUE`，给 GitHub Actions `>> $GITHUB_ENV` 用
 //
 // 设计目的：让 wrangler.jsonc 成为部署期 NEXT_PUBLIC_* 的唯一真理来源。
-//   - 构建期：deploy.sh `eval $(node ...)` 把这些 vars 注入到 shell；
+//   - 构建期：本地 deploy.sh `eval $(node ...)` / CI `node ... env-file >> $GITHUB_ENV`；
 //     `next build` 会把 NEXT_PUBLIC_* 烤进 bundle。
 //   - 运行期：Cloudflare 直接读 wrangler.jsonc.vars 注入到 worker。
 // 两边来自同一份配置，避免 .env.production 与 wrangler.jsonc 漂移。
@@ -18,6 +20,12 @@ const WRANGLER_PATH = path.join(__dirname, "..", "wrangler.jsonc");
 const target = process.argv[2] || "prod";
 if (!["prod", "dev"].includes(target)) {
   console.error(`Unknown env: ${target} (expected 'prod' or 'dev')`);
+  process.exit(1);
+}
+
+const format = process.argv[3] || "shell";
+if (!["shell", "env-file"].includes(format)) {
+  console.error(`Unknown format: ${format} (expected 'shell' or 'env-file')`);
   process.exit(1);
 }
 
@@ -43,6 +51,16 @@ if (!vars || typeof vars !== "object") {
 }
 
 for (const [key, value] of Object.entries(vars)) {
-  // JSON.stringify 帮我们处理引号 / 转义；shell `eval` 能正确解析双引号字符串。
-  console.log(`export ${key}=${JSON.stringify(String(value))}`);
+  const str = String(value);
+  if (format === "env-file") {
+    // GitHub $GITHUB_ENV 单行格式：KEY=VALUE，无引号包裹，值不能含换行
+    if (str.includes("\n")) {
+      console.error(`Value for ${key} contains newline; not supported by env-file format`);
+      process.exit(1);
+    }
+    console.log(`${key}=${str}`);
+  } else {
+    // JSON.stringify 帮我们处理引号 / 转义；shell `eval` 能正确解析双引号字符串。
+    console.log(`export ${key}=${JSON.stringify(str)}`);
+  }
 }

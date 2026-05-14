@@ -104,7 +104,7 @@ jobs:
           else
             ENV_KEY=dev
           fi
-          node scripts/extract-wrangler-vars.mjs "$ENV_KEY" >> "$GITHUB_ENV"
+          node scripts/extract-wrangler-vars.mjs "$ENV_KEY" env-file >> "$GITHUB_ENV"
         env:
           NODE_ENV: production
 
