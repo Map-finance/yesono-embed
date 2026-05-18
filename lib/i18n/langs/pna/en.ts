@@ -153,6 +153,7 @@ export default {
     noOrders: "No open orders",
     cancelSuccess: "Order canceled successfully",
     cancelFailed: "Failed to cancel order",
+    cancelConfirm: "Cancel this order?",
     alreadyExpired: "Order has already expired and cannot be canceled",
     // Order status
     open: "Open",

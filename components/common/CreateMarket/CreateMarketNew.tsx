@@ -21,7 +21,15 @@
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DatePicker, Select } from "antd";
+import { DatePicker } from "@/components/ui/shadcn/date-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/shadcn/select";
+import { Combobox, MultiCombobox } from "@/components/ui/shadcn/combobox";
 import dayjs from "dayjs";
 import { Dialog } from "@/components/ui/Dialog";
 import {
@@ -3505,16 +3513,13 @@ const renderConfigStep = () => {
                   {cryptoCoin || "—"}
                 </div>
               ) : (
-                <Select
-                  showSearch
+                <Combobox
                   value={cryptoCoin || undefined}
-                  onChange={(val: string) => setCryptoCoin(val)}
+                  onChange={(val) => setCryptoCoin(val ?? "")}
                   onSearch={handleCoinSearch}
-                  filterOption={false}
                   placeholder={t.market.create.selectCoin}
                   loading={cryptoCoinsLoading}
-                  className="w-full"
-                  notFoundContent={cryptoCoinsLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t.market.create.noCoinsFound}
+                  emptyText={t.market.create.noCoinsFound}
                   options={cryptoCoins.map(c => ({ value: c.value, label: c.label }))}
                 />
               )}
@@ -3528,10 +3533,17 @@ const renderConfigStep = () => {
                 </label>
                 <Select
                   value={cryptoTimeType}
-                  onChange={(val: CryptoTimeType) => { setCryptoTimeType(val); setCryptoDate(""); }}
-                  className="w-full"
-                  options={cryptoTimeTypes.map(tt => ({ value: tt.value, label: tt.label }))}
-                />
+                  onValueChange={(val) => { setCryptoTimeType(val as CryptoTimeType); setCryptoDate(""); }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cryptoTimeTypes.map(tt => (
+                      <SelectItem key={tt.value} value={tt.value}>{tt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
@@ -4083,13 +4095,11 @@ const renderConfigStep = () => {
               {t.market.create.tagsLabel}
             </label>
             {!isEventSelected ? (
-              <Select
-                mode="multiple"
-                showSearch
+              <MultiCombobox
                 allowClear
                 placeholder={t.market.create.tagsPlaceholder}
                 value={batchTags.map(tag => tag.slug)}
-                onChange={(values: string[]) => {
+                onChange={(values) => {
                   const newTags = values.map(slug => {
                     const existing = batchTags.find(t => t.slug === slug);
                     if (existing) return existing;
@@ -4100,16 +4110,9 @@ const renderConfigStep = () => {
                   setBatchTags(newTags);
                 }}
                 onSearch={handleTagSearch}
-                filterOption={false}
                 loading={isSearchingTags}
                 options={marketTagsList.map(tag => ({ label: tag.label, value: tag.slug }))}
-                className="w-full"
-                style={{ minHeight: '2.25rem' }}
-                popupClassName="dark-select-dropdown"
-                notFoundContent={isSearchingTags
-                  ? <span className="text-xs text-gray-400"><Loader2 className="w-3 h-3 animate-spin inline mr-1" />{t.market.create.searching}</span>
-                  : <span className="text-xs text-gray-400">{t.market.create.noTagsFound}</span>
-                }
+                emptyText={isSearchingTags ? t.market.create.searching : t.market.create.noTagsFound}
               />
             ) : (
               batchTags.length > 0 && (

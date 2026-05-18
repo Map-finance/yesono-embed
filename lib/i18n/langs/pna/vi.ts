@@ -121,6 +121,7 @@ export default {
     noOrders: "Không có lệnh mở",
     cancelSuccess: "Đã hủy lệnh thành công",
     cancelFailed: "Hủy lệnh thất bại",
+    cancelConfirm: "Hủy lệnh này?",
     alreadyExpired: "Lệnh đã hết hạn và không thể hủy",
     open: "Mở",
     filled: "Đã khớp",

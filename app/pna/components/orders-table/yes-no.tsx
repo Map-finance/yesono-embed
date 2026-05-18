@@ -1,12 +1,12 @@
 "use client";
 
-import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { MarketCell } from "../positions-table";
 import useGetOrders from "@/app/pna/hooks/use-get-orders";
 import { fmtMoney } from "../formatters";
+import { CancelOrderButton } from "./cancel-order-button";
 
 interface YesNoOrder {
   orderId?: string | number;
@@ -31,7 +31,7 @@ interface YesNoOrder {
 
 export function YesNoOrders({ targetUserId }: { targetUserId?: string }) {
   const { t } = useTranslation();
-  const { orders, isLoading } = useGetOrders({ userId: targetUserId });
+  const { orders, isLoading, refresh } = useGetOrders({ userId: targetUserId });
 
   const columns: DataTableColumn<YesNoOrder>[] = [
     {
@@ -97,17 +97,10 @@ export function YesNoOrders({ targetUserId }: { targetUserId?: string }) {
       key: "cancel",
       header: "",
       align: "right",
-      // Embed 是只读，没有取消订单接口；保留 X 图标只为对齐原项目视觉。
-      cell: () => (
-        <button
-          type="button"
-          aria-label="cancel"
-          disabled
-          className="text-(--text-secondary) hover:text-(--text-primary) disabled:cursor-not-allowed"
-        >
-          <X size={14} />
-        </button>
-      ),
+      cell: (o) => {
+        const id = String(o.orderId ?? o.id ?? "");
+        return <CancelOrderButton betId={id} onSuccess={refresh} />;
+      },
     },
   ];
 

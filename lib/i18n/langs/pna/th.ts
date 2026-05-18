@@ -121,6 +121,7 @@ export default {
     noOrders: "ไม่มีคำสั่งที่เปิดอยู่",
     cancelSuccess: "ยกเลิกคำสั่งสำเร็จ",
     cancelFailed: "ยกเลิกคำสั่งล้มเหลว",
+    cancelConfirm: "ยกเลิกคำสั่งนี้?",
     alreadyExpired: "คำสั่งหมดอายุแล้วและไม่สามารถยกเลิกได้",
     open: "เปิด",
     filled: "จับคู่แล้ว",

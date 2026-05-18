@@ -123,6 +123,7 @@ export default {
     noOrders: "未約定注文はありません",
     cancelSuccess: "注文をキャンセルしました",
     cancelFailed: "注文のキャンセルに失敗しました",
+    cancelConfirm: "この注文をキャンセルしますか？",
     alreadyExpired: "注文は既に期限切れのためキャンセルできません",
     open: "未約定",
     filled: "約定済み",

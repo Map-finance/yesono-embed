@@ -128,6 +128,7 @@ export default {
     noOrders: "暫無未完成訂單",
     cancelSuccess: "訂單取消成功",
     cancelFailed: "取消訂單失敗",
+    cancelConfirm: "確認取消訂單？",
     alreadyExpired: "訂單已過期，無法取消",
     open: "未完成",
     filled: "已成交",

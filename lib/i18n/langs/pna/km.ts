@@ -121,6 +121,7 @@ export default {
     noOrders: "គ្មានបញ្ជាបើកចំហ",
     cancelSuccess: "បោះបង់បញ្ជាជោគជ័យ",
     cancelFailed: "បោះបង់បញ្ជាបរាជ័យ",
+    cancelConfirm: "បោះបង់ការបញ្ជាទិញនេះ?",
     alreadyExpired: "បញ្ជាផុតកំណត់ហើយ មិនអាចបោះបង់បានទេ",
     open: "បើក",
     filled: "បានផ្គូផ្គង",

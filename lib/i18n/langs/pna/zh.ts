@@ -154,6 +154,7 @@ export default {
     noOrders: "暂无未完成订单",
     cancelSuccess: "订单取消成功",
     cancelFailed: "取消订单失败",
+    cancelConfirm: "确认取消订单？",
     alreadyExpired: "订单已过期，无法取消",
     // Order status
     open: "未完成",

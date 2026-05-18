@@ -672,11 +672,8 @@ export default function TradingPanel({
           router_order_id: tobResp.routerOrderId,
         });
         hapticNotification("Success");
-        toast.success(
-          tobResp.message ||
-            t.common?.tradeSuccess ||
-            "Trade submitted successfully"
-        );
+        // 成功固定用本地化文案；后端 message 字段是序列化的 tx 详情对象，不适合给用户看
+        toast.success(t.common?.tradeSuccess || "Trade submitted successfully");
         void Promise.all([refetchBalances(), refreshPortfolio()]);
         return;
       } catch (apiErr: any) {

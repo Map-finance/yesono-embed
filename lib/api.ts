@@ -269,8 +269,15 @@ export async function cancelOrder(betId: string): Promise<{
   if (useNew) {
     const { cancelTobOrder } = await import("@/lib/services/tob/tobOrderCancel");
     const r = await cancelTobOrder(betId);
+    // 后端返回的 status 已知：
+    //   canceled / refund_pending / refund_completed → 取消请求被接受
+    //   failed / error / rejected → 明确失败
+    // HTTP 非 2xx 会被 axios 抛出，到达这里说明请求被接受；只把明确失败状态视为失败。
+    const status = (r?.status || "").toLowerCase();
+    const isFailure =
+      status === "failed" || status === "error" || status === "rejected";
     return {
-      ok: (r?.status || "").toUpperCase() === "CANCELED",
+      ok: !!r && !isFailure,
       status: r?.status,
       raw: r,
     };
