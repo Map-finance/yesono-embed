@@ -61,7 +61,8 @@
   },
   "pnpm": {
     "overrides": {
-      "lucide-react": "0.469.0"
+      "lucide-react": "0.469.0",
+      "postcss": "^8.5.10"
     },
     "onlyBuiltDependencies": [
       "esbuild",

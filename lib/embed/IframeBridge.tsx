@@ -31,10 +31,11 @@ export default function IframeBridge() {
     if (typeof window === "undefined") return;
     if (!bridge || !bridge.isEmbedded()) return;
 
+    // 审计 M-01：ready 阶段 trustedParentOrigin 尚未锁定，targetOrigin 可能 fallback "*"。
+    // 不携带完整 href（含 query / hash），仅传 path 用于父页路由识别，最小披露。
     bridge.send({
       type: ChildMsgType.Ready,
       path: pathname ?? undefined,
-      href: window.location.href,
       protocolVersion: EMBED_PROTOCOL_VERSION,
     });
 

@@ -49,19 +49,28 @@ const WARNING_SAMPLE_RATE = 0.2;
 type ApiErrorKind = "api_business_error" | "api_http_error" | "api_auth_error";
 type ApiReportLevel = "drop" | "warning" | "error";
 
+/**
+ * 提取 URL pathname 并对敏感片段做归一化（审计 M-04）：
+ *  - 0x 开头的钱包地址 → :addr
+ *  - 长数字（≥6 位）→ :id
+ *  - 长十六进制 / hash（≥32 字符）→ :hash
+ * 防止 userId / marketId / 钱包地址等出现在 Cloudflare Logs 全量采样中。
+ */
 function getSafeUrl(rawUrl?: string): string {
   if (!rawUrl) return "unknown";
+  let pathname: string;
   try {
-    if (typeof window !== "undefined") {
-      const parsed = new URL(rawUrl, window.location.origin);
-      return parsed.pathname;
-    }
-    const parsed = new URL(rawUrl);
-    return parsed.pathname;
+    const base =
+      typeof window !== "undefined" ? window.location.origin : "http://x";
+    pathname = new URL(rawUrl, base).pathname;
   } catch {
-    const noQuery = rawUrl.split("?")[0];
-    return noQuery || "unknown";
+    pathname = (rawUrl.split("?")[0] || "unknown").trim();
   }
+  if (!pathname) return "unknown";
+  return pathname
+    .replace(/0x[a-fA-F0-9]{6,}/g, ":addr")
+    .replace(/[a-f0-9-]{32,}/g, ":hash")
+    .replace(/\b\d{6,}\b/g, ":id");
 }
 
 function captureApiException(

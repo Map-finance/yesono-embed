@@ -21,7 +21,32 @@ export interface EmbedCodeOpts {
   height: number;
 }
 
-/** 生成嵌入用 HTML 代码块（含 schema.org JSON-LD + figure + iframe）。 */
+/** HTML 文本/属性转义：阻断注入。 */
+function escapeHtml(s: string): string {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** 仅允许 http(s) 的 URL，否则返回空串占位；返回的字符串已做属性转义。 */
+function escapeAttrUrl(s: string): string {
+  try {
+    const u = new URL(String(s));
+    if (u.protocol !== "https:" && u.protocol !== "http:") return "";
+    return escapeHtml(u.toString());
+  } catch {
+    return "";
+  }
+}
+
+/** 生成嵌入用 HTML 代码块（含 schema.org JSON-LD + figure + iframe）。
+ *
+ * 安全：所有 API 返回的字段（title / marketUrl / embedSrc / siteOrigin / marketSlug）
+ * 均做严格转义，防止用户复制带毒代码到自己的站点导致 second-order XSS（审计 H-01）。
+ */
 export function generateEmbedCode(opts: EmbedCodeOpts): string {
   const {
     marketUrl,
@@ -34,52 +59,70 @@ export function generateEmbedCode(opts: EmbedCodeOpts): string {
     width,
     height,
   } = opts;
-  const safeTitle = title.replace(/"/g, '\\"');
-  return `<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  "name": "${safeTitle}",
-  "description": "Prediction market: Yes ${yesPrice}%${noPrice ? ` · No ${noPrice}%` : ""} on YesONo.",
-  "url": "${marketUrl}",
-  "publisher": {
-    "@type": "Organization",
-    "name": "YesONo",
-    "url": "${siteOrigin}"
-  }
-}
-</script>
+
+  const safeTitle = escapeHtml(title);
+  const safeMarketUrl = escapeAttrUrl(marketUrl);
+  const safeEmbedSrc = escapeAttrUrl(embedSrc);
+  const safeSiteOrigin = escapeAttrUrl(siteOrigin);
+  const safeSlug = escapeHtml(marketSlug);
+  const yesNum = Number(yesPrice);
+  const noNum = Number(noPrice);
+  const safeYes = Number.isFinite(yesNum) ? yesNum : 0;
+  const safeNo = Number.isFinite(noNum) ? noNum : 0;
+  const safeWidth = Number.isFinite(Number(width)) ? Number(width) : 0;
+  const safeHeight = Number.isFinite(Number(height)) ? Number(height) : 0;
+
+  // JSON-LD 用 JSON.stringify 生成（自动转义），避免字符串拼接逃逸。
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: title,
+    description: `Prediction market: Yes ${safeYes}%${safeNo ? ` · No ${safeNo}%` : ""} on YesONo.`,
+    url: marketUrl,
+    publisher: {
+      "@type": "Organization",
+      name: "YesONo",
+      url: siteOrigin,
+    },
+  })
+    // 防 </script> 闭合逃逸（JSON-LD 在 <script> 块内）。
+    .replace(/</g, "\\u003c");
+
+  return `<script type="application/ld+json">${jsonLd}</script>
 <figure
     class="yesono-embed"
-    id="yesono-${marketSlug}"
+    id="yesono-${safeSlug}"
     aria-label="YesONo prediction market: ${safeTitle}"
     itemscope
     itemtype="https://schema.org/WebPage"
     style="position:relative;display:inline-block;margin:0">
     <iframe
         title="${safeTitle} — YesONo Prediction Market"
-        src="${embedSrc}"
-        width="${width}"
-        height="${height}"
+        src="${safeEmbedSrc}"
+        width="${safeWidth}"
+        height="${safeHeight}"
         frameborder="0"
         style="border-radius:16px;overflow:hidden"
         allowtransparency="true">
     </iframe>
-    <a href="${marketUrl}"
+    <a href="${safeMarketUrl}"
         aria-label="View on YesONo"
         target="_blank"
         rel="noopener noreferrer"
         style="position:absolute;top:16px;right:20px;width:120px;height:24px;z-index:10">
     </a>
     <figcaption style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
-        <strong>${title}</strong><br>
-        Yes ${yesPrice}%${noPrice ? ` · No ${noPrice}%` : ""}<br>
-        <a href="${marketUrl}">
+        <strong>${safeTitle}</strong><br>
+        Yes ${safeYes}%${safeNo ? ` · No ${safeNo}%` : ""}<br>
+        <a href="${safeMarketUrl}">
             View full market &amp; trade on YesONo
         </a>
     </figcaption>
 </figure>`;
 }
+
+// 仅供测试导出（非默认 API）
+export const __test = { escapeHtml, escapeAttrUrl };
 
 // ---------------------------------------------------------------- renderHighlightedCodeLine
 

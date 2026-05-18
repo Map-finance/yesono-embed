@@ -327,19 +327,10 @@ export function EmbedProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  /* ---------- 4. 兼容旧路径：?token= 仅在 dev 启用 ---------- */
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (process.env.NODE_ENV === "production") return;
-    const url = new URL(window.location.href);
-    const queryToken = url.searchParams.get("token");
-    if (queryToken && !tokenRef.current) {
-      console.warn(
-        "[embed] using ?token= from URL (dev only). Production should use postMessage."
-      );
-      setToken(queryToken);
-    }
-  }, [setToken]);
+  /* ---------- 4. 移除 ?token= 旁路 ----------
+   * 审计 L-02：dev 环境也不再支持 ?token= 直接注入。
+   * 本地联调请使用 lib/embed/mock-parent.html 通过 postMessage 模拟父页握手。
+   */
 
   const value = useMemo<EmbedState>(
     () => ({
