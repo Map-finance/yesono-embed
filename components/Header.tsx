@@ -14,6 +14,7 @@ import { useNavigation } from "@/lib/hooks/useNavigation";
 import { Button } from "@/components/ui/shadcn/button";
 import { useEmbed } from "@/lib/embed/EmbedContext";
 import { usePortfolioStore } from "@/lib/stores/portfolioStore";
+import { truncateBalance } from "@/utils/format";
 import {
   Dialog,
   DialogContent,
@@ -164,7 +165,7 @@ const Header: React.FC = () => {
                       {t.common.cash ?? "Cash"}
                     </span>
                     <span className="text-[#22c55e] text-[16px] font-bold font-number">
-                      ${isPortfolioLoading ? "0.00" : fmtUsd(cash)}
+                      ${isPortfolioLoading ? "0.00" : truncateBalance(cash)}
                     </span>
                   </div>
                 </Link>

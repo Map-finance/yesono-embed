@@ -15,6 +15,8 @@ interface Props {
   outcomes: TradingOutcome[];
   marketTitle?: string;
   marketSubtitle?: string;
+  /** 市场来源（POLYMARKET 不需 clobPairId） */
+  marketSource?: string;
   onClose?: () => void;
 }
 
@@ -23,6 +25,7 @@ export default function MobileTradingPanel({
   outcomes,
   marketTitle,
   marketSubtitle,
+  marketSource,
   onClose,
 }: Props) {
   const { success } = useToast();
@@ -34,6 +37,7 @@ export default function MobileTradingPanel({
         outcomes={outcomes}
         marketTitle={marketTitle}
         marketSubtitle={marketSubtitle}
+        marketSource={marketSource}
         onPlaced={(r) => {
           success(`Order accepted (${r.status})`);
           onClose?.();

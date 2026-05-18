@@ -7,15 +7,18 @@ import { EventSummary, PolymarketEventResp } from "@/types/home";
 import { Market, MarketOption, CardType } from "@/types/types";
 import { getOutcomeLabel, sortOutcomesByOriginalIndex } from "@/lib/utils/outcomes";
 import { formatVolume } from "@/lib/services/homeService";
+import { clampOutcomeProbabilityPercent } from "@/utils/format";
 
 /**
  * 格式化百分比显示
- * - 0% 或负值显示为 "<1%"
- * - 100% 或更高显示为 "100%"
+ * - NaN / 非数字 → "<1%"
+ * - 0% 或负值 → "<1%"
+ * - >=100% → ">99%"（未结算预测市场不显示绝对值；详见 utils/format clamp）
  */
 export function formatPercentage(percentage: number): string {
+  if (!Number.isFinite(percentage)) return "<1%";
   if (percentage <= 0) return "<1%";
-  if (percentage >= 100) return "100%";
+  if (percentage >= 100) return ">99%";
   return `${percentage}%`;
 }
 
@@ -93,7 +96,7 @@ export function eventToMarket(event: EventSummary): Market {
       
       options.push({
         label: market.groupItemTitle || market.question || "Market",
-        percentage: Math.round(yesPrice * 100),
+        percentage: clampOutcomeProbabilityPercent(yesPrice),
         icon: undefined,
         yesLabel,
         noLabel,
@@ -203,7 +206,7 @@ export function polymarketEventToMarket(event: PolymarketEventResp): Market {
 
       options.push({
         label: market.groupItemTitle || market.question || "Market",
-        percentage: Math.round(yesPrice * 100),
+        percentage: clampOutcomeProbabilityPercent(yesPrice),
         icon: undefined,
         yesLabel,
         noLabel,

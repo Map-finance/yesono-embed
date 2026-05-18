@@ -3,6 +3,7 @@
  */
 
 import type { SportsMarketItem, SportsMarketOutcome } from "@/types/sports";
+import { formatOutcomeProbabilityCents } from "@/utils/format";
 
 /** 从 marketTitle 提取缩写 (前3-4个字母) */
 export function getAbbr(title: string): string {
@@ -12,11 +13,9 @@ export function getAbbr(title: string): string {
   return word.slice(0, 4).toUpperCase();
 }
 
-/** 格式化价格为 cents（精确到 1 位小数，与交易面板一致） */
+/** 格式化价格为 cents（与交易面板一致；clamp 见 utils/format.ts） */
 export function formatPrice(price: string): string {
-  const num = parseFloat(price);
-  if (isNaN(num)) return "—";
-  return `${(num * 100).toFixed(1)}¢`;
+  return formatOutcomeProbabilityCents(parseFloat(price));
 }
 
 /** 获取 Yes outcome */

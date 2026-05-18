@@ -20,6 +20,8 @@ export interface SportsMarketItem {
   lineValue: number | null; // e.g. -1.5, +2.5 (spreads/totals), null (moneyline)
   outcomes: SportsMarketOutcome[];
   conditionId: string;
+  status?: string;       // e.g. "RESOLVED" | "ACTIVE" etc.
+  result?: number;       // 0=主队输, 0.25=输一半, 0.5=平, 0.75=赢一半, 1=全赢 (相对 originalIndex=0)
 }
 
 export interface SportsEventDetail {

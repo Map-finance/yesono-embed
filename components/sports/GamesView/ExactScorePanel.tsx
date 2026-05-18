@@ -7,6 +7,7 @@
 import React from "react";
 import type { SportsMarketItem } from "@/types/sports";
 import { useTranslation } from "@/lib/i18n";
+import { formatOutcomeProbabilityCents } from "@/utils/format";
 import {
   getOutcomeLabel,
   sortOutcomesByOriginalIndex,
@@ -67,7 +68,7 @@ const ExactScorePanel: React.FC<ExactScorePanelProps> = ({
                 {getOutcomeLabel(outcome0) || "YES"}{" "}
                 <span className="font-bold">
                   {outcome0
-                    ? `${(parseFloat(outcome0.price) * 100).toFixed(1)}¢`
+                    ? formatOutcomeProbabilityCents(parseFloat(outcome0.price))
                     : "—"}
                 </span>
               </button>
@@ -87,7 +88,7 @@ const ExactScorePanel: React.FC<ExactScorePanelProps> = ({
                 {getOutcomeLabel(outcome1) || "NO"}{" "}
                 <span className="font-bold">
                   {outcome1
-                    ? `${(parseFloat(outcome1.price) * 100).toFixed(1)}¢`
+                    ? formatOutcomeProbabilityCents(parseFloat(outcome1.price))
                     : "—"}
                 </span>
               </button>

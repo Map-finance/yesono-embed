@@ -38,6 +38,8 @@ export interface TradingFormProps {
   marketSubtitle?: string;
   /** 默认选中第几个 outcome */
   defaultOutcomeIndex?: number;
+  /** 市场来源；POLYMARKET 不走 dYdX 撮合，不依赖 clobPairId */
+  marketSource?: string;
   /** 提交成功后的回调（用于刷余额、关闭 sheet 等） */
   onPlaced?: (resp: {
     betId: string;
@@ -59,9 +61,11 @@ export default function TradingForm({
   marketTitle,
   marketSubtitle,
   defaultOutcomeIndex = 0,
+  marketSource,
   onPlaced,
   compact,
 }: TradingFormProps) {
+  const isPolymarket = marketSource === "POLYMARKET";
   const [side, setSide] = useState<Side>("BUY");
   const [orderType, setOrderType] = useState<OrderType>("MARKET");
   const [outcomeIdx, setOutcomeIdx] = useState(defaultOutcomeIndex);
@@ -88,7 +92,7 @@ export default function TradingForm({
 
   const canSubmit =
     !!outcome?.tokenId &&
-    !!outcome?.clobPairId &&
+    (!!outcome?.clobPairId || isPolymarket) &&
     !!eventId &&
     amountNum > 0 &&
     (orderType === "MARKET" || price > 0) &&
@@ -118,7 +122,7 @@ export default function TradingForm({
       // 短期有效（短单）：传当前时间 + 1 分钟。后端规则明确后再调。
       expiryTime: String(Date.now() + 60_000),
       orderFlags: 0,
-      clobPairId: String(outcome.clobPairId),
+      clobPairId: outcome.clobPairId ? String(outcome.clobPairId) : "",
     });
     if (r) {
       onPlaced?.(r);
@@ -300,7 +304,7 @@ export default function TradingForm({
           : `${side === "BUY" ? "Buy" : "Sell"} ${outcome?.name ?? ""}`}
       </Button>
 
-      {!outcome?.tokenId || !outcome?.clobPairId ? (
+      {!outcome?.tokenId || (!outcome?.clobPairId && !isPolymarket) ? (
         <div className="text-[10px] text-(--text-tertiary) text-center">
           Missing tokenId / clobPairId on the selected outcome — order disabled.
         </div>

@@ -17,6 +17,7 @@ import { PolymarketMarketResp } from "@/types/home";
 import { useTranslation } from "@/lib/i18n";
 import { getOutcomesByMarket } from "@/lib/utils/outcomes";
 import { useTradingStore } from "@/lib/store/tradingStore";
+import { clampOutcomeProbabilityPercent } from "@/utils/format";
 import OutcomeRow from "./OutcomeRow";
 import type { DisplayOption } from "./OutcomeList.helpers";
 
@@ -80,10 +81,10 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
             ? JSON.parse((m as any).rowOutcomePrice)
             : null;
           if (rowPrices && rowPrices.length > 0) {
-            yesPercentage = Math.round(parseFloat(rowPrices[0]) * 100);
+            yesPercentage = clampOutcomeProbabilityPercent(rowPrices[0]);
           } else {
             // fallback 到 outcomePrices
-            yesPercentage = Math.round(yesPriceRaw * 100);
+            yesPercentage = clampOutcomeProbabilityPercent(yesPriceRaw);
           }
 
           // 解析 clobTokenIds

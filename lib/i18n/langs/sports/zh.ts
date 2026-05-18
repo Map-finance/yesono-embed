@@ -61,4 +61,15 @@ export default {
     proposeResolution: "提议解决方案",
     viewDetails: "查看详情",
   },
+  settlement: {
+    resolved: "已结算",
+    win: "赢",
+    lose: "输",
+    halfWin: "赢一半",
+    halfLose: "输一半",
+    push: "平",
+    draw: "平局",
+    over: "大",
+    under: "小",
+  },
 } as const;

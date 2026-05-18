@@ -8,6 +8,7 @@
 import React from "react";
 import type { SportsMarketItem } from "@/types/sports";
 import { useTranslation } from "@/lib/i18n";
+import { formatOutcomeProbabilityCents } from "@/utils/format";
 
 interface HalftimeResultPanelProps {
   markets: SportsMarketItem[];
@@ -59,7 +60,7 @@ const HalftimeResultPanel: React.FC<HalftimeResultPanelProps> = ({
                 .toUpperCase();
             })();
             const price = outcome0
-              ? `${(parseFloat(outcome0.price) * 100).toFixed(1)}¢`
+              ? formatOutcomeProbabilityCents(parseFloat(outcome0.price))
               : "—";
             return (
               <button

@@ -241,10 +241,22 @@ export function usePriceHistory(
       const now = Math.floor(Date.now() / 1000);
       const startTs = now - startTsOffset;
 
-      // Fetch data for all markets in parallel
-      const responses = await Promise.all(
+      // Fetch data for all markets in parallel.
+      // 关键：用 allSettled 而非 all —— 后端某个 marketId 返回 400（典型场景：
+      // 该市场已 CLOSED / CANCELLED / 数据缺失）时，allSettled 让其它市场的
+      // 数据照常显示；all 会让任何一个失败 reject 整条 Promise，进入外层
+      // catch 把 chart 整个挂成"错误"状态。
+      const settled = await Promise.allSettled(
         limitedMarketIds.map(id => getPriceHistory(id, startTs, fidelity))
       );
+      const responses = settled.map((s, i) => {
+        if (s.status === 'fulfilled') return s.value;
+        console.warn(
+          `[usePriceHistory] market ${limitedMarketIds[i]} request rejected:`,
+          s.reason,
+        );
+        return null; // 单个失败 → 后续 loop 跳过此条
+      });
 
       // Process responses and merge into unified timeline
       const timeMap = new Map<number, ChartDataPoint>();
@@ -268,8 +280,8 @@ export function usePriceHistory(
         const response = responses[i];
         const marketId = limitedMarketIds[i];
 
-        if (response.code !== 200 || !response.data) {
-          console.warn(`[usePriceHistory] Failed to fetch market ${marketId}:`, response.message);
+        if (!response || response.code !== 200 || !response.data) {
+          console.warn(`[usePriceHistory] Failed to fetch market ${marketId}:`, response?.message);
           continue;
         }
 

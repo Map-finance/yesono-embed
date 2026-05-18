@@ -32,6 +32,70 @@ import {
   groupByLineValue,
 } from "./SportsEventCard.helpers";
 
+/** 判断 market 是否已结算 */
+function isMarketResolved(item?: SportsMarketItem | null): boolean {
+  return item?.status === "RESOLVED";
+}
+
+type SettlementLabels = {
+  resolved: string; win: string; lose: string;
+  halfWin: string; halfLose: string; push: string;
+  draw: string; over: string; under: string;
+};
+
+function resultToText(result: number, s: SettlementLabels): string {
+  if (result === 0) return s.lose;
+  if (result === 0.25) return s.halfLose;
+  if (result === 0.5) return s.push;
+  if (result === 0.75) return s.halfWin;
+  if (result === 1) return s.win;
+  return s.resolved;
+}
+
+function getMoneylineSettlementLabel(markets: SportsMarketItem[], s: SettlementLabels): string {
+  if (!markets.length) return s.resolved;
+  const drawMarket = markets.find((m) => m.marketTitle.toLowerCase().startsWith("draw"));
+  if (drawMarket?.result === 1) return `${s.resolved}: ${s.draw}`;
+  const winner = markets.find((m) => m.result === 1 && m !== drawMarket);
+  if (winner) return `${s.resolved}: ${winner.marketTitle} ${s.win}`;
+  const first = markets.find((m) => m.result != null);
+  if (first) return `${s.resolved}: ${first.marketTitle} ${resultToText(first.result!, s)}`;
+  return s.resolved;
+}
+
+function getSpreadSettlementLabel(market: SportsMarketItem, s: SettlementLabels): string {
+  const result = market.result;
+  if (result == null) return s.resolved;
+  const homeOutcome = market.outcomes?.find((o) => o.originalIndex === 0);
+  const homeName = homeOutcome?.outcome || market.marketTitle;
+  const lv = market.lineValue ?? 0;
+  const lvStr = lv > 0 ? `+${lv}` : String(lv);
+  if (result === 0.5) return `${s.resolved}: ${s.push}`;
+  return `${s.resolved}: ${homeName} ${lvStr} ${resultToText(result, s)}`;
+}
+
+function getTotalSettlementLabel(market: SportsMarketItem, s: SettlementLabels): string {
+  const result = market.result;
+  if (result == null) return s.resolved;
+  if (result === 0.5) return `${s.resolved}: ${s.push}`;
+  const isOver = result >= 0.75;
+  const direction = isOver ? s.over : s.under;
+  const absLine = market.lineValue != null ? ` ${Math.abs(market.lineValue)}` : "";
+  const qualifier = (result === 0.25 || result === 0.75) ? ` ${result >= 0.75 ? s.halfWin : s.halfLose}` : "";
+  return `${s.resolved}: ${direction}${absLine}${qualifier}`;
+}
+
+function ResolvedBadge({ label, className }: { label: string; className?: string }) {
+  return (
+    <div
+      className={`px-2 py-1.5 rounded-lg bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)] font-medium text-[11px] leading-tight text-center ${className || ""}`}
+      title={label}
+    >
+      {label}
+    </div>
+  );
+}
+
 interface SportsEventCardProps {
   event: SportsEventDetail;
   onOutcomeClick?: (marketItem: SportsMarketItem, outcomeIndex: number) => void;
@@ -136,6 +200,11 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
   const awayAbbr = awayMoneyline
     ? getAbbr(awayMoneyline.marketTitle)
     : getAbbr(teams.away);
+
+  // 判断各类型 market 是否已结算
+  const moneylineResolved = moneylineMarkets.length > 0 && moneylineMarkets.every(isMarketResolved);
+  const spreadResolved = currentSpreadMarket ? isMarketResolved(currentSpreadMarket) : false;
+  const totalResolved = currentTotalMarket ? isMarketResolved(currentTotalMarket) : false;
 
   // 判断哪个列的按钮被选中
   const isSpreadSelected = selectedMarketId
@@ -250,51 +319,62 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
           <div className="flex gap-3 md:gap-3 max-md:gap-1.5 max-md:w-full shrink-0">
             {/* Moneyline 列：横向排布（仅 moneyline 时居右） */}
             <div className={`gap-1.5 flex ${onlyMoneyline ? "flex-row items-center" : "flex-col max-md:flex-row max-md:flex-1"}`}>
-              <GameButton
-                className={onlyMoneyline ? "w-32 max-md:w-auto max-md:flex-1" : "w-28 h-[30px] max-md:w-auto max-md:flex-1"}
-                color={
-                  selectedMarketId === homeMoneyline?.marketId ? "#d4a017" : "rgba(200,200,200,0.2)"
-                }
-                textColor={selectedMarketId === homeMoneyline?.marketId ? "#fff" : "var(--text-primary)"}
-                onClick={(e) => handleOutcomeClick(e, homeMoneyline, 0)}
-              >
-                {homeMoneyline ? (
-                  <><span className="uppercase opacity-80">{homeAbbr}</span>
-                  <span className="ml-1 font-bold">{getYesPrice(homeMoneyline)}</span></>
-                ) : <span className="opacity-40">-</span>}
-              </GameButton>
-              <GameButton
-                className={onlyMoneyline ? "w-32 max-md:w-auto max-md:flex-1" : "w-28 h-[30px] max-md:w-auto max-md:flex-1"}
-                size="sm"
-                variant="secondary"
-                color={selectedMarketId === drawMarket?.marketId ? "#9b6dd8" : "rgba(200,200,200,0.2)"}
-                textColor={selectedMarketId === drawMarket?.marketId ? "#fff" : "var(--text-primary)"}
-                onClick={(e) => handleOutcomeClick(e, drawMarket, 0)}
-              >
-                {drawMarket ? (
-                  <><span className="uppercase opacity-80">DRAW</span>
-                  <span className="ml-1 font-bold">{getYesPrice(drawMarket)}</span></>
-                ) : <span className="opacity-40">-</span>}
-              </GameButton>
-              <GameButton
-                className={onlyMoneyline ? "w-32 max-md:w-auto max-md:flex-1" : "w-28 h-[30px] max-md:w-auto max-md:flex-1"}
-                color={
-                  selectedMarketId === awayMoneyline?.marketId ? "#5ba3a3" : "rgba(200,200,200,0.2)"
-                }
-                textColor={selectedMarketId === awayMoneyline?.marketId ? "#fff" : "var(--text-primary)"}
-                onClick={(e) => handleOutcomeClick(e, awayMoneyline, 0)}
-              >
-                {awayMoneyline ? (
-                  <><span className="uppercase opacity-80">{awayAbbr}</span>
-                  <span className="ml-1 font-bold">{getYesPrice(awayMoneyline)}</span></>
-                ) : <span className="opacity-40">-</span>}
-              </GameButton>
+              {moneylineResolved ? (
+                <ResolvedBadge
+                  label={getMoneylineSettlementLabel(moneylineMarkets, t.sports.settlement)}
+                  className={onlyMoneyline ? "max-md:w-auto max-md:flex-1" : "w-28 max-md:w-auto max-md:flex-1"}
+                />
+              ) : (
+                <>
+                  <GameButton
+                    className={onlyMoneyline ? "w-32 max-md:w-auto max-md:flex-1" : "w-28 h-[30px] max-md:w-auto max-md:flex-1"}
+                    color={
+                      selectedMarketId === homeMoneyline?.marketId ? "#d4a017" : "rgba(200,200,200,0.2)"
+                    }
+                    textColor={selectedMarketId === homeMoneyline?.marketId ? "#fff" : "var(--text-primary)"}
+                    onClick={(e) => handleOutcomeClick(e, homeMoneyline, 0)}
+                  >
+                    {homeMoneyline ? (
+                      <><span className="uppercase opacity-80">{homeAbbr}</span>
+                      <span className="ml-1 font-bold">{getYesPrice(homeMoneyline)}</span></>
+                    ) : <span className="opacity-40">-</span>}
+                  </GameButton>
+                  <GameButton
+                    className={onlyMoneyline ? "w-32 max-md:w-auto max-md:flex-1" : "w-28 h-[30px] max-md:w-auto max-md:flex-1"}
+                    size="sm"
+                    variant="secondary"
+                    color={selectedMarketId === drawMarket?.marketId ? "#9b6dd8" : "rgba(200,200,200,0.2)"}
+                    textColor={selectedMarketId === drawMarket?.marketId ? "#fff" : "var(--text-primary)"}
+                    onClick={(e) => handleOutcomeClick(e, drawMarket, 0)}
+                  >
+                    {drawMarket ? (
+                      <><span className="uppercase opacity-80">DRAW</span>
+                      <span className="ml-1 font-bold">{getYesPrice(drawMarket)}</span></>
+                    ) : <span className="opacity-40">-</span>}
+                  </GameButton>
+                  <GameButton
+                    className={onlyMoneyline ? "w-32 max-md:w-auto max-md:flex-1" : "w-28 h-[30px] max-md:w-auto max-md:flex-1"}
+                    color={
+                      selectedMarketId === awayMoneyline?.marketId ? "#5ba3a3" : "rgba(200,200,200,0.2)"
+                    }
+                    textColor={selectedMarketId === awayMoneyline?.marketId ? "#fff" : "var(--text-primary)"}
+                    onClick={(e) => handleOutcomeClick(e, awayMoneyline, 0)}
+                  >
+                    {awayMoneyline ? (
+                      <><span className="uppercase opacity-80">{awayAbbr}</span>
+                      <span className="ml-1 font-bold">{getYesPrice(awayMoneyline)}</span></>
+                    ) : <span className="opacity-40">-</span>}
+                  </GameButton>
+                </>
+              )}
             </div>
 
             {/* Spread 列：4 独立分组（不去重）；切换器切换；当前组显示 home/away 2 个按钮 */}
             {!onlyMoneyline && (
               <div className="gap-1.5 flex flex-col max-md:hidden">
-                {currentSpreadMarket ? (() => {
+                {currentSpreadMarket ? (spreadResolved ? (
+                  <ResolvedBadge label={getSpreadSettlementLabel(currentSpreadMarket, t.sports.settlement)} />
+                ) : (() => {
                   const sorted = sortOutcomesByOriginalIndex(currentSpreadMarket.outcomes || []);
                   const homeOutcome = sorted.find(o => o.originalIndex === 0);
                   const awayOutcome = sorted.find(o => o.originalIndex === 1);
@@ -335,13 +415,17 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
                       </GameButton>
                     </>
                   );
-                })() : spreadsAll.length > 0 ? null : <span className="opacity-40">-</span>}
+                })()) : spreadsAll.length > 0 ? null : <span className="opacity-40">-</span>}
               </div>
             )}
 
             {/* Total 列（1个 market，Over/Under 是 outcomes） */}
             {!onlyMoneyline && (
               <div className="gap-1.5 flex flex-col max-md:hidden">
+                {totalResolved ? (
+                  <ResolvedBadge label={getTotalSettlementLabel(currentTotalMarket!, t.sports.settlement)} />
+                ) : (
+                <>
                 <GameButton
                   className="w-28 flex-1"
                   size="sm"
@@ -374,6 +458,8 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
                     <span className="ml-2 font-bold">{formatPrice(currentTotalMarket.outcomes?.find(o => o.originalIndex === 1)?.price || "0")}</span></>
                   ) : <span className="opacity-40">-</span>}
                 </GameButton>
+                </>
+                )}
               </div>
             )}
           </div>

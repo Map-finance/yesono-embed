@@ -154,19 +154,19 @@ export function Dialog({
           </button>
         )}
 
-        {/* 标题 */}
+        {/* 标题 —— 移动端收紧 padding + 字号 */}
         {title && (
-          <div className="px-6 pt-6 pb-2">
+          <div className="px-4 md:px-6 pt-4 md:pt-6 pb-1 md:pb-2">
             <h2
               id="dialog-title"
-              className="text-xl font-semibold text-(--text-primary)"
+              className="text-lg md:text-xl font-semibold text-(--text-primary)"
             >
               {title}
             </h2>
             {description && (
               <p
                 id="dialog-description"
-                className="mt-2 text-sm text-(--text-secondary)"
+                className="mt-1.5 md:mt-2 text-sm text-(--text-secondary)"
               >
                 {description}
               </p>
@@ -174,14 +174,14 @@ export function Dialog({
           </div>
         )}
 
-        {/* 内容 */}
-        <div className={`px-6 ${title ? "py-4" : "pt-6 pb-4"} ${contentClassName}`}>
+        {/* 内容 —— 移动端 px/py 都缩；带 title 时 py 进一步收紧避免与 title pb 双层 padding */}
+        <div className={`px-4 md:px-6 ${title ? "py-2 md:py-4" : "pt-4 md:pt-6 pb-3 md:pb-4"} ${contentClassName}`}>
           {children}
         </div>
 
         {/* 底部按钮区域 */}
         {footer && (
-          <div className="px-6 py-4 flex justify-end gap-3">
+          <div className="px-4 md:px-6 py-3 md:py-4 flex justify-end gap-3">
             {footer}
           </div>
         )}

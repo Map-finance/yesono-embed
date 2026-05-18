@@ -61,4 +61,15 @@ export default {
     proposeResolution: "Propose resolution",
     viewDetails: "View details",
   },
+  settlement: {
+    resolved: "Resolved",
+    win: "Win",
+    lose: "Lose",
+    halfWin: "Half Win",
+    halfLose: "Half Lose",
+    push: "Push",
+    draw: "Draw",
+    over: "Over",
+    under: "Under",
+  },
 } as const;

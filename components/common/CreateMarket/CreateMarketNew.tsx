@@ -565,7 +565,9 @@ export default function CreateMarketNew({
   const [tagSearchQuery, setTagSearchQuery] = useState("");
   const [availableTags, setAvailableTags] = useState<TagTreeNode[]>([]);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
-  const [batchCurrentStep, setBatchCurrentStep] = useState(0); // 0-1 进度指示器
+  // 进度状态仍保留：很多业务回填路径都 setBatchCurrentStep；旧的进度条 UI 已删，
+  // 因此 getter 不再使用，只 destructure setter，避免"declared but never read"提示
+  const [, setBatchCurrentStep] = useState(0);
 
   // 事件搜索下拉相关状态
   const [eventSearchResults, setEventSearchResults] = useState<EventSummary[]>([]);
@@ -3824,53 +3826,13 @@ const renderConfigStep = () => {
 
   // ============== Batch Event & Markets 渲染函数 ==============
 
-  // 步骤进度条组件
-  const renderBatchStepIndicator = () => {
-    const steps = [
-      t.market.create.stepEventInfo,
-      t.market.create.stepBatchMarkets,
-    ];
-    return (
-      <div className="flex items-center mb-6">
-        {steps.map((label, idx) => (
-          <React.Fragment key={idx}>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${
-                    idx === batchCurrentStep
-                    ? "bg-[var(--accent)] text-black"
-                    : "bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border border-[var(--border)]"
-                }`}
-              >
-                {idx + 1}
-              </div>
-              <span
-                className={`text-xs font-medium whitespace-nowrap ${
-                  idx < batchCurrentStep
-                    ? "text-green-500"
-                    : idx === batchCurrentStep
-                    ? "text-[var(--text-primary)]"
-                    : "text-[var(--text-tertiary)]"
-                }`}
-              >
-                {label}
-              </span>
-            </div>
-            {idx < steps.length - 1 && (
-              <div
-                className={`h-0.5 mx-2 sm:mx-3 flex-1 min-w-[2rem] bg-[var(--border)]`}
-              />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-    );
-  };
+  // 注：原来的 renderBatchStepIndicator（"1 事件信息 → 2 生成市场"两步进度条）
+  // 已删除——只有 2 步的进度条性价比低，标题 + 返回按钮已经传达"我在第几步"
+  // 的信息，删掉可省 60-80px 垂直空间，对移动端尤其重要。
 
   // Step 1: Event Info - 事件搜索输入（带下拉搜索 20 条 + 选择）
   const renderEventInfoStep = () => (
     <div className="space-y-5">
-      {renderBatchStepIndicator()}
 
       <div className="flex items-center gap-2 mb-2">
         <button
@@ -4016,7 +3978,6 @@ const renderConfigStep = () => {
 
     return (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto scrollbar-hide px-0.5">
-      {renderBatchStepIndicator()}
 
       {/* Header */}
       <div className="flex items-center gap-2">
@@ -4488,7 +4449,6 @@ const renderConfigStep = () => {
   // Step 3: Global Settings
   const renderGlobalSettingsStep = () => (
     <div className="space-y-5 max-h-[70vh] overflow-y-auto scrollbar-hide">
-      {renderBatchStepIndicator()}
 
       <div className="flex items-center gap-2 mb-2">
         <button
@@ -4646,7 +4606,6 @@ const renderConfigStep = () => {
   // Step 4: Confirm & Submit
   const renderEventConfirmStep = () => (
     <div className="space-y-5 max-h-[70vh] overflow-y-auto scrollbar-hide">
-      {renderBatchStepIndicator()}
 
       <div className="flex items-center gap-2 mb-2">
         <button

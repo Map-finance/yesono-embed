@@ -13,6 +13,7 @@ import { useTranslation } from '@/lib/i18n';
 import { getTagTree, getEvents } from '@/lib/services/homeService';
 import { useNavigation } from '@/lib/hooks/useNavigation';
 import { NavigationItem, TagTreeNode, EventSummary } from '@/types/home';
+import { formatOutcomeProbabilityPercent } from '@/utils/format';
 import { getMarketNavigationUrl } from '@/lib/utils/sportsNav';
 import ProxyImage from '@/components/common/ProxyImage';
 import { trackEvent } from '@/lib/sentryClient';
@@ -188,7 +189,8 @@ const SearchBox: React.FC<SearchBoxProps> = ({
         yesPrice = yesOutcome?.price ?? null;
       }
       if (yesPrice != null && !isNaN(yesPrice)) {
-        pct = `${Math.round(yesPrice * 100)}%`;
+        // clamp 100/0 边界（详见 utils/format.ts）
+        pct = formatOutcomeProbabilityPercent(yesPrice);
       }
     }
     return { pct, marketTitle };

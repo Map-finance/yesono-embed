@@ -41,6 +41,24 @@ export const formatNumber = (num: number, locale: string = "zh-CN"): string => {
 };
 
 /**
+ * 余额类金额"向下截断"到固定小数位（默认 2 位）。
+ * 不变量：**显示值永远 ≤ 真实值**。
+ *
+ * 为什么必须 truncate 不能 toFixed：
+ * - toFixed(2) 是四舍五入，4.99671 → "5.00"
+ * - 用户看到 5.00 输入 5 提现，后端 cash 实际 4.99671 → "Insufficient balance"
+ * - truncate 后 4.99671 → "4.99"，前端直接拦截
+ */
+export const truncateBalance = (
+  amount: number,
+  decimals: number = 2
+): string => {
+  if (!Number.isFinite(amount)) return (0).toFixed(decimals);
+  const factor = Math.pow(10, decimals);
+  return (Math.floor(amount * factor) / factor).toFixed(decimals);
+};
+
+/**
  * 格式化百分比
  */
 export const formatPercentage = (
@@ -123,6 +141,60 @@ export const maskAddress = (
   if (!address || address.length < start + end) return address;
   return `${address.slice(0, start)}...${address.slice(-end)}`;
 };
+
+/**
+ * 内部 helper：raw 概率（0-1 ratio）→ clamp 后的百分比 number
+ * 先 round 到目标精度，再 clamp 到 [10^-fd, 100-10^-fd]
+ */
+function _clampedProbability(
+  rawPrice: number | string | null | undefined,
+  fractionDigits: number,
+): number | null {
+  if (rawPrice == null || rawPrice === "") return null;
+  const num = typeof rawPrice === "number" ? rawPrice : Number(rawPrice);
+  if (!Number.isFinite(num)) return null;
+  const factor = Math.pow(10, fractionDigits);
+  const rounded = Math.round(num * 100 * factor) / factor;
+  const minVal = 1 / factor;
+  const maxVal = 100 - minVal;
+  return Math.max(minVal, Math.min(maxVal, rounded));
+}
+
+/**
+ * 预测市场 outcome 概率显示（cents，"XX.X¢"），未结算市场 clamp 到 [0.1¢, 99.9¢]。
+ * 避免 toFixed 四舍五入造成 100.0¢/0.0¢ 误导成"绝对发生/不发生"。
+ * 仅用于"概率"显示；订单簿挂单 / 成交价等"事实"数据请保留原 toFixed。
+ */
+export function formatOutcomeProbabilityCents(
+  rawPrice: number | string | null | undefined,
+  fractionDigits: number = 1,
+): string {
+  const v = _clampedProbability(rawPrice, fractionDigits);
+  return v == null ? "—" : `${v.toFixed(fractionDigits)}¢`;
+}
+
+/**
+ * 预测市场 outcome 概率显示（% 后缀，"XX%"）。共用底层 clamp。
+ */
+export function formatOutcomeProbabilityPercent(
+  rawPrice: number | string | null | undefined,
+  fractionDigits: number = 0,
+): string {
+  const v = _clampedProbability(rawPrice, fractionDigits);
+  return v == null ? "—" : `${v.toFixed(fractionDigits)}%`;
+}
+
+/**
+ * 拿 clamp 后的百分比 number（不带后缀），用于参与 chart Y 轴 / 进度条 width 等数值计算。
+ * 失败兜底返回 50（中性概率）。
+ */
+export function clampOutcomeProbabilityPercent(
+  rawPrice: number | string | null | undefined,
+  fractionDigits: number = 0,
+): number {
+  const v = _clampedProbability(rawPrice, fractionDigits);
+  return v == null ? 50 : v;
+}
 
 /**
  * 获取对应加密货币的品牌主题色
