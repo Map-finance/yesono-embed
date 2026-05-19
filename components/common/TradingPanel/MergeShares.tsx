@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { useTranslation } from "@/lib/i18n";
 import { useTradingStore } from "@/lib/store/tradingStore";
@@ -6,6 +6,7 @@ import GameButton from "@/components/sports/Live/GameButton";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useCtfOperations } from "@/lib/hooks/useCtfOperations";
+import { getUserCtfBalance } from "@/lib/api";
 import {
   getOutcomeLabel,
   normalizeBinaryOutcomeLabel,
@@ -126,7 +127,65 @@ export default function MergeShares({
     return { outcomeA: "", outcomeB: "" };
   }, [market]);
 
-  // embed 不读链上 CTF 余额，余额由后端 / 父页面负责；用户输入任意 amount，提交由后端拦截
+  // Merge 消耗 YES + NO 两边 CTF 持仓，最多能合并 = min(yesBalance, noBalance)
+  const [yesBalance, setYesBalance] = useState<number>(0);
+  const [noBalance, setNoBalance] = useState<number>(0);
+
+  // 从 marketOutcomes 拿两边 unionKey（getUserCtfBalance 需要）
+  const unionKeys = useMemo(() => {
+    try {
+      const raw = (market as any)?.marketOutcomes;
+      const list = Array.isArray(raw)
+        ? raw
+        : typeof raw === "string"
+          ? JSON.parse(raw)
+          : [];
+      const sideA = list.find((o: any) => Number(o?.originalIndex) === 0);
+      const sideB = list.find((o: any) => Number(o?.originalIndex) === 1);
+      return {
+        yes: String(sideA?.unionKey ?? ""),
+        no: String(sideB?.unionKey ?? ""),
+      };
+    } catch {
+      return { yes: "", no: "" };
+    }
+  }, [market]);
+
+  const fetchBothBalances = async (): Promise<{ yes: number; no: number }> => {
+    const fallback = { yes: yesBalance, no: noBalance };
+    if (!unionKeys.yes || !unionKeys.no) return fallback;
+    try {
+      const [yResp, nResp] = await Promise.all([
+        getUserCtfBalance(unionKeys.yes),
+        getUserCtfBalance(unionKeys.no),
+      ]);
+      const y = yResp.success ? parseFloat(String(yResp.data ?? 0)) : NaN;
+      const n = nResp.success ? parseFloat(String(nResp.data ?? 0)) : NaN;
+      const ySafe = Number.isFinite(y) ? y : fallback.yes;
+      const nSafe = Number.isFinite(n) ? n : fallback.no;
+      setYesBalance(ySafe);
+      setNoBalance(nSafe);
+      return { yes: ySafe, no: nSafe };
+    } catch (e) {
+      console.error("[MergeShares] Failed to fetch CTF balance", e);
+      return fallback;
+    }
+  };
+
+  // 弹窗打开 / 切换 market 时拉一次余额
+  useEffect(() => {
+    if (!open) return;
+    void fetchBothBalances();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, unionKeys.yes, unionKeys.no]);
+
+  const maxMergeable = Math.min(yesBalance, noBalance);
+
+  const handleMax = async () => {
+    const latest = await fetchBothBalances();
+    const m = Math.min(latest.yes, latest.no);
+    setAmount(m > 0 ? m.toFixed(2).replace(/\.?0+$/g, "") : "0");
+  };
 
   const handleMerge = async () => {
     if (!conditionId || !marketId) {
@@ -143,6 +202,13 @@ export default function MergeShares({
     }
     if (!resolvedOutcomes.outcomeA || !resolvedOutcomes.outcomeB) {
       toast.error(t.common?.error || "Missing market outcome names");
+      return;
+    }
+    // CTF 持仓校验：要 yes/no 两边都够才能合并；用最新接口值兜底
+    const latest = await fetchBothBalances();
+    const cap = Math.min(latest.yes, latest.no);
+    if (parseFloat(amount) > cap) {
+      toast.error(t.common?.insufficientShares || "Insufficient shares");
       return;
     }
     try {
@@ -194,8 +260,13 @@ export default function MergeShares({
           </p>
 
           <div className="flex flex-col gap-2">
-            <div className="text-sm font-medium text-(--text-primary)">
-              {t.trade.amount}
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-(--text-primary)">
+                {t.trade.amount}
+              </div>
+              <div className="text-xs text-(--text-secondary)">
+                {t.trade.availableShares || "Available shares"}: {maxMergeable.toFixed(2).replace(/\.?0+$/g, "")}
+              </div>
             </div>
             <div className="relative">
               <input
@@ -214,6 +285,16 @@ export default function MergeShares({
                 disabled={isLoading}
                 className="w-full p-3 rounded-md border border-(--border) bg-(--bg-input) text-(--text-primary) focus:outline-none focus:border-(--accent) transition-colors disabled:opacity-50"
               />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => void handleMax()}
+                disabled={isLoading || maxMergeable <= 0}
+                className="border select-none rounded-sm px-2 py-1 text-xs cursor-pointer border-(--border) hover:bg-(--bg-hover) transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t.trade.max}
+              </button>
             </div>
           </div>
 

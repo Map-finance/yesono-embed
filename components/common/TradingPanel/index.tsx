@@ -124,7 +124,8 @@ export default function TradingPanel({
     orderBookRaw,
   } = useTradingStore();
   const toast = useToast();
-  // embed 不做余额/链上交易：余额扣减由父页面控制；这里既不读 cash 也不读 token 持仓
+  // embed 不读 USDT 现金余额（买单 USDT 扣减由父页面统一控制）；
+  // 但 CTF 代币持仓（YES/NO shares）仍需在这边查询：卖单要知道"我有多少股可卖"。
   const isTrading = false;
   // 获取 YES 和 NO 的实时订单簿价格
   const clobTokenIds = useMemo(() => {
@@ -216,12 +217,55 @@ export default function TradingPanel({
   // 本地提交状态，点击后立即 loading
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // CTF 代币持仓（YES/NO shares）：卖单 MAX / 校验依赖这个值
+  // number 单位是 shares（与 h2-market 一致：getUserCtfBalance 返回 string，直接 parseFloat）
+  const [tokenBalance, setTokenBalance] = useState<number>(0);
+
   // Clear form when market changes
   useEffect(() => {
     setAmount("");
     setLimitPrice("");
     setErrors({});
+    setTokenBalance(0);
   }, [market?.id, questionID]);
+
+  // 取当前选中 outcome 的 unionKey（getUserCtfBalance 需要这个）
+  const selectedUnionKey = useMemo(() => {
+    const list: any[] = parsedMarketOutcomes || [];
+    return (
+      list.find((o) => String(o?.tokenId) === String(selectOutcomeId))
+        ?.unionKey || ""
+    );
+  }, [parsedMarketOutcomes, selectOutcomeId]);
+
+  // 拉取 CTF 持仓的方法：返回最新值 + 同步到 state
+  const fetchTokenBalance = async (): Promise<number> => {
+    if (!authenticated || !selectedUnionKey) return 0;
+    try {
+      const resp = await getUserCtfBalance(selectedUnionKey);
+      if (resp.success && resp.data !== undefined && resp.data !== null) {
+        const n = parseFloat(String(resp.data));
+        const safe = Number.isFinite(n) ? n : 0;
+        setTokenBalance(safe);
+        return safe;
+      }
+      return tokenBalance;
+    } catch (e) {
+      console.error("[TradingPanel] Failed to fetch token balance", e);
+      return tokenBalance;
+    }
+  };
+
+  // SELL 方向 / 切换 outcome / 登录态变更时自动拉一次最新持仓
+  useEffect(() => {
+    if (direction !== "SELL") return;
+    if (!authenticated || !selectedUnionKey) {
+      setTokenBalance(0);
+      return;
+    }
+    void fetchTokenBalance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [direction, selectedUnionKey, authenticated]);
 
   const items: [TeamInfo, TeamInfo] = useMemo(() => {
     const prices = (JSON.parse(market?.outcomePrices || "[]") as (number | string)[]).map(Number);
@@ -404,7 +448,18 @@ export default function TradingPanel({
       newErrors.amount = t.trade.errorInvalidAmount || "Enter a valid amount";
     }
 
-    // 余额校验由父页面负责；前端不再做 insufficientBalance / insufficientShares 拦截
+    // 卖单：用 CTF 持仓校验「股数不足」；买单的 USDT 余额校验交给父页面
+    if (direction === "SELL" && !newErrors.amount) {
+      // 先用本地缓存判断，再实时拉一次兜底（避免本地缓存过期导致误放行/误拦截）
+      let latestBalance = tokenBalance;
+      try {
+        latestBalance = await fetchTokenBalance();
+      } catch {}
+      if (amountVal > latestBalance) {
+        newErrors.amount =
+          t.common?.insufficientShares || "Insufficient shares";
+      }
+    }
 
     if (orderType === "limit") {
       const limitVal = parseFloat(limitPrice);
@@ -794,6 +849,9 @@ export default function TradingPanel({
           setErrors((e) => ({ ...e, amount: undefined }));
         }}
         error={!!errors.amount}
+        tokenBalance={tokenBalance}
+        limitPrice={limitPrice}
+        getLatestTokenBalance={fetchTokenBalance}
       />
 
       {orderType === "limit" && (
@@ -1075,12 +1133,21 @@ function PriceInput({
   amount,
   setAmount,
   error,
+  tokenBalance = 0,
+  limitPrice = "",
+  getLatestTokenBalance,
 }: {
   tradeType: TradeType;
   orderType: OrderType;
   amount: string;
   setAmount: (val: string) => void;
   error?: boolean;
+  /** CTF 持仓（shares 数，已是 number），SELL 侧 MAX/百分比按钮依赖这个 */
+  tokenBalance?: number;
+  /** 限价单价格（¢），SELL 侧不会用到但 buy limit 也用不上 */
+  limitPrice?: string;
+  /** 实时拉取最新 CTF 持仓的回调（点击 MAX/百分比时兜底拉一次） */
+  getLatestTokenBalance?: () => Promise<number>;
 }) {
   const { t } = useTranslation();
   const isShares = orderType === "limit" || tradeType === "sell"; // Limit order or Sell order always uses "Shares"
@@ -1088,6 +1155,27 @@ function PriceInput({
   const handleQuickAdd = (add: number) => {
     const current = parseFloat(amount || "0");
     setAmount((current + add).toString());
+  };
+
+  const handleSellMax = async () => {
+    let latest = tokenBalance;
+    if (getLatestTokenBalance) {
+      try {
+        latest = await getLatestTokenBalance();
+      } catch {}
+    }
+    setAmount(latest > 0 ? latest.toFixed(2).replace(/\.?0+$/g, "") : "0");
+  };
+
+  const handleSellPercent = async (percent: number) => {
+    let latest = tokenBalance;
+    if (getLatestTokenBalance) {
+      try {
+        latest = await getLatestTokenBalance();
+      } catch {}
+    }
+    const v = latest * percent;
+    setAmount(v > 0 ? v.toFixed(2).replace(/\.?0+$/g, "") : "0");
   };
 
   return (
@@ -1177,18 +1265,42 @@ function PriceInput({
         </div>
       </div>
 
-      {/* 快捷加值按钮：embed 不读余额，所以没有 MAX / 25% / 50% 这类依赖余额的按钮 */}
-      <div className="flex justify-end gap-1 text-xs">
-        {[1, 20, 100].map((val) => (
+      {/* 快捷按钮：BUY 用 +1/+20/+100（不读 USDT 余额，因父页面控制），
+          SELL 用 25%/50%/MAX（依赖本地 CTF 持仓 + 点击时实时拉取兜底） */}
+      {tradeType === "buy" ? (
+        <div className="flex justify-end gap-1 text-xs">
+          {[1, 20, 100].map((val) => (
+            <div
+              key={val}
+              onClick={() => handleQuickAdd(val)}
+              className="border select-none rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
+            >
+              +{val}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex justify-end gap-1 text-xs">
           <div
-            key={val}
-            onClick={() => handleQuickAdd(val)}
+            onClick={() => void handleSellPercent(0.25)}
             className="border select-none rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
           >
-            +{val}
+            {t.trade.percent25}
           </div>
-        ))}
-      </div>
+          <div
+            onClick={() => void handleSellPercent(0.5)}
+            className="border select-none rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
+          >
+            {t.trade.percent50}
+          </div>
+          <div
+            onClick={() => void handleSellMax()}
+            className="border select-none rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
+          >
+            {t.trade.max}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
