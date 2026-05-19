@@ -97,6 +97,7 @@ export default {
   cash: 'Efectivo',
   connect: 'Conectar',
   connectWallet: 'Conectar Billetera',
+  pleaseLoginInParent: 'Inicie sesión en la página principal',
   deposit: 'Depositar',
   balance: 'Saldo',
   accountSettings: 'Configuración de cuenta',

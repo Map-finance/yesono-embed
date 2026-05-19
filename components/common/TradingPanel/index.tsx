@@ -381,6 +381,10 @@ export default function TradingPanel({
 
   async function handleTradingClick() {
     if (!authenticated) {
+      // embed 在 iframe 里没法自己弹登录；通知父页面拉起登录并给用户明确反馈
+      toast.error(
+        t.common?.pleaseLoginInParent ?? "Please log in via the host page"
+      );
       openLoginModalWithTrack({
         login,
         triggerAction: "trade_click",
@@ -682,7 +686,7 @@ export default function TradingPanel({
                     setOrderType("market");
                     setOrderTypePopoverOpen(false);
                   }}
-                  className={`w-full p-3 rounded-sm text-left transition-[--transition-fast] text-[--text-primary] bg-transparent hover:bg-[--bg-hover]`}
+                  className={`w-full p-3 rounded-sm text-left transition-(--transition-fast) text-(--text-primary) bg-transparent hover:bg-(--bg-hover)`}
                 >
                   {t.trade.market}
                 </button>
@@ -692,11 +696,11 @@ export default function TradingPanel({
                     setOrderType("limit");
                     setOrderTypePopoverOpen(false);
                   }}
-                  className={`w-full p-3 rounded-sm text-left transition-[--transition-fast] bg-transparent hover:bg-[--bg-hover]`}
+                  className={`w-full p-3 rounded-sm text-left transition-(--transition-fast) bg-transparent hover:bg-(--bg-hover)`}
                 >
                   {t.trade.limit}
                 </button>
-                <div className="border-t border-[--border]"></div>
+                <div className="border-t border-(--border)"></div>
                 <Popover
                   trigger="hover"
                   placement="right-top"
@@ -715,7 +719,7 @@ export default function TradingPanel({
                           }
                           setMergeSharesDialogOpen(true);
                         }}
-                        className={`w-full p-3 rounded-sm text-left transition-[--transition-fast] text-[--text-primary] bg-transparent hover:bg-[--bg-hover]`}
+                        className={`w-full p-3 rounded-sm text-left transition-(--transition-fast) text-(--text-primary) bg-transparent hover:bg-(--bg-hover)`}
                       >
                         {t.trade.merge}
                       </button>
@@ -732,14 +736,14 @@ export default function TradingPanel({
                           }
                           setSplitSharesDialogOpen(true);
                         }}
-                        className={`w-full p-3 rounded-sm text-left transition-[--transition-fast] bg-transparent hover:bg-[--bg-hover]`}
+                        className={`w-full p-3 rounded-sm text-left transition-(--transition-fast) bg-transparent hover:bg-(--bg-hover)`}
                       >
                         {t.trade.split}
                       </button>
                     </div>
                   )}
                 >
-                  <button className="w-full p-3 rounded-sm text-left transition-[--transition-fast] bg-transparent hover:bg-[color-mix(in_srgb,var(--bg-hover)_30%,transparent)] flex items-center justify-between">
+                  <button className="w-full p-3 rounded-sm text-left transition-(--transition-fast) bg-transparent hover:bg-[color-mix(in_srgb,var(--bg-hover)_30%,transparent)] flex items-center justify-between">
                     <div>{t.trade.more}</div>
                     <ChevronRight />
                   </button>
@@ -832,7 +836,7 @@ export default function TradingPanel({
                   </div>
                 }
               >
-                <div className="w-full flex items-center justify-between cursor-pointer p-3 border border-[--border] rounded-md hover:border-[--text-secondary] transition-colors">
+                <div className="w-full flex items-center justify-between cursor-pointer p-3 border border-(--border) rounded-md hover:border-(--text-secondary) transition-colors">
                   <span>
                     {(t.trade as any)[`time_${expirationTime}`] ||
                       expirationTime}
@@ -975,6 +979,8 @@ export default function TradingPanel({
             <Loader2 className="animate-spin" size={20} />
             <span>{t.trade.processing}</span>
           </div>
+        ) : !authenticated ? (
+          t.common?.pleaseLoginInParent ?? "Please log in via the host page"
         ) : (
           t.trade.trade
         )}
@@ -998,7 +1004,6 @@ export default function TradingPanel({
         }}
         conditionId={market?.conditionId || ""}
         marketId={market?.id ? String(market.id) : ""}
-        walletBalance={0}
         yesLabel={yesLabel}
         noLabel={noLabel}
         marketOutcomes={sortedOutcomes as any[]}
@@ -1049,7 +1054,7 @@ function ButtonGroup({
             key={item.type}
             color={isSelected ? item.color : "var(--bg-secondary)"}
             className={`flex-1 min-w-0 ${
-              isSelected ? "" : "!text-[--text-secondary]"
+              isSelected ? "" : "!text-(--text-secondary)"
             }`}
             onClick={() => onSelect?.(item.value)}
           >

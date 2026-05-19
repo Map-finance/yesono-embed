@@ -97,6 +97,7 @@ export default {
   cash: 'Contanti',
   connect: 'Connetti',
   connectWallet: 'Connetti Wallet',
+  pleaseLoginInParent: 'Accedi tramite la pagina host',
   deposit: 'Deposita',
   balance: 'Saldo',
   accountSettings: 'Impostazioni account',

@@ -97,6 +97,7 @@ export default {
   cash: 'Bargeld',
   connect: 'Verbinden',
   connectWallet: 'Wallet verbinden',
+  pleaseLoginInParent: 'Bitte über die Host-Seite anmelden',
   deposit: 'Einzahlen',
   balance: 'Guthaben',
   accountSettings: 'Kontoeinstellungen',

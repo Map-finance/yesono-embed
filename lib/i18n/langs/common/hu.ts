@@ -97,6 +97,7 @@ export default {
   cash: 'Készpénz',
   connect: 'Csatlakozás',
   connectWallet: 'Tárca csatlakoztatása',
+  pleaseLoginInParent: 'Jelentkezzen be a gazdaoldalon',
   deposit: 'Befizetés',
   balance: 'Egyenleg',
   accountSettings: 'Fiókbeállítások',

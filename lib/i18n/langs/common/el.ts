@@ -97,6 +97,7 @@ export default {
   cash: 'Μετρητά',
   connect: 'Σύνδεση',
   connectWallet: 'Σύνδεση Πορτοφολιού',
+  pleaseLoginInParent: 'Συνδεθείτε μέσω της κεντρικής σελίδας',
   deposit: 'Κατάθεση',
   balance: 'Υπόλοιπο',
   accountSettings: 'Ρυθμίσεις λογαριασμού',

@@ -38,14 +38,14 @@ export default function MarketSuccess({
       </h2>
 
       {/* 行2：提示信息 */}
-      <p className="text-[--text-secondary] mb-8 max-md:text-sm max-md:mb-6">
+      <p className="text-(--text-secondary) mb-8 max-md:text-sm max-md:mb-6">
         {t.market.create.marketLiveMessage}
       </p>
 
       {/* 按钮 */}
       <button
         onClick={handleGoToMarket}
-        className="px-3 py-1.5 rounded-full bg-[--accent] text-sm text-black font-medium hover:opacity-90 transition-opacity max-md:w-full"
+        className="px-3 py-1.5 rounded-full bg-(--accent) text-sm text-black font-medium hover:opacity-90 transition-opacity max-md:w-full"
       >
         {t.market.create.goToMarketDetail}
       </button>

@@ -94,6 +94,7 @@ export default {
   cash: "เงินสด",
   connect: "เชื่อมต่อ",
   connectWallet: "เชื่อมต่อกระเป๋าเงิน",
+  pleaseLoginInParent: 'กรุณาเข้าสู่ระบบจากหน้าหลัก',
   deposit: "ฝากเงิน",
   balance: "ยอดคงเหลือ",
   accountSettings: "ตั้งค่าบัญชี",

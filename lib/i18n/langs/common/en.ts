@@ -97,6 +97,7 @@ export default {
   cash: 'Cash',
   connect: 'Connect',
   connectWallet: 'Connect Wallet',
+  pleaseLoginInParent: 'Please log in via the host page',
   deposit: 'Deposit',
   balance: 'Balance',
   accountSettings: 'Account Settings',

@@ -97,6 +97,7 @@ export default {
   cash: "現金",
   connect: "接続",
   connectWallet: "ウォレット接続",
+  pleaseLoginInParent: '親ページでログインしてください',
   deposit: "入金",
   balance: "残高",
   accountSettings: "アカウント設定",

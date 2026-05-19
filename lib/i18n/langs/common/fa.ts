@@ -97,6 +97,7 @@ export default {
   cash: 'پول نقد',
   connect: 'اتصال',
   connectWallet: 'اتصال کیف پول',
+  pleaseLoginInParent: 'لطفاً از صفحه میزبان وارد شوید',
   deposit: 'واریز',
   balance: 'موجودی',
   accountSettings: 'تنظیمات حساب',

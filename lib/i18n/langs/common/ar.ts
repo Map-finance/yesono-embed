@@ -97,6 +97,7 @@ export default {
   cash: 'نقدي',
   connect: 'اتصال',
   connectWallet: 'ربط المحفظة',
+  pleaseLoginInParent: 'يرجى تسجيل الدخول عبر الصفحة المضيفة',
   deposit: 'إيداع',
   balance: 'الرصيد',
   accountSettings: 'إعدادات الحساب',

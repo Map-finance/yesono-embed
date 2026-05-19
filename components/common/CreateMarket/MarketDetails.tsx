@@ -104,14 +104,14 @@ export default function GenerateResultAndForm({
         <button
           onClick={onPrevious}
           disabled={isLoading}
-          className="text-[--text-secondary] text-sm underline hover:text-[--text-primary] disabled:opacity-50 max-md:w-full max-md:py-2"
+          className="text-(--text-secondary) text-sm underline hover:text-(--text-primary) disabled:opacity-50 max-md:w-full max-md:py-2"
         >
           {t.market.common.back}
         </button>
         <button
           onClick={handleSubmit}
           disabled={!isValid || isLoading}
-          className="px-4 py-2 rounded-full bg-[--accent] text-sm text-black font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity max-md:w-full"
+          className="px-4 py-2 rounded-full bg-(--accent) text-sm text-black font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity max-md:w-full"
         >
           {isLoading ? t.market.common.saving : t.market.common.next}
         </button>

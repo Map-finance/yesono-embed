@@ -94,6 +94,7 @@ export default {
   cash: "Tiền mặt",
   connect: "Kết nối",
   connectWallet: "Kết nối ví",
+  pleaseLoginInParent: 'Vui lòng đăng nhập từ trang chủ',
   deposit: "Nạp tiền",
   balance: "Số dư",
   accountSettings: "Cài đặt tài khoản",

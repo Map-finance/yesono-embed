@@ -94,6 +94,7 @@ export default {
   cash: "សាច់ប្រាក់",
   connect: "ភ្ជាប់",
   connectWallet: "ភ្ជាប់កាបូប",
+  pleaseLoginInParent: 'សូមចូលប្រើតាមរយៈទំព័រមេ',
   deposit: "ដាក់ប្រាក់",
   balance: "សមតុល្យ",
   accountSettings: "ការកំណត់គណនី",

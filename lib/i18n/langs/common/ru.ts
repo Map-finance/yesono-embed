@@ -97,6 +97,7 @@ export default {
   cash: 'Наличные',
   connect: 'Подключить',
   connectWallet: 'Подключить кошелек',
+  pleaseLoginInParent: 'Войдите через родительскую страницу',
   deposit: 'Пополнить',
   balance: 'Баланс',
   accountSettings: 'Настройки аккаунта',

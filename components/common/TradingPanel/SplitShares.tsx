@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ConfirmDialog, Dialog } from "@/components/ui/Dialog";
+import { Dialog } from "@/components/ui/Dialog";
 import { useTranslation } from "@/lib/i18n";
 import GameButton from "@/components/sports/Live/GameButton";
 import { useCtfOperations } from "@/lib/hooks/useCtfOperations";
@@ -17,7 +17,6 @@ interface SplitSharesProps {
   marketId?: string;
   isAuthenticated?: boolean;
   isAuthorized?: boolean;
-  walletBalance?: number;
   yesLabel?: string;
   noLabel?: string;
   marketOutcomes?: any[];
@@ -28,7 +27,6 @@ export default function SplitShares({
   onOpenChange,
   onConfirm,
   onSuccess,
-  walletBalance = 0,
   conditionId,
   marketId,
   yesLabel: yesLabelProp,
@@ -103,27 +101,8 @@ export default function SplitShares({
     }
   };
 
-  const handleMax = () => {
-    setAmount(walletBalance.toString());
-  }
-
-  // State 1: No Balance -> Show Deposit Prompt (Existing Logic)
-  // Assuming a small epsilon for float comparison, though <= 0 is standard for empty
-  if (walletBalance <= 0) {
-    return (
-      <ConfirmDialog
-        open={open}
-        title={t.trade.splitShares}
-        message={t.trade.splitMessage}
-        cancelText={null}
-        confirmText={t.trade.deposit}
-        onOpenChange={onOpenChange}
-        onConfirm={onConfirm}
-      />
-    );
-  }
-
-  // State 2: Has Balance -> Show Split Form
+  // embed 不读余额，余额校验由父页面 / 后端负责；
+  // 直接渲染 split 表单，让用户输入任意 amount，提交后由后端拦截
   return (
     <Dialog
       open={open}
@@ -157,24 +136,12 @@ export default function SplitShares({
               className="w-full p-3 rounded-md border border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors disabled:opacity-50"
             />
           </div>
-          {/* Available Tip */}
-          <div className="flex justify-end items-center text-xs text-[var(--text-secondary)] gap-1">
-            <span>
-              {(t.trade.availableMax || "Available: {{amount}} USDT Max").replace("{{amount}}", walletBalance.toString())}
-            </span>
-            <span
-              onClick={handleMax}
-              className="text-[var(--accent)] cursor-pointer hover:underline font-medium"
-            >
-              {t.trade.max}
-            </span>
-          </div>
         </div>
 
         {/* Confirm Button */}
         <GameButton
           onClick={handleSplit}
-          disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > walletBalance || isLoading}
+          disabled={!amount || parseFloat(amount) <= 0 || isLoading}
           className="w-full mt-2"
         >
           {isLoading ? (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { useTranslation } from "@/lib/i18n";
 import { useTradingStore } from "@/lib/store/tradingStore";
@@ -6,26 +6,10 @@ import GameButton from "@/components/sports/Live/GameButton";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useCtfOperations } from "@/lib/hooks/useCtfOperations";
-// yesono-embed 不引入 viem；inline 6-decimal helpers
-function parseUnits(value: string, decimals: number): bigint {
-  const [whole = "0", frac = ""] = String(value).split(".");
-  const padded = (frac + "0".repeat(decimals)).slice(0, decimals);
-  return BigInt(whole) * BigInt(10) ** BigInt(decimals) + BigInt(padded || "0");
-}
-function formatUnits(value: bigint, decimals: number): string {
-  const neg = value < 0n;
-  const abs = neg ? -value : value;
-  const base = BigInt(10) ** BigInt(decimals);
-  const whole = abs / base;
-  const frac = (abs % base).toString().padStart(decimals, "0").replace(/0+$/, "");
-  const s = frac ? `${whole}.${frac}` : String(whole);
-  return neg ? "-" + s : s;
-}
 import {
   getOutcomeLabel,
   normalizeBinaryOutcomeLabel,
 } from "@/lib/utils/outcomes";
-import { getUserCtfBalance } from "@/lib/api";
 import { trackEvent } from "@/lib/sentryClient";
 interface MergeSharesProps {
   open: boolean;
@@ -44,9 +28,6 @@ export default function MergeShares({
   const { merge, isLoading, status } = useCtfOperations();
 
   const [amount, setAmount] = useState("");
-  const [yesBalance, setYesBalance] = useState<bigint>(0n);
-  const [noBalance, setNoBalance] = useState<bigint>(0n);
-  const [isFetchingAvailable, setIsFetchingAvailable] = useState(false);
 
   const marketId = market?.id ? String(market.id) : "";
   const conditionId = market?.conditionId ? String(market.conditionId) : "";
@@ -145,74 +126,7 @@ export default function MergeShares({
     return { outcomeA: "", outcomeB: "" };
   }, [market]);
 
-  const availableQuantums = useMemo(() => {
-    return yesBalance < noBalance ? yesBalance : noBalance;
-  }, [yesBalance, noBalance]);
-
-  const availableReadable = useMemo(() => {
-    try {
-      return formatUnits(availableQuantums, 6);
-    } catch {
-      return "0";
-    }
-  }, [availableQuantums]);
-
-  const fetchCtfBalances = useCallback(async () => {
-    const raw = (market as any)?.marketOutcomes;
-    const outcomes = Array.isArray(raw)
-      ? raw
-      : typeof raw === "string"
-        ? (() => { try { return JSON.parse(raw); } catch { return []; } })()
-        : [];
-    if (outcomes.length === 0) {
-      setYesBalance(0n);
-      setNoBalance(0n);
-      return;
-    }
-
-    setIsFetchingAvailable(true);
-    try {
-      let nextYes = 0n;
-      let nextNo = 0n;
-      await Promise.all(
-        outcomes.map(async (outcome: any) => {
-          if (!outcome.unionKey) return;
-          const resp = await getUserCtfBalance(outcome.unionKey);
-          if (resp.success && resp.data !== undefined && resp.data !== null) {
-            const balanceNum = parseFloat(String(resp.data));
-            if (!Number.isFinite(balanceNum)) return;
-            const balance = parseUnits(balanceNum.toFixed(6), 6);
-
-            const isNo = Number(outcome?.originalIndex) === 1;
-
-            if (isNo) {
-              nextNo = balance;
-            } else {
-              nextYes = balance;
-            }
-          }
-        })
-      );
-      setYesBalance(nextYes);
-      setNoBalance(nextNo);
-    } catch (e) {
-      console.error("[MergeShares] Fetch CTF balance error", e);
-      setYesBalance(0n);
-      setNoBalance(0n);
-    } finally {
-      setIsFetchingAvailable(false);
-    }
-  }, [market]);
-
-  useEffect(() => {
-    if (!open) return;
-    fetchCtfBalances();
-  }, [open, fetchCtfBalances]);
-
-  const handleMax = () => {
-    if (isFetchingAvailable) return;
-    setAmount(availableReadable);
-  };
+  // embed 不读链上 CTF 余额，余额由后端 / 父页面负责；用户输入任意 amount，提交由后端拦截
 
   const handleMerge = async () => {
     if (!conditionId || !marketId) {
@@ -275,12 +189,12 @@ export default function MergeShares({
         title={t.trade.mergeShares}
       >
         <div className="flex flex-col gap-5 py-2">
-          <p className="text-[--text-secondary] text-sm leading-relaxed">
+          <p className="text-(--text-secondary) text-sm leading-relaxed">
             {mergeDescription}
           </p>
 
           <div className="flex flex-col gap-2">
-            <div className="text-sm font-medium text-[--text-primary]">
+            <div className="text-sm font-medium text-(--text-primary)">
               {t.trade.amount}
             </div>
             <div className="relative">
@@ -298,36 +212,18 @@ export default function MergeShares({
                 }}
                 placeholder="0"
                 disabled={isLoading}
-                className="w-full p-3 rounded-md border border-[--border] bg-[--bg-input] text-[--text-primary] focus:outline-none focus:border-[--accent] transition-colors disabled:opacity-50"
+                className="w-full p-3 rounded-md border border-(--border) bg-(--bg-input) text-(--text-primary) focus:outline-none focus:border-(--accent) transition-colors disabled:opacity-50"
               />
-            </div>
-
-            <div className="flex justify-end items-center text-xs text-[--text-secondary] gap-1">
-              {/* 中文注释：不要依赖翻译占位符，直接拼接，避免“可用份额”后面不显示数值 */}
-              <span>
-                {t.trade.availableShares}: {isFetchingAvailable ? "..." : availableReadable}
-              </span>
-              <span
-                onClick={handleMax}
-                className={`text-[--accent] hover:underline font-medium ${isFetchingAvailable ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-              >
-                {t.trade.max}
-              </span>
             </div>
           </div>
 
           {status ? (
-            <div className="text-xs text-[--text-secondary]">{status}</div>
+            <div className="text-xs text-(--text-secondary)">{status}</div>
           ) : null}
 
           <GameButton
             onClick={handleMerge}
-            disabled={
-              !amount ||
-              parseFloat(amount) <= 0 ||
-              parseFloat(amount) > parseFloat(availableReadable) ||
-              isLoading
-            }
+            disabled={!amount || parseFloat(amount) <= 0 || isLoading}
             className="w-full mt-2"
           >
             {isLoading ? (

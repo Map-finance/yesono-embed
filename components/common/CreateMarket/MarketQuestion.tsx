@@ -109,10 +109,10 @@ export default function MarketQuestion({
           disabled={isLoading}
         />
       </label>
-      <div className="text-xs text-[--text-secondary] mt-1">
+      <div className="text-xs text-(--text-secondary) mt-1">
         {t.market.create.charactersRemaining(remaining, maxLength)}
       </div>
-      <div className="text-[--accent] text-sm mt-6">
+      <div className="text-(--accent) text-sm mt-6">
         <CircleAlert size={16} className="inline-block align-middle mr-1" />
         <span className="align-middle">
           {t.market.create.aiHint}

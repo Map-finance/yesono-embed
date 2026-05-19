@@ -63,7 +63,7 @@ const PodiumCard: React.FC<{
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex flex-col items-center gap-2 rounded-2xl border border-[--border] bg-[var(--bg-card)] px-4 py-5 transition-all hover:border-[--accent]/40 hover:bg-[--bg-hover] ${heightClass} ${orderClass}`}
+      className={`group relative flex flex-col items-center gap-2 rounded-2xl border border-(--border) bg-[var(--bg-card)] px-4 py-5 transition-all hover:border-(--accent)/40 hover:bg-(--bg-hover) ${heightClass} ${orderClass}`}
     >
       {rank === 1 && (
         <Crown
@@ -86,10 +86,10 @@ const PodiumCard: React.FC<{
           {rank}
         </span>
       </div>
-      <div className="mt-1 max-w-full truncate text-sm font-bold text-[--text-primary] group-hover:underline">
+      <div className="mt-1 max-w-full truncate text-sm font-bold text-(--text-primary) group-hover:underline">
         {user.name}
       </div>
-      <div className="text-xs font-semibold text-[--text-secondary]">
+      <div className="text-xs font-semibold text-(--text-secondary)">
         <span
           className={
             user.profitLoss >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"
@@ -208,7 +208,7 @@ const Leaderboard: React.FC = () => {
   if (!mounted) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-[--text-tertiary]">{t.leaderboard.loading}</div>
+        <div className="text-(--text-tertiary)">{t.leaderboard.loading}</div>
       </div>
     );
   }
@@ -217,18 +217,18 @@ const Leaderboard: React.FC = () => {
     <div className={`mx-auto max-w-6xl p-4 space-y-4 ${myOverview ? "pb-24" : ""}`}>
       {/* 标题 */}
       <div className="flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-[--accent]/10">
-          <Trophy className="size-5 text-[--accent]" />
+        <div className="flex size-10 items-center justify-center rounded-xl bg-(--accent)/10">
+          <Trophy className="size-5 text-(--accent)" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold text-[--text-primary]">
+          <h1 className="text-2xl font-semibold text-(--text-primary)">
             {t.leaderboard.title}
           </h1>
         </div>
       </div>
 
       {/* 筛选栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[--border] bg-[var(--bg-card)] p-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--border) bg-[var(--bg-card)] p-2">
         {/* 时间筛选 - desktop */}
         <div className="hidden gap-1 md:flex">
           {timeRanges.map((tr) => (
@@ -237,8 +237,8 @@ const Leaderboard: React.FC = () => {
               onClick={() => setTimeRange(tr.key)}
               className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
                 timeRange === tr.key
-                  ? "bg-[--accent] text-black"
-                  : "text-[--text-secondary] hover:bg-[--bg-hover] hover:text-[--text-primary]"
+                  ? "bg-(--accent) text-(--text-inverse)"
+                  : "text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-primary)"
               }`}
             >
               {tr.label}
@@ -253,7 +253,7 @@ const Leaderboard: React.FC = () => {
               {timeRanges.map((tr) => (
                 <button
                   key={tr.key}
-                  className="rounded px-2 py-2 text-left transition-colors hover:bg-[--bg-hover]"
+                  className="rounded px-2 py-2 text-left transition-colors hover:bg-(--bg-hover)"
                   onClick={() => {
                     setTimeRange(tr.key);
                     close();
@@ -266,10 +266,10 @@ const Leaderboard: React.FC = () => {
           )}
         >
           {({ isOpen }) => (
-            <button className="flex items-center gap-1 rounded-xl border border-[--border] px-3 py-2 text-sm font-semibold md:hidden">
+            <button className="flex items-center gap-1 rounded-xl border border-(--border) px-3 py-2 text-sm font-semibold md:hidden">
               <span>{timeRanges.find((tr) => tr.key === timeRange)?.label}</span>
               <ChevronDown
-                className={`ml-1 size-4 text-[--text-tertiary] transition-transform ${
+                className={`ml-1 size-4 text-(--text-tertiary) transition-transform ${
                   isOpen ? "rotate-180" : ""
                 }`}
               />
@@ -279,13 +279,13 @@ const Leaderboard: React.FC = () => {
 
         {/* 搜索 */}
         <div className="relative flex-1 min-w-[180px] max-w-[320px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[--text-tertiary]" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-(--text-tertiary)" />
           <input
             type="text"
             placeholder={t.leaderboard.table.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-[--border] bg-transparent py-2 pl-9 pr-3 text-sm text-[--text-primary] outline-none transition-colors placeholder:text-[--text-tertiary] focus:border-[--accent]/50"
+            className="w-full rounded-xl border border-(--border) bg-transparent py-2 pl-9 pr-3 text-sm text-(--text-primary) outline-none transition-colors placeholder:text-(--text-tertiary) focus:border-(--accent)/50"
           />
         </div>
       </div>
@@ -305,9 +305,9 @@ const Leaderboard: React.FC = () => {
       )}
 
       {/* 表格卡片 */}
-      <div className="overflow-hidden rounded-2xl border border-[--border] bg-[var(--bg-card)]">
+      <div className="overflow-hidden rounded-2xl border border-(--border) bg-[var(--bg-card)]">
         {/* 列头 */}
-        <div className="flex items-center justify-between border-b border-[--border] px-4 py-3 text-xs font-bold uppercase tracking-wider text-[--text-tertiary]">
+        <div className="flex items-center justify-between border-b border-(--border) px-4 py-3 text-xs font-bold uppercase tracking-wider text-(--text-tertiary)">
           <div className="flex items-center gap-3">
             <span className="w-8 text-center">#</span>
             <span>{t.leaderboard.table.searchPlaceholder.replace(/\?$/, "")}</span>
@@ -319,7 +319,7 @@ const Leaderboard: React.FC = () => {
                 <div className="flex min-w-[140px] flex-col">
                   {columns.map((col, index) => (
                     <button
-                      className="rounded px-2 py-2 text-left transition-colors hover:bg-[--bg-hover]"
+                      className="rounded px-2 py-2 text-left transition-colors hover:bg-(--bg-hover)"
                       key={col.value}
                       onClick={() => {
                         close();
@@ -349,8 +349,8 @@ const Leaderboard: React.FC = () => {
               onClick={() => setSelectColumnIndex(0)}
               className={`hidden transition-colors md:block ${
                 selectColumnIndex === 0
-                  ? "text-[--text-primary]"
-                  : "hover:text-[--text-secondary]"
+                  ? "text-(--text-primary)"
+                  : "hover:text-(--text-secondary)"
               }`}
             >
               {t.leaderboard.table.profitLoss}
@@ -359,8 +359,8 @@ const Leaderboard: React.FC = () => {
               onClick={() => setSelectColumnIndex(1)}
               className={`hidden min-w-[100px] text-right transition-colors md:block ${
                 selectColumnIndex === 1
-                  ? "text-[--text-primary]"
-                  : "hover:text-[--text-secondary]"
+                  ? "text-(--text-primary)"
+                  : "hover:text-(--text-secondary)"
               }`}
             >
               {t.leaderboard.table.volume}
@@ -369,7 +369,7 @@ const Leaderboard: React.FC = () => {
         </div>
 
         {/* 内容 */}
-        <div className="divide-y divide-[--border]">
+        <div className="divide-y divide-(--border)">
           {isLoading && sortedData.length === 0 && (
             <div className="space-y-3 px-4 py-6">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -377,16 +377,16 @@ const Leaderboard: React.FC = () => {
                   key={i}
                   className="flex items-center gap-3 animate-pulse"
                 >
-                  <div className="size-8 rounded-full bg-[--bg-hover]" />
-                  <div className="size-10 rounded-full bg-[--bg-hover]" />
-                  <div className="h-4 flex-1 rounded bg-[--bg-hover]" />
-                  <div className="h-4 w-20 rounded bg-[--bg-hover]" />
+                  <div className="size-8 rounded-full bg-(--bg-hover)" />
+                  <div className="size-10 rounded-full bg-(--bg-hover)" />
+                  <div className="h-4 flex-1 rounded bg-(--bg-hover)" />
+                  <div className="h-4 w-20 rounded bg-(--bg-hover)" />
                 </div>
               ))}
             </div>
           )}
           {!isLoading && sortedData.length === 0 && (
-            <div className="px-4 py-12 text-center text-sm text-[--text-tertiary]">
+            <div className="px-4 py-12 text-center text-sm text-(--text-tertiary)">
               {t.leaderboard.noData}
             </div>
           )}
@@ -399,12 +399,12 @@ const Leaderboard: React.FC = () => {
               <div
                 key={`${user.rank}-${user.userId || user.name}-${index}`}
                 onClick={() => goToUser(user)}
-                className="group flex cursor-pointer items-center justify-between px-4 py-3 transition-colors hover:bg-[--bg-hover]"
+                className="group flex cursor-pointer items-center justify-between px-4 py-3 transition-colors hover:bg-(--bg-hover)"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={`w-8 text-center text-sm font-bold ${
-                      medal ? medal.label : "text-[--text-tertiary]"
+                      medal ? medal.label : "text-(--text-tertiary)"
                     }`}
                   >
                     {actualRank}
@@ -427,7 +427,7 @@ const Leaderboard: React.FC = () => {
                     userId={user.userId || user.name}
                     displayName={user.name}
                   >
-                    <span className="truncate text-sm font-semibold text-[--text-primary] group-hover:underline">
+                    <span className="truncate text-sm font-semibold text-(--text-primary) group-hover:underline">
                       {user.name}
                     </span>
                   </UserProfile>
@@ -436,8 +436,8 @@ const Leaderboard: React.FC = () => {
                   <div
                     className={`text-right text-sm font-semibold tabular-nums ${
                       selectColumnIndex === 0
-                        ? "text-[--text-primary]"
-                        : "text-[--text-tertiary] max-md:hidden"
+                        ? "text-(--text-primary)"
+                        : "text-(--text-tertiary) max-md:hidden"
                     }`}
                   >
                     ${formatCurrency(user.profitLoss)}
@@ -445,8 +445,8 @@ const Leaderboard: React.FC = () => {
                   <div
                     className={`min-w-[100px] text-right text-sm font-semibold tabular-nums ${
                       selectColumnIndex === 1
-                        ? "text-[--text-primary]"
-                        : "text-[--text-tertiary] max-md:hidden"
+                        ? "text-(--text-primary)"
+                        : "text-(--text-tertiary) max-md:hidden"
                     }`}
                   >
                     ${formatCurrency(user.volume)}
@@ -459,11 +459,11 @@ const Leaderboard: React.FC = () => {
 
         {/* 分页 */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-1 border-t border-[--border] px-4 py-4">
+          <div className="flex items-center justify-center gap-1 border-t border-(--border) px-4 py-4">
             <button
               onClick={() => goToPage(page - 1)}
               disabled={page === 1}
-              className="flex size-8 items-center justify-center rounded-lg text-[--text-secondary] transition-colors hover:bg-[--bg-hover] hover:text-[--text-primary] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+              className="flex size-8 items-center justify-center rounded-lg text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             >
               <ChevronLeft className="size-4" />
             </button>
@@ -475,14 +475,14 @@ const Leaderboard: React.FC = () => {
                     onClick={() => goToPage(p)}
                     className={`flex size-8 items-center justify-center rounded-lg text-xs font-bold transition-all ${
                       page === p
-                        ? "bg-[--accent] text-black"
-                        : "text-[--text-secondary] hover:bg-[--bg-hover] hover:text-[--text-primary]"
+                        ? "bg-(--accent) text-(--text-inverse)"
+                        : "text-(--text-secondary) hover:bg-(--bg-hover) hover:text-(--text-primary)"
                     }`}
                   >
                     {p}
                   </button>
                 ) : (
-                  <span className="flex size-8 items-center justify-center text-xs text-[--text-tertiary]">
+                  <span className="flex size-8 items-center justify-center text-xs text-(--text-tertiary)">
                     …
                   </span>
                 )}
@@ -492,7 +492,7 @@ const Leaderboard: React.FC = () => {
             <button
               onClick={() => goToPage(page + 1)}
               disabled={page === totalPages}
-              className="flex size-8 items-center justify-center rounded-lg text-[--text-secondary] transition-colors hover:bg-[--bg-hover] hover:text-[--text-primary] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+              className="flex size-8 items-center justify-center rounded-lg text-(--text-secondary) transition-colors hover:bg-(--bg-hover) hover:text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             >
               <ChevronRight className="size-4" />
             </button>
@@ -503,13 +503,13 @@ const Leaderboard: React.FC = () => {
       {/* 底部悬浮个人排名 */}
       {myOverview && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-50 border-t border-[--border] bg-[var(--bg-secondary)]/95 backdrop-blur-md md:left-1/2 md:right-auto md:bottom-3 md:w-[min(72rem,calc(100%-2rem))] md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-xl"
+          className="fixed bottom-0 left-0 right-0 z-50 border-t border-(--border) bg-[var(--bg-secondary)]/95 backdrop-blur-md md:left-1/2 md:right-auto md:bottom-3 md:w-[min(72rem,calc(100%-2rem))] md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-xl"
           onClick={() => router.push("/pna")}
         >
           <div className="mx-auto max-w-6xl px-4">
-            <div className="group flex cursor-pointer items-center justify-between py-3 transition-colors hover:bg-[--bg-hover] md:rounded-2xl md:px-2">
+            <div className="group flex cursor-pointer items-center justify-between py-3 transition-colors hover:bg-(--bg-hover) md:rounded-2xl md:px-2">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="w-8 text-center text-sm font-bold text-[--accent]">
+                <span className="w-8 text-center text-sm font-bold text-(--accent)">
                   {myOverview.rank}
                 </span>
                 <Avatar
@@ -517,15 +517,15 @@ const Leaderboard: React.FC = () => {
                   name={myOverview.userName}
                   className="!size-10 shrink-0"
                 />
-                <span className="truncate text-sm font-semibold text-[--text-primary] group-hover:underline">
+                <span className="truncate text-sm font-semibold text-(--text-primary) group-hover:underline">
                   {myOverview.userName}
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-6">
-                <div className="text-right text-sm font-semibold tabular-nums text-[--text-primary]">
+                <div className="text-right text-sm font-semibold tabular-nums text-(--text-primary)">
                   ${formatCurrency(myOverview.profitLoss)}
                 </div>
-                <div className="min-w-[100px] text-right text-sm font-semibold tabular-nums text-[--text-primary] max-md:hidden">
+                <div className="min-w-[100px] text-right text-sm font-semibold tabular-nums text-(--text-primary) max-md:hidden">
                   ${formatCurrency(myOverview.volume)}
                 </div>
               </div>

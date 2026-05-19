@@ -97,6 +97,7 @@ export default {
   cash: '现金',
   connect: '连接',
   connectWallet: '连接钱包',
+  pleaseLoginInParent: '请先在父页面登录',
   deposit: '充值',
   balance: '余额',
   accountSettings: '账户设置',

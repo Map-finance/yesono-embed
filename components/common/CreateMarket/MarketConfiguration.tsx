@@ -114,8 +114,8 @@ export default function MarketConfig({
                       disabled={isLoading}
                       className={`w-full border border-solid py-2 px-2 text-xs rounded-lg transition-colors disabled:opacity-50 text-center truncate ${
                         isSelected
-                          ? "bg-[--accent] text-black border-[--accent]"
-                          : "border-[--border] hover:bg-[--accent] hover:text-black"
+                          ? "bg-(--accent) text-black border-(--accent)"
+                          : "border-(--border) hover:bg-(--accent) hover:text-black"
                       }`}
                       title={cat.label}
                     >
@@ -133,7 +133,7 @@ export default function MarketConfig({
             <div>{t.market.create.maxSize}</div>
           </div>
           <div
-            className="size-52 bg-[--bg-secondary] rounded-md flex items-center justify-center relative overflow-hidden cursor-pointer border-2 border-dashed border-[--border] hover:border-[--accent] transition-colors max-md:w-full max-md:h-40"
+            className="size-52 bg-(--bg-secondary) rounded-md flex items-center justify-center relative overflow-hidden cursor-pointer border-2 border-dashed border-(--border) hover:border-(--accent) transition-colors max-md:w-full max-md:h-40"
             onClick={handleImageClick}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -164,7 +164,7 @@ export default function MarketConfig({
                 </button>
               </>
             ) : (
-              <div className="flex flex-col items-center gap-2 text-[--text-secondary]">
+              <div className="flex flex-col items-center gap-2 text-(--text-secondary)">
                 <ImageUp size={30} />
                 <div className="text-xs text-center">
                   {isUploading

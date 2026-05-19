@@ -97,6 +97,7 @@ export default {
   cash: 'Espèces',
   connect: 'Connecter',
   connectWallet: 'Connecter le Wallet',
+  pleaseLoginInParent: 'Veuillez vous connecter via la page hôte',
   deposit: 'Dépôt',
   balance: 'Solde',
   accountSettings: 'Paramètres du compte',
