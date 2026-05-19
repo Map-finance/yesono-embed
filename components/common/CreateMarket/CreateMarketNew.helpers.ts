@@ -38,6 +38,12 @@ export function getDefaultCreateBetAmount(): string {
   return "5";
 }
 
+/**
+ * UMA optimistic oracle 的 liveness（秒）— common 类型市场必填。
+ * 7200s = 2h，给挑战者发起 dispute 的窗口期；后端校验大于 0。
+ */
+export const COMMON_LIVENESS_SECONDS = 7200;
+
 /** 幂等 betId；优先用 crypto.randomUUID，降级到 Date.now + 随机串 */
 export function newBetId(): string {
   try {

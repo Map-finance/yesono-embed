@@ -138,6 +138,7 @@ import {
   toHex,
   getDefaultCreateBetAmount,
   newBetId,
+  COMMON_LIVENESS_SECONDS,
   normalizeTimestampValue,
   formatTimestampDateOnly,
   normalizeSportsLineValue,
@@ -1121,6 +1122,7 @@ export default function CreateMarketNew({
         betId: newBetId(),
         type: "common",
         betAmount: getDefaultCreateBetAmount(),
+        liveness: COMMON_LIVENESS_SECONDS,
         eventTitle: aiGeneratedTitle,
         description,
         marketType: "BINARY",
@@ -2068,8 +2070,8 @@ const renderConfigStep = () => {
           className="px-6 py-2.5 rounded-lg bg-(--accent) text-(--text-inverse) font-medium hover:opacity-90 transition-opacity"
         >
           {pendingIndexing
-            ? (t.market.create.viewMyMarkets || "View my markets")
-            : (t.market.create.goToMarketDetail || "Go to Market Detail")}
+            ? ((t.market.create as unknown as Record<string, string>).viewMyMarkets || "View my markets")
+            : ((t.market.create as unknown as Record<string, string>).goToMarketDetail || "Go to Market Detail")}
         </button>
       </div>
     );
@@ -2972,6 +2974,7 @@ const renderConfigStep = () => {
         betId: newBetId(),
         type: "common",
         betAmount: getDefaultCreateBetAmount(),
+        liveness: COMMON_LIVENESS_SECONDS,
         eventId: batchEventId != null ? String(batchEventId) : undefined,
         eventTitle: batchEventTitle,
         description: batchEventDescription || undefined,
@@ -3229,6 +3232,7 @@ const renderConfigStep = () => {
         betId: newBetId(),
         type: "common",
         betAmount: getDefaultCreateBetAmount(),
+        liveness: COMMON_LIVENESS_SECONDS,
         eventId: batchEventId != null ? String(batchEventId) : undefined,
         eventTitle: batchEventTitle,
         description: batchEventDescription || undefined,

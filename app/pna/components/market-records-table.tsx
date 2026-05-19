@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
-import { CheckCircle, Clock, XCircle } from "lucide-react";
+import { CheckCircle, Clock, Pencil, Plus, XCircle } from "lucide-react";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
 import ProxyImage from "@/components/common/ProxyImage";
@@ -15,6 +15,8 @@ import useGetOracleResultEvents, {
 import useGetReviewRecords, {
   type ReviewRecordItem,
 } from "@/app/pna/hooks/use-get-review-records";
+import CreateMarketNew from "@/components/common/CreateMarket/CreateMarketNew";
+import type { CreateMarketInitialData } from "@/components/common/CreateMarket/CreateMarketNew.helpers";
 
 const PAGE_SIZE = 20;
 
@@ -125,25 +127,120 @@ function AuditRecords() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const { records, total, isLoading } = useGetReviewRecords({
+  const { records, total, isLoading, refresh } = useGetReviewRecords({
     page,
     pageSize,
   });
+
+  // 审核记录 → 创建市场弹窗的回填数据
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createInitialData, setCreateInitialData] = useState<
+    CreateMarketInitialData | undefined
+  >();
+
+  const handleCreateDialogChange = useCallback(
+    (open: boolean) => {
+      setCreateDialogOpen(open);
+      if (!open) {
+        setCreateInitialData(undefined);
+        // 弹窗关闭后刷新列表（approved → 部署完后这条记录会被 markUsed）
+        refresh?.();
+      }
+    },
+    [refresh]
+  );
+
+  /**
+   * 从审核记录中提取「已存在的市场」：
+   * - metadata.marketKeywords 的 key 集合 = 本次提交的「新增」市场 id
+   * - result.market_result.markets 中 id 不在该集合的，就是事件下已存在的旧市场
+   *   （审核通过后回填到创建流程时以"不可编辑"形式展示，避免重复提交）
+   */
+  const extractExistingMarkets = useCallback((item: ReviewRecordItem) => {
+    const markets = item.result?.market_result?.markets || [];
+    const kwMap = (item.metadata?.marketKeywords as
+      | Record<string, unknown>
+      | undefined) || {};
+    const newIds = new Set(Object.keys(kwMap));
+    return markets.filter((m) => !newIds.has(String(m.id ?? "")));
+  }, []);
+
+  /** approved → 继续创建（回填 reviewRecord，下游 handleReviewEvent 走 v2 部署） */
+  const handleContinueCreate = useCallback(
+    (item: ReviewRecordItem) => {
+      const rawCat = String(
+        (item.metadata?.generalCategory as string | undefined) || ""
+      ).toLowerCase();
+      const existing = extractExistingMarkets(item);
+      const data: CreateMarketInitialData = {
+        // crypto 创建流程暂未单独实现，走通用市场流程，与 h2-market 一致
+        category: rawCat === "crypto" ? "" : rawCat,
+        image: (item.metadata?.image as string | undefined) || "",
+        existingEventMarkets:
+          existing.length > 0
+            ? existing.map((m) => ({
+                id: m.id ?? "",
+                question: m.title || m.question || "",
+                description: m.desc || m.description || "",
+              }))
+            : undefined,
+        reviewRecord: {
+          id: typeof item.id === "number" ? item.id : Number(item.id) || 0,
+          status: item.status as "approved" | "rejected" | "pending",
+          input: item.input,
+          metadata: (item.metadata as Record<string, unknown>) || {},
+          result: item.result || {},
+        },
+      };
+      setCreateInitialData(data);
+      setCreateDialogOpen(true);
+    },
+    [extractExistingMarkets]
+  );
+
+  /** rejected → 编辑后重新提交审核（同样走回填，UI 内部按 status 切提交逻辑） */
+  const handleEditRejected = useCallback(
+    (item: ReviewRecordItem) => {
+      handleContinueCreate(item);
+    },
+    [handleContinueCreate]
+  );
 
   const columns: DataTableColumn<ReviewRecordItem>[] = [
     {
       key: "market",
       header: t.pna.auditRecords.event,
       cell: (r) => {
-        const markets = r.result?.market_result?.markets ?? [];
+        // pending 时 result 是空对象，只有 input 里有事件 / 市场标题，
+        // 这里要兜底到 input 才能让 pending 行也显示名字
+        const resultMarkets = r.result?.market_result?.markets ?? [];
+        const input = (r.input ?? {}) as {
+          event_title?: string;
+          markets?: Array<{
+            title?: string;
+            question?: string;
+            desc?: string;
+            description?: string;
+          }>;
+        };
+        const inputMarkets = Array.isArray(input.markets) ? input.markets : [];
+        const markets = resultMarkets.length > 0 ? resultMarkets : inputMarkets;
+
         const title =
           r.result?.market_result?.title ||
-          markets[0]?.title ||
-          markets[0]?.question ||
+          resultMarkets[0]?.title ||
+          resultMarkets[0]?.question ||
+          input.event_title ||
+          inputMarkets[0]?.title ||
+          inputMarkets[0]?.question ||
           (typeof r.input === "string" ? r.input : "") ||
           "—";
         const subQuestion =
-          markets[0]?.question || markets[0]?.title || markets[0]?.description || null;
+          markets[0]?.question ||
+          markets[0]?.title ||
+          markets[0]?.description ||
+          (markets[0] as { desc?: string } | undefined)?.desc ||
+          null;
         const marketsCount = markets.length;
         const image = (r.metadata?.image as string | undefined) ?? null;
         return (
@@ -175,33 +272,66 @@ function AuditRecords() {
       key: "action",
       header: t.pna.auditRecords.action,
       align: "right",
-      cell: (r) =>
-        r.status === "pending" ? (
-          <span className="text-xs text-(--text-secondary)">
-            {t.pna.auditRecords.pendingHint}
-          </span>
-        ) : (
-          <span className="text-(--text-secondary)">—</span>
-        ),
+      cell: (r) => {
+        if (r.status === "approved") {
+          return (
+            <button
+              type="button"
+              onClick={() => handleContinueCreate(r)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-(--accent) text-black hover:opacity-90 transition-opacity"
+            >
+              <Plus size={12} />
+              {t.pna.auditRecords.create}
+            </button>
+          );
+        }
+        if (r.status === "rejected") {
+          return (
+            <button
+              type="button"
+              onClick={() => handleEditRejected(r)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-(--accent) text-black hover:opacity-90 transition-opacity"
+            >
+              <Pencil size={12} />
+              {t.pna.auditRecords.edit}
+            </button>
+          );
+        }
+        if (r.status === "pending") {
+          return (
+            <span className="text-xs text-(--text-secondary)">
+              {t.pna.auditRecords.pendingHint}
+            </span>
+          );
+        }
+        return <span className="text-(--text-secondary)">—</span>;
+      },
     },
   ];
 
   return (
-    <DataTable
-      data={records}
-      loading={isLoading}
-      rowKey={(r) => String(r.id)}
-      empty={t.pna.auditRecords.noRecords}
-      columns={columns}
-      pagination={{
-        page,
-        pageSize,
-        total,
-        onPageChange: setPage,
-        onPageSizeChange: setPageSize,
-        pageSizeOptions: [10, 20, 50, 100],
-      }}
-    />
+    <>
+      <DataTable
+        data={records}
+        loading={isLoading}
+        rowKey={(r) => String(r.id)}
+        empty={t.pna.auditRecords.noRecords}
+        columns={columns}
+        pagination={{
+          page,
+          pageSize,
+          total,
+          onPageChange: setPage,
+          onPageSizeChange: setPageSize,
+          pageSizeOptions: [10, 20, 50, 100],
+        }}
+      />
+      <CreateMarketNew
+        open={createDialogOpen}
+        onOpenChange={handleCreateDialogChange}
+        initialData={createInitialData}
+      />
+    </>
   );
 }
 
