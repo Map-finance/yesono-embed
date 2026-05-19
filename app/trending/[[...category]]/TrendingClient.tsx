@@ -6,6 +6,7 @@ import { Market } from "@/types/types";
 import FilterBarSimple from "@/components/FilterBarSimple";
 import MarketGrid from "@/components/MarketGrid";
 import CryptoSideBar from "@/components/crypto/CryptoSideBar";
+import FinanceSideBar from "@/components/finance/FinanceSideBar";
 import { useEvents } from "@/lib/hooks/useEvents";
 import { eventsToMarkets } from "@/lib/utils/eventToMarket";
 import { useTranslation } from "@/lib/i18n";
@@ -52,6 +53,10 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
   // crypto 页面：侧边栏标签加载完成并完成初始选中后才允许 useEvents 发起请求
   const [cryptoTagsReady, setCryptoTagsReady] = useState(false);
 
+  // Finance sidebar 选中的项 + 标签就绪标志
+  const [selectedFinanceItem, setSelectedFinanceItem] = useState<string | null>(null);
+  const [financeTagsReady, setFinanceTagsReady] = useState(false);
+
   // 从路由参数获取主分类
   const categoryParam = params?.category;
   let category: string = "trending";
@@ -68,12 +73,13 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
   const isTrendingOrNew = VIRTUAL_CATEGORIES.includes(lowerCategory);
   const isNavCategory = NAV_CATEGORIES.includes(lowerCategory);
   const isCrypto = lowerCategory === "crypto";
+  const isFinance = lowerCategory === "finance";
 
   const { tags } = useTagTree({
-    slug: isTrendingOrNew ? undefined : isCrypto ? "crypto" : lowerCategory,
+    slug: isTrendingOrNew ? undefined : isCrypto ? "crypto" : isFinance ? "finance" : lowerCategory,
     category: isTrendingOrNew ? lowerCategory : undefined,
     withCount: true,
-    enabled: !isCrypto,
+    enabled: !isCrypto && !isFinance,
     initialTags: initialTags,
   });
 
@@ -87,9 +93,9 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
 
   // 从标签生成分类列表（用于筛选栏显示）
   const categoriesList = useMemo(() => {
-    if (isCrypto) return [t.common.all];
+    if (isCrypto || isFinance) return [t.common.all];
     return [t.common.all, ...tags.map((tag) => tag.name)];
-  }, [tags, isCrypto, t]);
+  }, [tags, isCrypto, isFinance, t]);
 
   // 根据选中的子标签名称查找对应的 slug
   const selectedCategory = useMemo(() => {
@@ -127,6 +133,20 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
         base.cryptoOrderBy = field;
         base.cryptoAscending = prefix === "+";
       }
+    } else if (isFinance) {
+      base.apiType = "finance";
+      base.financeSlug =
+        selectedFinanceItem && selectedFinanceItem !== "All"
+          ? selectedFinanceItem
+          : "finance";
+      trackEvent("market_filter_apply", { filter_type: "category", filter_value: base.financeSlug });
+      if (searchQ) base.financeSearchText = searchQ;
+      if (sortOrder) {
+        const prefix = sortOrder.charAt(0);
+        const field = sortOrder.slice(1);
+        base.financeOrderBy = field;
+        base.financeAscending = prefix === "+";
+      }
     } else if (selectedTagSlug) {
       base.tag_slug = selectedTagSlug;
     } else if (lowerCategory === "trending") {
@@ -148,8 +168,10 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
     lowerCategory,
     selectedTagSlug,
     isCrypto,
+    isFinance,
     isNavCategory,
     selectedCryptoAsset,
+    selectedFinanceItem,
     filterFrequency,
     searchQ,
     sortOrder,
@@ -158,8 +180,9 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
   ]);
 
   // 获取事件列表
+  const enableEvents = isCrypto ? cryptoTagsReady : isFinance ? financeTagsReady : true;
   const { events, isLoading, hasMore, loadMore, isLoadingMore, refresh } =
-    useEvents({ ...eventsQuery, enabled: isCrypto ? cryptoTagsReady : true, initialData });
+    useEvents({ ...eventsQuery, enabled: enableEvents, initialData });
 
   // 将事件转换为 Market 类型以兼容现有组件
   const markets: Market[] = useMemo(() => {
@@ -167,8 +190,10 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
   }, [events]);
 
   const isCryptoBooting = isCrypto && !cryptoTagsReady;
-  const showCryptoSkeleton =
-    isCrypto && (isCryptoBooting || isLoading) && markets.length === 0;
+  const isFinanceBooting = isFinance && !financeTagsReady;
+  const hasSidebar = isCrypto || isFinance;
+  const showSidebarSkeleton =
+    hasSidebar && (isCryptoBooting || isFinanceBooting || isLoading) && markets.length === 0;
 
   // 处理子标签切换（用于筛选事件列表）
   const handleCategoryChange = useCallback(
@@ -218,18 +243,34 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
     [selectedCryptoAsset]
   );
 
+  // Finance sidebar 回调
+  const handleFinanceSidebarClick = useCallback((id: string) => {
+    setSelectedFinanceItem(id);
+  }, []);
+
+  // Finance 标签加载完成：默认选中第一个，解锁 useEvents
+  const handleFinanceTagsLoaded = useCallback(
+    (tags: TagTreeNode[]) => {
+      if (tags.length > 0 && !selectedFinanceItem) {
+        setSelectedFinanceItem(tags[0].slug);
+      }
+      setFinanceTagsReady(true);
+    },
+    [selectedFinanceItem]
+  );
+
   // 内容区域（事件列表 + load more）
   const eventContent = (
     <>
       <MarketGrid
         markets={markets}
-        columns={isCrypto ? 3 : 4}
-        loading={isCrypto ? showCryptoSkeleton : isLoading}
+        columns={hasSidebar ? 3 : 4}
+        loading={hasSidebar ? showSidebarSkeleton : isLoading}
         emptyMessage={t.market.common.noData}
         onFavoriteChange={refresh}
       />
 
-      {hasMore && !isLoading && !isCryptoBooting && markets.length > 0 && (
+      {hasMore && !isLoading && !isCryptoBooting && !isFinanceBooting && markets.length > 0 && (
         <div className="flex justify-center mt-6">
           <button
             onClick={loadMore}
@@ -257,6 +298,39 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
           />
 
           {/* 右侧内容 */}
+          <div className="flex-1 flex flex-col h-full overflow-hidden no-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 md:px-6 md:py-0 pb-24 scrollbar-thin">
+              <FilterBarSimple
+                categories={categoriesList}
+                variant="sidebar"
+                showCategories={false}
+                onSearchChange={handleSearchChange}
+                onSortChange={handleSortChange}
+                onFrequencyChange={handleFrequencyChange}
+                onActiveChange={handleActiveChange}
+                onCollectedChange={handleCollectedChange}
+                showBookmark={false}
+                showStatus={false}
+              />
+              {eventContent}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Finance 布局：左侧 sidebar + 右侧内容（跟 crypto 同样模式）
+  if (isFinance) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row w-full h-full relative">
+          <FinanceSideBar
+            selectedId={selectedFinanceItem || ""}
+            onItemClick={handleFinanceSidebarClick}
+            onTagsLoaded={handleFinanceTagsLoaded}
+          />
+
           <div className="flex-1 flex flex-col h-full overflow-hidden no-scrollbar">
             <div className="flex-1 overflow-y-auto p-4 md:px-6 md:py-0 pb-24 scrollbar-thin">
               <FilterBarSimple

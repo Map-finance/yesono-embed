@@ -41,6 +41,7 @@ import {
   Users,
   Loader2,
   Check,
+  Clock,
   X,
   Upload,
   Sparkles,
@@ -1139,9 +1140,22 @@ export default function CreateMarketNew({
       const createdMarketId =
         tobResp.eventId || tobResp.marketIds?.[0] || "";
 
+      // 后端 HTTP 200 不代表 indexer 已追上：轮询 getEventBySlug 直到 markets
+      // 的 outcome 都有 tradingPair/quantums，否则把 pendingIndexing 透传给
+      // Success 页改变 CTA（去创建记录而非详情页），避免用户进详情页下不了单
+      let indexingReady = true;
+      if (slug) {
+        setProcessingStep(t.market.common.verifyingMarket);
+        indexingReady = await pollForMarkets(slug);
+      }
+
       trackCreateSuccess("general", 1, slug || undefined, createdMarketId);
       toast.success(t.market.common.marketCreatedSuccess);
-      setResult({ marketId: createdMarketId, slug } as any);
+      setResult({
+        marketId: createdMarketId,
+        slug,
+        pendingIndexing: !!slug && !indexingReady,
+      } as any);
       setStep("success");
     } catch (err: any) {
       console.error("[CreateMarket] General market creation failed:", err);
@@ -1299,6 +1313,13 @@ export default function CreateMarketNew({
       const createdCount = tobResp.marketIds?.length ?? 0;
 
       const sportsSlug = tobResp.slug || "";
+
+      let indexingReady = true;
+      if (sportsSlug) {
+        setProcessingStep(t.market.common.verifyingMarket);
+        indexingReady = await pollForMarkets(sportsSlug);
+      }
+
       trackCreateSuccess("sports", createdCount, sportsSlug || undefined);
       toast.success(t.market.common.marketCreatedSuccess);
       setResult({
@@ -1308,6 +1329,7 @@ export default function CreateMarketNew({
         createdCount,
         failedCount: 0,
         failedMarkets: [],
+        pendingIndexing: !!sportsSlug && !indexingReady,
       });
       setStep("success");
     } catch (err: any) {
@@ -1968,17 +1990,23 @@ const renderConfigStep = () => {
 
   // 渲染成功步骤
   const renderSuccessStep = () => {
-    const handleGoToDetail = () => {
-      // 先计算跳转 URL，再关闭弹窗（避免 resetForm 清除状态后取不到值）
-      const slug = result?.slug;
+    const pendingIndexing = result?.pendingIndexing === true;
+
+    // 完全就绪：跳市场详情页；索引中：跳个人资料 → 创建记录 tab，
+    // 避免用户进详情页发现还不能下单以为 bug
+    const handlePrimaryAction = () => {
       let targetUrl = "";
-      if (slug && (generalCategory === "sports" || selectedCategory?.slug === "sports")) {
-        // 体育市场：优先使用 batchTags，fallback 只传 event 参数
-        targetUrl = buildSportsEventUrl(slug, batchTags.length > 0 ? batchTags : undefined);
-      } else if (slug) {
-        targetUrl = `/market/${slug}`;
-      } else if (result?.marketId) {
-        targetUrl = `/market/${result.marketId}`;
+      if (pendingIndexing) {
+        targetUrl = "/pna?tab=records";
+      } else {
+        const slug = result?.slug;
+        if (slug && (generalCategory === "sports" || selectedCategory?.slug === "sports")) {
+          targetUrl = buildSportsEventUrl(slug, batchTags.length > 0 ? batchTags : undefined);
+        } else if (slug) {
+          targetUrl = `/market/${slug}`;
+        } else if (result?.marketId) {
+          targetUrl = `/market/${result.marketId}`;
+        }
       }
       handleClose();
       if (targetUrl) {
@@ -1991,40 +2019,57 @@ const renderConfigStep = () => {
 
     return (
       <div className="text-center py-8 space-y-4">
-        <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
-          <Check className="w-8 h-8 text-green-500" />
+        <div
+          className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
+            pendingIndexing ? "bg-amber-500/10" : "bg-green-500/10"
+          }`}
+        >
+          {pendingIndexing ? (
+            <Clock className="w-8 h-8 text-amber-500" />
+          ) : (
+            <Check className="w-8 h-8 text-green-500" />
+          )}
         </div>
-        <h3 className="text-xl font-semibold text-[var(--text-primary)]">
-          {t.market.common.marketCreatedSuccess}
+        <h3 className="text-xl font-semibold text-(--text-primary)">
+          {pendingIndexing
+            ? t.market.create.marketPendingTitle
+            : t.market.common.marketCreatedSuccess}
         </h3>
-        <p className="text-[var(--text-secondary)]">
-          {t.market.create.marketLiveMessage ||
-            "Your market is now live and visible to others."}
+        <p className="text-(--text-secondary)">
+          {pendingIndexing
+            ? t.market.create.marketPendingMessage
+            : (t.market.create.marketLiveMessage ||
+              "Your market is now live and visible to others.")}
         </p>
-        {(typeof createdCount === "number" || typeof failedCount === "number") && (
-          <div className="max-w-md mx-auto p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] text-left space-y-2">
+        {/* createdCount / failedCount 只在完全就绪态显示；pending 时隐藏
+            避免用户看到"索引中"又看到"成功创建 N 个"产生认知冲突 */}
+        {!pendingIndexing &&
+          (typeof createdCount === "number" || typeof failedCount === "number") && (
+          <div className="max-w-md mx-auto p-4 rounded-xl border border-(--border) bg-(--bg-secondary) text-left space-y-2">
             {typeof createdCount === "number" && createdCount > 0 && (
-              <p className="text-sm text-[var(--text-primary)]">
+              <p className="text-sm text-(--text-primary)">
                 {t.market.create.sportsCreatedCount(createdCount)}
               </p>
             )}
             {typeof failedCount === "number" && failedCount > 0 && (
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-(--text-secondary)">
                 {t.market.create.sportsExistingFailedCount(failedCount)}
               </p>
             )}
             {typeof createdCount === "number" && createdCount === 0 && typeof failedCount === "number" && failedCount > 0 && (
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-(--text-secondary)">
                 {t.market.create.sportsNoNewMarketsCreated}
               </p>
             )}
           </div>
         )}
         <button
-          onClick={handleGoToDetail}
-          className="px-6 py-2.5 rounded-lg bg-[var(--accent)] text-black font-medium hover:opacity-90 transition-opacity"
+          onClick={handlePrimaryAction}
+          className="px-6 py-2.5 rounded-lg bg-(--accent) text-(--text-inverse) font-medium hover:opacity-90 transition-opacity"
         >
-          {t.market.create.goToMarketDetail || "Go to Market Detail"}
+          {pendingIndexing
+            ? (t.market.create.viewMyMarkets || "View my markets")
+            : (t.market.create.goToMarketDetail || "Go to Market Detail")}
         </button>
       </div>
     );
@@ -2590,12 +2635,20 @@ const renderConfigStep = () => {
       const tobResp = await tobApi.createUmaMarket(tobReq);
 
       const cryptoSlug = tobResp.slug || "";
+
+      let indexingReady = true;
+      if (cryptoSlug) {
+        setProcessingStep(t.market.common.verifyingMarket);
+        indexingReady = await pollForMarkets(cryptoSlug);
+      }
+
       trackCreateSuccess("crypto", markets.length, cryptoSlug || undefined, tobResp.eventId || "");
       toast.success(t.market.common.marketCreatedSuccess);
       setResult({
         // 详情页优先用 slug，没有再回落 eventId
         slug: cryptoSlug,
         marketId: tobResp.eventId || tobResp.marketIds?.[0] || "",
+        pendingIndexing: !!cryptoSlug && !indexingReady,
       } as any);
       setStep("success");
     } catch (err: any) {
@@ -2945,11 +2998,19 @@ const renderConfigStep = () => {
 
       // 后端返 slug 优先；否则回落念 form 自己的 eventSlug
       const resolvedEventSlug = tobResp.slug || eventSlug;
+
+      let indexingReady = true;
+      if (resolvedEventSlug) {
+        setProcessingStep(t.market.common.verifyingMarket);
+        indexingReady = await pollForMarkets(resolvedEventSlug);
+      }
+
       trackCreateSuccess(reviewFlow, batchMarkets.length, resolvedEventSlug || undefined);
       toast.success(t.market.common.marketCreatedSuccess);
       setResult({
         marketId: tobResp.eventId || tobResp.marketIds?.[0] || "",
         slug: resolvedEventSlug,
+        pendingIndexing: !!resolvedEventSlug && !indexingReady,
       } as any);
       setStep("success");
     } catch (err: any) {
@@ -3186,11 +3247,18 @@ const renderConfigStep = () => {
       // 后端返 slug 优先；否则回落 form 里的 batchEventSlug
       const lastEventSlug = tobResp.slug || batchEventSlug;
 
+      let indexingReady = true;
+      if (lastEventSlug) {
+        setProcessingStep(t.market.common.verifyingMarket);
+        indexingReady = await pollForMarkets(lastEventSlug);
+      }
+
       trackCreateSuccess("batch", batchMarkets.length, lastEventSlug || undefined);
       toast.success(t.market.common.marketCreatedSuccess);
       setResult({
         marketId: tobResp.eventId || tobResp.marketIds?.[0] || "",
         slug: lastEventSlug,
+        pendingIndexing: !!lastEventSlug && !indexingReady,
       } as any);
       setStep("success");
     } catch (err: any) {

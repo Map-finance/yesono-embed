@@ -18,6 +18,8 @@ import { getAuthApiUrl } from "@/lib/config/authApiUrl";
 const NEED_TIME_TAG_TAGS_CACHE_TTL_MS = 30 * 60 * 1000;
 let needTimeTagTagsCache: { data: string[]; fetchedAt: number } | null = null;
 let needTimeTagTagsInFlight: Promise<string[]> | null = null;
+let financeNeedTimeTagTagsCache: { data: string[]; fetchedAt: number } | null = null;
+let financeNeedTimeTagTagsInFlight: Promise<string[]> | null = null;
 
 async function getAuthToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
@@ -321,6 +323,135 @@ export async function getCryptoEvents(
   }
 }
 
+// ============== Finance 事件列表 API ==============
+
+export interface FinanceEventsQuery {
+  slug: string; // 标签 slug: finance / 5M / weekly / ...
+  limit?: number;
+  offset?: number;
+  searchText?: string;
+  orderBy?: string;
+  ascending?: boolean;
+}
+
+/**
+ * 获取 Finance 事件列表
+ * GET /api/finance?slug=xxx&limit=20&offset=0
+ */
+export async function getFinanceEvents(
+  query: FinanceEventsQuery
+): Promise<EventsResp> {
+  try {
+    const params = new URLSearchParams();
+    params.append("slug", query.slug);
+    if (query.limit !== undefined) params.append("limit", String(query.limit));
+    if (query.offset !== undefined)
+      params.append("offset", String(query.offset));
+    if (query.searchText) params.append("searchText", query.searchText);
+    if (query.orderBy) params.append("orderBy", query.orderBy);
+    if (query.ascending !== undefined)
+      params.append("ascending", String(query.ascending));
+
+    const url = `${getAuthApiUrl("/api/finance")}?${params.toString()}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: await getCommonHeaders(),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.error("[homeService] getFinanceEvents failed:", response.status);
+      return { total: 0, nextOffset: 0, events: [] };
+    }
+
+    const result = await response.json();
+
+    if (result.success && result.data) {
+      if (Array.isArray(result.data)) {
+        const events = result.data as EventSummary[];
+        const currentOffset = query.offset || 0;
+        return {
+          total: currentOffset + events.length,
+          nextOffset: currentOffset + events.length,
+          events,
+        };
+      }
+
+      if (result.data.events) {
+        return result.data as EventsResp;
+      }
+    }
+
+    return { total: 0, nextOffset: 0, events: [] };
+  } catch (error) {
+    console.error("[homeService] getFinanceEvents error:", error);
+    return { total: 0, nextOffset: 0, events: [] };
+  }
+}
+
+/**
+ * Fetch finance time-tag slugs.
+ * GET /api/finance/need-time-tag-tags
+ */
+export async function getFinanceNeedTimeTagTags(
+  forceRefresh: boolean = false
+): Promise<string[]> {
+  const now = Date.now();
+  if (
+    !forceRefresh &&
+    financeNeedTimeTagTagsCache &&
+    now - financeNeedTimeTagTagsCache.fetchedAt < NEED_TIME_TAG_TAGS_CACHE_TTL_MS
+  ) {
+    return financeNeedTimeTagTagsCache.data;
+  }
+
+  if (!forceRefresh && financeNeedTimeTagTagsInFlight) {
+    return financeNeedTimeTagTagsInFlight;
+  }
+
+  financeNeedTimeTagTagsInFlight = (async () => {
+    try {
+      const response = await fetch(
+        getAuthApiUrl("/api/finance/need-time-tag-tags"),
+        {
+          method: "GET",
+          headers: await getCommonHeaders(),
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        console.error(
+          "[homeService] getFinanceNeedTimeTagTags failed:",
+          response.status
+        );
+        return [];
+      }
+
+      const result: ApiResponse<string[]> = await response.json();
+      if (!result.success || !Array.isArray(result.data)) {
+        return [];
+      }
+
+      const tags = Array.from(
+        new Set(
+          result.data.filter((item): item is string => typeof item === "string")
+        )
+      );
+      financeNeedTimeTagTagsCache = { data: tags, fetchedAt: Date.now() };
+      return tags;
+    } catch (error) {
+      console.error("[homeService] getFinanceNeedTimeTagTags error:", error);
+      return [];
+    } finally {
+      financeNeedTimeTagTagsInFlight = null;
+    }
+  })();
+
+  return financeNeedTimeTagTagsInFlight;
+}
+
 /**
  * Fetch time-tag slugs used by market detail time filtering.
  * GET /api/need-time-tag-tags
@@ -418,6 +549,40 @@ export async function getCryptoEndDates(
     return [];
   } catch (error) {
     console.error("[homeService] getCryptoEndDates error:", error);
+    return [];
+  }
+}
+
+/**
+ * 根据 tags_slug 获取金融市场 endDate 与 slug 列表
+ * POST /api/finance/end-dates
+ * 请求体为 tag slug 字符串数组
+ */
+export async function getFinanceEndDates(
+  tagSlugs: string[]
+): Promise<CryptoEndDateItem[]> {
+  try {
+    const response = await fetch(getAuthApiUrl("/api/finance/end-dates"), {
+      method: "POST",
+      headers: await getCommonHeaders(),
+      body: JSON.stringify(tagSlugs),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.error("[homeService] getFinanceEndDates failed:", response.status);
+      return [];
+    }
+
+    const result = await response.json();
+
+    if (result.success && Array.isArray(result.data)) {
+      return result.data as CryptoEndDateItem[];
+    }
+
+    return [];
+  } catch (error) {
+    console.error("[homeService] getFinanceEndDates error:", error);
     return [];
   }
 }

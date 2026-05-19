@@ -227,6 +227,12 @@ export type CreateFlowResult = Partial<CreateMarketRespV2> & {
   createdCount?: number;
   failedCount?: number;
   failedMarkets?: MarketBatchFailedItemResp[];
+  /**
+   * 后端 HTTP 200 但 pollForMarkets 在重试上限内没拿到 dYdX 撮合所需字段
+   * (tradingPair / quantums)。Success 页据此切「去详情页」为「去创建记录」，
+   * 避免用户立刻进详情页发现下不了单以为 bug。
+   */
+  pendingIndexing?: boolean;
 };
 
 // ---------------------------------------------------------------- deployed market 判定

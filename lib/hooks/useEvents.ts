@@ -4,14 +4,18 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getEvents, getCryptoEvents } from "@/lib/services/homeService";
+import {
+  getEvents,
+  getCryptoEvents,
+  getFinanceEvents,
+} from "@/lib/services/homeService";
 import { EventSummary, EventsQuery } from "@/types/home";
 import { useLocale } from "@/lib/i18n";
 
 export interface UseEventsOptions extends EventsQuery {
   enabled?: boolean;
-  /** 指定 API 类型：'crypto' 时使用 /api/crypto，默认使用 /api/events */
-  apiType?: "crypto" | "default";
+  /** 指定 API 类型：'crypto' 时使用 /api/crypto，'finance' 时使用 /api/finance，默认使用 /api/events */
+  apiType?: "crypto" | "finance" | "default";
   /** crypto 模式下的 slug 参数 */
   cryptoSlug?: string;
   /** crypto 模式下的模糊搜索 */
@@ -20,6 +24,14 @@ export interface UseEventsOptions extends EventsQuery {
   cryptoOrderBy?: string;
   /** crypto 模式下是否升序 */
   cryptoAscending?: boolean;
+  /** finance 模式下的 slug 参数 */
+  financeSlug?: string;
+  /** finance 模式下的模糊搜索 */
+  financeSearchText?: string;
+  /** finance 模式下的排序字段 */
+  financeOrderBy?: string;
+  /** finance 模式下是否升序 */
+  financeAscending?: boolean;
   /** optional initial data from SSR */
   initialData?: any;
 }
@@ -46,6 +58,10 @@ export function useEvents(options: UseEventsOptions = {}): UseEventsReturn {
     cryptoSearchText,
     cryptoOrderBy,
     cryptoAscending,
+    financeSlug,
+    financeSearchText,
+    financeOrderBy,
+    financeAscending,
     initialData,
     ...queryOptions
   } = options;
@@ -63,13 +79,33 @@ export function useEvents(options: UseEventsOptions = {}): UseEventsReturn {
           ascending: cryptoAscending,
         });
       }
+      if (apiType === "finance" && financeSlug) {
+        return getFinanceEvents({
+          slug: financeSlug,
+          limit: fetchLimit,
+          offset: fetchOffset,
+          searchText: financeSearchText,
+          orderBy: financeOrderBy,
+          ascending: financeAscending,
+        });
+      }
       return getEvents({
         ...queryOptionsRef.current,
         limit: fetchLimit,
         offset: fetchOffset,
       });
     },
-    [apiType, cryptoSlug, cryptoSearchText, cryptoOrderBy, cryptoAscending]
+    [
+      apiType,
+      cryptoSlug,
+      cryptoSearchText,
+      cryptoOrderBy,
+      cryptoAscending,
+      financeSlug,
+      financeSearchText,
+      financeOrderBy,
+      financeAscending,
+    ]
   );
 
   const [events, setEvents] = useState<EventSummary[]>(initialData?.events || []);
