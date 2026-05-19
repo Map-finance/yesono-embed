@@ -32,7 +32,6 @@ import { useToast } from "@/components/ui/Toast";
 import { isSportsEvent, buildSportsEventUrl } from "@/lib/utils/sportsNav";
 import { trackEvent } from "@/lib/sentryClient";
 import { getOutcomesByMarket } from "@/lib/utils/outcomes";
-import { TOB_FEATURE_FLAGS } from "@/lib/hooks/tob";
 import TradingPanel from "@/components/tob/TradingPanel";
 
 const MarketChart = dynamic(() => import("@/components/detail/MarketChart"), {
@@ -625,8 +624,8 @@ export default function MarketDetailPage() {
 
         {/* 右侧面板 - 移动端隐藏 */}
         <div className="w-80 shrink-0 space-y-4 hidden lg:block sticky top-[calc(120px+1.5rem)] max-h-[calc(100vh-120px)] scrollbar-hide overflow-y-auto">
-          {/* 已解决市场显示 Outcome 卡片；未解决且 useNewOrder flag-on 时显示交易面板 */}
-          {!selectedMarketInfo?.isResolved && TOB_FEATURE_FLAGS.useNewOrder
+          {/* 已解决市场显示 Outcome 卡片；未解决时显示交易面板 */}
+          {!selectedMarketInfo?.isResolved
             ? (() => {
                 const polyMarket =
                   eventData?.markets?.find(

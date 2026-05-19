@@ -5,7 +5,6 @@ import { getEmbedToken } from "@/lib/embed/EmbedContext";
 import { getAuthApiHost } from "@/lib/config/authApiUrl";
 
 const BASE_URL = process.env.NEXT_PUBLIC_C2C_API_BASE_URL!;
-const ROUTER_BASE_URL = process.env.NEXT_PUBLIC_ROUTER_BASE_URL!;
 const API_HOST = getAuthApiHost();
 const AUTH_BASE_URL = `${API_HOST}/api`;
 
@@ -214,76 +213,29 @@ export async function getClosedPositions(params: {
 
 // ─── Order Cancel API ────────────────────────────────────────────────────────
 
-export interface OrderCancelResponse {
-  code: number;
-  message: string;
-  data: boolean;
-}
-
 /**
- * 调用 router 老接口取消订单。
+ * 取消订单。直接走 TOB `POST /api/tob/order/{betId}/cancel`。
  *
- * @deprecated 请使用 `cancelOrder(betId)`。新代码不应再直接调本函数；
- *   保留作为 `NEXT_PUBLIC_TOB_USE_NEW_CANCEL=0` 灰度下的实现。
- * @param orderId  router 订单 ID（字符串，如 "1234567890123"）
- */
-export async function cancelOrderApi(params: {
-  orderId: string;
-}): Promise<OrderCancelResponse> {
-  console.log("📤 API: 取消订单...", params);
-
-  const response = await request(
-    `${ROUTER_BASE_URL}/order/cancel`,
-    {
-      method: "POST",
-      body: JSON.stringify(params),
-    },
-    getLanguageHeaders(),
-    // true // 需要 token 鉴权
-  );
-
-  return response;
-}
-
-/**
- * 取消订单 — feature flag 分发版（P1 推荐入口）
- *
- * - `NEXT_PUBLIC_TOB_USE_NEW_CANCEL=1` → 走 `POST /api/tob/order/{betId}/cancel`
- * - 否则 → 走老 `POST ${ROUTER_BASE_URL}/order/cancel`（兼容期）
- *
- * 注意：参数语义在新旧实现间不同：
- * - **新实现** `betId` = 前端在创建订单时生成的幂等键（uuid），等价于旧 router 视角的 clientId
- * - **老实现** 期望 router 生成的 orderId（纯数字字符串）
- *
- * 灰度切换前必须确认调用方已能拿到正确的 `betId`（通常来自 `TobOrderCreateResp.betId`）。
+ * 后端返回的 status 已知：
+ *   canceled / refund_pending / refund_completed → 取消请求被接受
+ *   failed / error / rejected → 明确失败
+ * HTTP 非 2xx 会被 axios 抛出；到达这里说明请求被接受，只把明确失败状态视为失败。
  */
 export async function cancelOrder(betId: string): Promise<{
-  /** 是否成功 */
   ok: boolean;
-  /** 新接口返回的 status；老接口下为空 */
   status?: string;
-  /** 原始响应（调试用） */
   raw: unknown;
 }> {
-  const useNew = process.env.NEXT_PUBLIC_TOB_USE_NEW_CANCEL === "1";
-  if (useNew) {
-    const { cancelTobOrder } = await import("@/lib/services/tob/tobOrderCancel");
-    const r = await cancelTobOrder(betId);
-    // 后端返回的 status 已知：
-    //   canceled / refund_pending / refund_completed → 取消请求被接受
-    //   failed / error / rejected → 明确失败
-    // HTTP 非 2xx 会被 axios 抛出，到达这里说明请求被接受；只把明确失败状态视为失败。
-    const status = (r?.status || "").toLowerCase();
-    const isFailure =
-      status === "failed" || status === "error" || status === "rejected";
-    return {
-      ok: !!r && !isFailure,
-      status: r?.status,
-      raw: r,
-    };
-  }
-  const r = await cancelOrderApi({ orderId: betId });
-  return { ok: !!r?.data, raw: r };
+  const { cancelTobOrder } = await import("@/lib/services/tob/tobOrderCancel");
+  const r = await cancelTobOrder(betId);
+  const status = (r?.status || "").toLowerCase();
+  const isFailure =
+    status === "failed" || status === "error" || status === "rejected";
+  return {
+    ok: !!r && !isFailure,
+    status: r?.status,
+    raw: r,
+  };
 }
 
 

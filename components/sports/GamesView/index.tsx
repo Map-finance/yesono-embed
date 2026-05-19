@@ -22,8 +22,12 @@ import MarketGrid from "@/components/MarketGrid";
 import { Market } from "@/types/types";
 import { useTradingStore } from "@/lib/store/tradingStore";
 import ProxyImage from "@/components/common/ProxyImage";
-import { TOB_FEATURE_FLAGS } from "@/lib/hooks/tob";
 import SharedTradingPanel from "@/components/common/TradingPanel";
+import {
+  getMoneylineSettlementLabel,
+  getSpreadSettlementLabel,
+  getTotalSettlementLabel,
+} from "./settlement";
 
 /** 已结算市场替代交易面板：右栏蓝色"已结算"展示 */
 function SportsResolvedPanel({
@@ -37,45 +41,17 @@ function SportsResolvedPanel({
 }) {
   const s = t.sports.settlement;
   const subType = market.subType?.toLowerCase();
-  let label: string;
-  if (subType === "moneyline" && allMoneylineMarkets && allMoneylineMarkets.length > 0) {
-    const drawMarket = allMoneylineMarkets.find((m) => m.marketTitle.toLowerCase().startsWith("draw"));
-    if (drawMarket?.result === 1) {
-      label = `${s.resolved}: ${s.draw}`;
-    } else {
-      const winner = allMoneylineMarkets.find((m) => m.result === 1 && m !== drawMarket);
-      if (winner) {
-        label = `${s.resolved}: ${winner.marketTitle} ${s.win}`;
-      } else {
-        label = market.result != null ? `${s.resolved}: ${market.marketTitle}` : s.resolved;
-      }
+  const label = (() => {
+    if (subType === "moneyline" && allMoneylineMarkets?.length) {
+      return getMoneylineSettlementLabel(allMoneylineMarkets, s);
     }
-  } else if (subType === "spreads") {
-    const result = market.result;
-    if (result == null) { label = s.resolved; }
-    else if (result === 0.5) { label = `${s.resolved}: ${s.push}`; }
-    else {
-      const homeOutcome = market.outcomes?.find((o) => o.originalIndex === 0);
-      const homeName = homeOutcome?.outcome || market.marketTitle;
-      const lv = market.lineValue ?? 0;
-      const lvStr = lv > 0 ? `+${lv}` : String(lv);
-      const rt = result === 0 ? s.lose : result === 0.25 ? s.halfLose : result === 0.75 ? s.halfWin : result === 1 ? s.win : s.resolved;
-      label = `${s.resolved}: ${homeName} ${lvStr} ${rt}`;
-    }
-  } else if (subType === "totals") {
-    const result = market.result;
-    if (result == null) { label = s.resolved; }
-    else if (result === 0.5) { label = `${s.resolved}: ${s.push}`; }
-    else {
-      const isOver = result >= 0.75;
-      const direction = isOver ? s.over : s.under;
-      const absLine = market.lineValue != null ? ` ${Math.abs(market.lineValue)}` : "";
-      const qualifier = (result === 0.25 || result === 0.75) ? ` ${result >= 0.75 ? s.halfWin : s.halfLose}` : "";
-      label = `${s.resolved}: ${direction}${absLine}${qualifier}`;
-    }
-  } else {
-    label = market.result != null ? `${s.resolved}: ${market.marketTitle}` : s.resolved;
-  }
+    if (subType === "spreads") return getSpreadSettlementLabel(market, s);
+    if (subType === "totals") return getTotalSettlementLabel(market, s);
+    return market.result != null
+      ? `${s.resolved}: ${market.marketTitle}`
+      : s.resolved;
+  })();
+
   return (
     <div className="p-6 flex flex-col items-center">
       <div className="w-16 h-16 rounded-full bg-[#3b82f6] flex items-center justify-center mb-4">
@@ -508,11 +484,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
 
   // ==================== 交易区渲染（flag-on 时显示 To-B 下单面板，否则保留占位）====================
   const renderTradingArea = () => {
-    if (
-      TOB_FEATURE_FLAGS.useNewOrder &&
-      selectedMarket &&
-      selectedEvent
-    ) {
+    if (selectedMarket && selectedEvent) {
       // 已结算：替换为蓝色 已结算 面板，不渲染交易表单
       if (selectedMarket.status === "RESOLVED") {
         return (

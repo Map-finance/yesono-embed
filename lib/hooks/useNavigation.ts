@@ -8,7 +8,16 @@ import { FIXED_NAV_ITEMS, type NavigationItem } from "@/types/home";
 import type { ApiResponse } from "@/types/home";
 import { useLocale, useTranslation } from "@/lib/i18n";
 import { useMemo } from "react";
-import { get } from "lodash";
+/** 按点分路径取值（替代 lodash.get）；任何一段为 null/undefined 走 fallback */
+function getByPath(obj: unknown, path: string, fallback: string): string {
+  const parts = path.split(".");
+  let cur: any = obj;
+  for (const p of parts) {
+    if (cur == null) return fallback;
+    cur = cur[p];
+  }
+  return (cur as string | undefined) ?? fallback;
+}
 import { useNavigationContext } from "@/lib/providers/NavigationProvider";
 import { getAuthApiUrl } from "@/lib/config/authApiUrl";
 
@@ -47,7 +56,7 @@ export function useNavigation() {
   const fixedNavItems_t = useMemo(() => {
     return FIXED_NAV_ITEMS.map(item => ({
       ...item,
-      label: get(t, item.langKey, item.label) as string,
+      label: getByPath(t, item.langKey, item.label),
     }));
   }, [t]);
 

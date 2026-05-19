@@ -29,7 +29,6 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "lightweight-charts": "^5.2.0",
-    "lodash": "^4.17.21",
     "lucide-react": "0.469.0",
     "next": "^16.2.4",
     "react": "^19.2.5",

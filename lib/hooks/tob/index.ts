@@ -16,11 +16,3 @@ export {
 } from "./useTobOrderActions";
 export { useTobCreateOrder } from "./useTobCreateOrder";
 export { useTobUmaCreate } from "./useTobUmaCreate";
-
-/** feature flags（详见 .env.example） */
-export const TOB_FEATURE_FLAGS = {
-  useNewCancel: process.env.NEXT_PUBLIC_TOB_USE_NEW_CANCEL === "1",
-  useNewMarket: process.env.NEXT_PUBLIC_TOB_USE_NEW_MARKET === "1",
-  useNewCtf: process.env.NEXT_PUBLIC_TOB_USE_NEW_CTF === "1",
-  useNewOrder: process.env.NEXT_PUBLIC_TOB_USE_NEW_ORDER === "1",
-} as const;

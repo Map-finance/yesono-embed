@@ -56,13 +56,8 @@ import Tabs from "@/components/ui/Tabs";
 import MergeShares from "./MergeShares";
 import SplitShares from "./SplitShares";
 import { useTradingStore } from "@/lib/store/tradingStore";
-import { useCtfTrading } from "@/lib/hooks/useCtfTrading";
 import { useToast } from "@/components/ui/Toast";
-// formatUnits inline 定义在文件顶部
 import ProxyImage from "@/components/common/ProxyImage";
-import { useQueryBalance } from "./useQueryBalance";
-import { refreshPortfolio } from "@/lib/hooks/usePortfolio";
-import { usePortfolioStore } from "@/lib/stores/portfolioStore";
 import { useDydx } from "@/lib/hooks/useDydx";
 import {
   getOutcomeLabel,
@@ -129,23 +124,8 @@ export default function TradingPanel({
     orderBookRaw,
   } = useTradingStore();
   const toast = useToast();
-  const {
-    buy,
-    sell,
-    isTrading,
-    bridgeUsdt,
-    waitForBalance,
-    getDydxUsdtBalance,
-    ensureDydxInitialized,
-  } = useCtfTrading();
-  const { cash: cashBalance } = usePortfolioStore();
-  // 使用聚合余额 hook
-  const {
-    totalYes,
-    totalNo,
-    loading: balanceLoading,
-    refetch: refetchBalances,
-  } = useQueryBalance();
+  // embed 不做余额/链上交易：余额扣减由父页面控制；这里既不读 cash 也不读 token 持仓
+  const isTrading = false;
   // 获取 YES 和 NO 的实时订单簿价格
   const clobTokenIds = useMemo(() => {
     return JSON.parse(market?.clobTokenIds || "[]") as string[];
@@ -298,20 +278,6 @@ export default function TradingPanel({
     return selectedItem.sellPrice ?? selectedItem.price ?? 0;
   }, [items, selectOutcomeId, direction]);
 
-  // 获取当前选中的代币余额（YES 或 NO）
-  const selectedTokenBalance = useMemo(() => {
-    const selectedItem = items.find((i) => i.value === selectOutcomeId);
-    if (!selectedItem) return 0n;
-    return selectedItem.type === "YES" ? totalYes : totalNo;
-  }, [items, selectOutcomeId, totalYes, totalNo]);
-
-  // 余额刷新后的回调
-  useEffect(() => {
-    if (!balanceLoading) {
-      // 余额更新完成后的处理
-    }
-  }, [balanceLoading]);
-
   // 如果 selectOutcomeId 在别处（例如 OutcomeList）被改变，且当前为限价单且用户尚未填写 limitPrice，
   // 则用选中 outcome 的显示价填充 limitPrice（与 handleTokenSelect 行为一致）
   // 使用 Ref 记录上一次的选择，以便区分是“切换了选项”还是“仅仅是价格变动”
@@ -434,34 +400,7 @@ export default function TradingPanel({
       newErrors.amount = t.trade.errorInvalidAmount || "Enter a valid amount";
     }
 
-    // Balance Validation
-    const usdtBalance = cashBalance; // 接口返回的现金余额（number, USDT）
-    const tokenBalance = parseFloat(formatUnits(selectedTokenBalance, 6));
-
-    if (direction === "BUY") {
-      if (orderType === "limit") {
-        // Limit Buy: amount is Shares, cost = shares * (limitPrice/100)
-        const priceInDollars = parseFloat(limitPrice || "0") / 100;
-        const cost = amountVal * priceInDollars;
-        if (cost > usdtBalance) {
-          newErrors.amount =
-            t.common?.insufficientBalance || "Insufficient balance";
-        }
-      } else {
-        // Market Buy: amount is USDT
-        if (amountVal > usdtBalance) {
-          newErrors.amount =
-            t.common?.insufficientBalance || "Insufficient balance";
-        }
-      }
-    } else {
-      console.log("tokenBalance", tokenBalance, selectedPrice, amountVal);
-
-      if (amountVal > tokenBalance) {
-        newErrors.amount =
-          t.common?.insufficientShares || "Insufficient shares";
-      }
-    }
+    // 余额校验由父页面负责；前端不再做 insufficientBalance / insufficientShares 拦截
 
     if (orderType === "limit") {
       const limitVal = parseFloat(limitPrice);
@@ -674,7 +613,6 @@ export default function TradingPanel({
         hapticNotification("Success");
         // 成功固定用本地化文案；后端 message 字段是序列化的 tx 详情对象，不适合给用户看
         toast.success(t.common?.tradeSuccess || "Trade submitted successfully");
-        void Promise.all([refetchBalances(), refreshPortfolio()]);
         return;
       } catch (apiErr: any) {
         throw apiErr;
@@ -852,40 +790,6 @@ export default function TradingPanel({
           setErrors((e) => ({ ...e, amount: undefined }));
         }}
         error={!!errors.amount}
-        usdtBalance={cashBalance}
-        tokenBalance={selectedTokenBalance}
-        selectedPrice={selectedPrice}
-        limitPrice={limitPrice}
-        getLatestUsdtBalance={async () => {
-          try {
-            const latest = await refreshPortfolio();
-            const latestCash = Number((latest as any)?.cash);
-            return Number.isFinite(latestCash) ? latestCash : cashBalance;
-          } catch {
-            return cashBalance;
-          }
-        }}
-        getLatestTokenBalance={async () => {
-          try {
-            const selectedOutcome = (market as any)?.marketOutcomes?.find(
-              (item: any) => item.tokenId === selectOutcomeId
-            );
-            const unionKey = selectedOutcome?.unionKey;
-            if (!unionKey) {
-              return parseFloat(formatUnits(selectedTokenBalance, 6));
-            }
-            const resp = await getUserCtfBalance(unionKey);
-            if (resp.success && resp.data !== undefined && resp.data !== null) {
-              const latestToken = parseFloat(String(resp.data));
-              return Number.isFinite(latestToken)
-                ? latestToken
-                : parseFloat(formatUnits(selectedTokenBalance, 6));
-            }
-            return parseFloat(formatUnits(selectedTokenBalance, 6));
-          } catch {
-            return parseFloat(formatUnits(selectedTokenBalance, 6));
-          }
-        }}
       />
 
       {orderType === "limit" && (
@@ -1081,20 +985,20 @@ export default function TradingPanel({
       <MergeShares
         open={mergeSharesDialogOpen}
         onOpenChange={setMergeSharesDialogOpen}
-        onSuccess={async () => {
-          await Promise.all([refetchBalances(), refreshPortfolio()]);
+        onSuccess={() => {
+          /* embed 不维护余额状态；split/merge 成功无需刷新本地 */
         }}
       />
       <SplitShares
         open={splitSharesDialogOpen}
         onOpenChange={setSplitSharesDialogOpen}
         onConfirm={() => {}}
-        onSuccess={async () => {
-          await Promise.all([refetchBalances(), refreshPortfolio()]);
+        onSuccess={() => {
+          /* embed 不维护余额状态 */
         }}
         conditionId={market?.conditionId || ""}
         marketId={market?.id ? String(market.id) : ""}
-        walletBalance={cashBalance}
+        walletBalance={0}
         yesLabel={yesLabel}
         noLabel={noLabel}
         marketOutcomes={sortedOutcomes as any[]}
@@ -1166,82 +1070,19 @@ function PriceInput({
   amount,
   setAmount,
   error,
-  usdtBalance,
-  tokenBalance,
-  selectedPrice,
-  limitPrice,
-  getLatestUsdtBalance,
-  getLatestTokenBalance,
 }: {
   tradeType: TradeType;
   orderType: OrderType;
   amount: string;
   setAmount: (val: string) => void;
   error?: boolean;
-  usdtBalance: number;
-  tokenBalance: bigint;
-  selectedPrice: number;
-  limitPrice: string;
-  getLatestUsdtBalance?: () => Promise<number>;
-  getLatestTokenBalance?: () => Promise<number>;
 }) {
   const { t } = useTranslation();
   const isShares = orderType === "limit" || tradeType === "sell"; // Limit order or Sell order always uses "Shares"
 
-  const usdtBalanceNum = usdtBalance; // 已是 number（接口 cash）
-  const tokenBalanceNum = parseFloat(formatUnits(tokenBalance, 6));
-
   const handleQuickAdd = (add: number) => {
     const current = parseFloat(amount || "0");
     setAmount((current + add).toString());
-  };
-
-  const handleMax = async () => {
-    let latestUsdtBalance = usdtBalanceNum;
-    if (tradeType === "buy" && getLatestUsdtBalance) {
-      latestUsdtBalance = await getLatestUsdtBalance();
-    }
-    let latestTokenBalance = tokenBalanceNum;
-    if (tradeType === "sell" && getLatestTokenBalance) {
-      latestTokenBalance = await getLatestTokenBalance();
-    }
-
-    if (tradeType === "buy") {
-      if (orderType === "limit") {
-        // Limit Buy: 计算最大可购买的 shares
-        const priceInDollars = parseFloat(limitPrice || "0") / 100;
-        if (priceInDollars > 0) {
-          const maxShares = latestUsdtBalance / priceInDollars;
-          setAmount(maxShares.toFixed(2));
-        } else {
-          setAmount("0");
-        }
-      } else {
-        // Market Buy: 全部 USDT
-        setAmount(latestUsdtBalance.toFixed(2));
-      }
-    } else {
-      // Sell: 全部持仓
-      setAmount(latestTokenBalance.toFixed(2));
-    }
-  };
-
-  const handlePercentage = (percent: number) => {
-    if (tradeType === "sell") {
-      const amount = tokenBalanceNum * percent;
-      setAmount(amount.toFixed(2));
-    } else {
-      // Buy 按百分比
-      if (orderType === "limit") {
-        const priceInDollars = parseFloat(limitPrice || "0") / 100;
-        if (priceInDollars > 0) {
-          const maxShares = usdtBalanceNum / priceInDollars;
-          setAmount((maxShares * percent).toFixed(2));
-        }
-      } else {
-        setAmount((usdtBalanceNum * percent).toFixed(2));
-      }
-    }
   };
 
   return (
@@ -1331,46 +1172,18 @@ function PriceInput({
         </div>
       </div>
 
-      {tradeType === "buy" ? (
-        <div className="flex justify-end gap-1 text-xs">
-          {[1, 20, 100].map((val) => (
-            <div
-              key={val}
-              onClick={() => handleQuickAdd(val)}
-              className="border select-none rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
-            >
-              +{val}
-            </div>
-          ))}
+      {/* 快捷加值按钮：embed 不读余额，所以没有 MAX / 25% / 50% 这类依赖余额的按钮 */}
+      <div className="flex justify-end gap-1 text-xs">
+        {[1, 20, 100].map((val) => (
           <div
-            onClick={() => void handleMax()}
+            key={val}
+            onClick={() => handleQuickAdd(val)}
             className="border select-none rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
           >
-            {t.trade.max}
+            +{val}
           </div>
-        </div>
-      ) : (
-        <div className="flex justify-end gap-1 text-xs">
-          <div
-            onClick={() => handlePercentage(0.25)}
-            className="border rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
-          >
-            {t.trade.percent25}
-          </div>
-          <div
-            onClick={() => handlePercentage(0.5)}
-            className="border select-none rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
-          >
-            {t.trade.percent50}
-          </div>
-          <div
-            onClick={() => void handleMax()}
-            className="border select-none rounded-sm px-2 py-1 cursor-pointer border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors"
-          >
-            {t.trade.max}
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }

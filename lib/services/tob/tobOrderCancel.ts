@@ -2,8 +2,7 @@
  * §3 取消订单
  * docs/tob-controller-api.md
  *
- * 注意：替换 lib/api.ts 中老的 `cancelOrderApi(orderId)`。
- * 入参从 `orderId`（数字）改为 `betId`（幂等键，字符串）。详见 diff Q1。
+ * 入参 betId 为幂等键（字符串，前端创建订单时生成的 uuid）。
  */
 
 import { USE_MOCK, post } from "./client";

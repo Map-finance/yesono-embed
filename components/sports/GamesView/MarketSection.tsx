@@ -12,72 +12,13 @@ import { SportsMarketItem, SportsMarketOutcome } from "@/types/sports";
 import { useTranslation } from "@/lib/i18n";
 import { formatOutcomeProbabilityCents } from "@/utils/format";
 import GameButton from "@/components/sports/Live/GameButton";
-
-/** 判断 market 是否已结算 */
-function isMarketResolved(item?: SportsMarketItem | null): boolean {
-  return item?.status === "RESOLVED";
-}
-
-/** settlement i18n 类型 */
-type SettlementLabels = {
-  resolved: string; win: string; lose: string;
-  halfWin: string; halfLose: string; push: string;
-  draw: string; over: string; under: string;
-};
-
-function resultToText(result: number, s: SettlementLabels): string {
-  if (result === 0) return s.lose;
-  if (result === 0.25) return s.halfLose;
-  if (result === 0.5) return s.push;
-  if (result === 0.75) return s.halfWin;
-  if (result === 1) return s.win;
-  return s.resolved;
-}
-
-function getMoneylineSettlementLabel(markets: SportsMarketItem[], s: SettlementLabels): string {
-  if (!markets.length) return s.resolved;
-  const drawMarket = markets.find((m) => m.marketTitle.toLowerCase().startsWith("draw"));
-  if (drawMarket?.result === 1) return `${s.resolved}: ${s.draw}`;
-  const winner = markets.find((m) => m.result === 1 && m !== drawMarket);
-  if (winner) return `${s.resolved}: ${winner.marketTitle} ${s.win}`;
-  const first = markets.find((m) => m.result != null);
-  if (first) return `${s.resolved}: ${first.marketTitle} ${resultToText(first.result!, s)}`;
-  return s.resolved;
-}
-
-function getSpreadSettlementLabel(market: SportsMarketItem, s: SettlementLabels): string {
-  const result = market.result;
-  if (result == null) return s.resolved;
-  const homeOutcome = market.outcomes?.find((o) => o.originalIndex === 0);
-  const homeName = homeOutcome?.outcome || market.marketTitle;
-  const lv = market.lineValue ?? 0;
-  const lvStr = lv > 0 ? `+${lv}` : String(lv);
-  if (result === 0.5) return `${s.resolved}: ${s.push}`;
-  return `${s.resolved}: ${homeName} ${lvStr} ${resultToText(result, s)}`;
-}
-
-function getTotalSettlementLabel(market: SportsMarketItem, s: SettlementLabels): string {
-  const result = market.result;
-  if (result == null) return s.resolved;
-  if (result === 0.5) return `${s.resolved}: ${s.push}`;
-  const isOver = result >= 0.75;
-  const direction = isOver ? s.over : s.under;
-  const absLine = market.lineValue != null ? ` ${Math.abs(market.lineValue)}` : "";
-  const qualifier = (result === 0.25 || result === 0.75) ? ` ${result >= 0.75 ? s.halfWin : s.halfLose}` : "";
-  return `${s.resolved}: ${direction}${absLine}${qualifier}`;
-}
-
-/** 已结算标记 */
-function ResolvedBadge({ label, className }: { label: string; className?: string }) {
-  return (
-    <div
-      className={`px-2 py-1.5 rounded-lg bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)] font-medium text-[11px] leading-tight text-center ${className || ""}`}
-      title={label}
-    >
-      {label}
-    </div>
-  );
-}
+import {
+  isMarketResolved,
+  getMoneylineSettlementLabel,
+  getSpreadSettlementLabel,
+  getTotalSettlementLabel,
+  ResolvedBadge,
+} from "./settlement";
 import Tabs from "@/components/ui/Tabs";
 import IconButton from "@/components/ui/IconButton";
 import SpotOrderbook from "@/components/detail/SpotOrderbook";

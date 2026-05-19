@@ -24,6 +24,7 @@ import { useTranslation } from "@/lib/i18n";
 import { trackEvent } from "@/lib/sentryClient";
 import { SORT_TO_API } from "./filterBar/constants";
 import { DropdownSelect, CheckboxFilter } from "./filterBar/parts";
+import CreateMarketNew from "@/components/common/CreateMarket/CreateMarketNew";
 
 interface FilterBarSimpleProps {
   categories: string[];
@@ -41,6 +42,8 @@ interface FilterBarSimpleProps {
   onCollectedChange?: (collected: boolean) => void;
   showBookmark?: boolean;
   showStatus?: boolean;
+  /** 是否显示"创建市场"按钮；默认 true，但需要 TOB flag 打开 */
+  showCreateMarket?: boolean;
 }
 
 export default function FilterBarSimple({
@@ -59,7 +62,9 @@ export default function FilterBarSimple({
   showFilter = true,
   showBookmark = true,
   showStatus = true,
+  showCreateMarket = true,
 }: FilterBarSimpleProps) {
+  const [isCreateMarketOpen, setIsCreateMarketOpen] = useState(false);
   const isSidebarVariant = variant === "sidebar";
   const [activeCategory, setActiveCategory] =
     useState<string>(selectedCategory);
@@ -367,8 +372,24 @@ export default function FilterBarSimple({
             </button>
           )}
 
+          {/* Create Market */}
+          {showCreateMarket && (
+            <button
+              onClick={() => setIsCreateMarketOpen(true)}
+              className="bg-(--accent) text-black px-3 py-1.5 text-xs font-medium rounded-full hover:opacity-90 transition-opacity ml-1"
+            >
+              {t.market.createMarket}
+            </button>
+          )}
         </div>
       </div>
+
+      {showCreateMarket ? (
+        <CreateMarketNew
+          open={isCreateMarketOpen}
+          onOpenChange={setIsCreateMarketOpen}
+        />
+      ) : null}
 
       {/* Row 2: Category tags */}
       {showCategories && (
