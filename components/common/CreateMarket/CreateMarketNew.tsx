@@ -1506,7 +1506,9 @@ export default function CreateMarketNew({
                 <span className="text-sm">{t.market.create.loadingCategories}</span>
               </div>
             ) : categories.length > 0 ? (
-              categories.map((cat) => (
+              // 临时隐藏"金融(finance)"分类入口：后端分类接口仍返回它，只是创建市场
+              // 流程暂不开放，等金融市场创建配置完善后删掉这个 filter 即可恢复。
+              categories.filter((cat) => cat.slug !== "finance").map((cat) => (
                 <button
                   key={cat.id || cat.slug}
                   onClick={() => handleSelectGeneralCategory(cat.slug || "")}

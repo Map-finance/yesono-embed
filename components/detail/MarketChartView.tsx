@@ -246,8 +246,10 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
   const formatTooltipTime = useCallback(
     (ts: number) => {
       const d = new Date(ts);
+      // 统一按美东时区显示，与 TimeCapsule 对齐（避免图表用本地时区造成时间错位）
       if (["1H", "6H"].includes(selectedRange)) {
         return d.toLocaleTimeString("en-US", {
+          timeZone: "America/New_York",
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
@@ -255,6 +257,7 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
       }
       if (selectedRange === "1D") {
         return d.toLocaleDateString("en-US", {
+          timeZone: "America/New_York",
           month: "short",
           day: "numeric",
           hour: "numeric",
@@ -262,6 +265,7 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
         });
       }
       return d.toLocaleDateString("en-US", {
+        timeZone: "America/New_York",
         month: "short",
         day: "numeric",
         year: "numeric",

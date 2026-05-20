@@ -565,6 +565,7 @@ export default function MarketDetailPage() {
                 eventEndDate={eventData?.endDate}
                 needTimeTagTags={needTimeTagTags}
                 onLiveSlugChange={setLiveMarketSlug}
+                isFinance={isFinanceEvent}
               />
             </div>
             {showPriceChartOption && (

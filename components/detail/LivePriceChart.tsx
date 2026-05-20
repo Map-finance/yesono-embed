@@ -94,6 +94,35 @@ function getMockTradeAutoStopMs(): number {
   return DEFAULT_MOCK_TRADE_AUTO_STOP_MS;
 }
 
+const ET_TIME_ZONE = "America/New_York";
+
+/**
+ * 将 Date 按美东时区拆为各时间字段（数值字段无前导零，与原 getHours/getMonth 行为一致）。
+ * 用于图表轴/十字线统一显示美东时间，避免使用浏览器本地时区造成与 TimeCapsule 错位。
+ */
+function getEtTimeParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: ET_TIME_ZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: string) =>
+    parts.find((p) => p.type === type)?.value ?? "0";
+  return {
+    year: get("year"),
+    month: String(Number(get("month"))),
+    day: String(Number(get("day"))),
+    hour: String(Number(get("hour"))),
+    minute: get("minute"),
+    second: get("second"),
+  };
+}
+
 export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   symbol = "eth/usd",
   eventSlug,
@@ -264,11 +293,8 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
         timeVisible: true,
         secondsVisible: true,
         tickMarkFormatter: (time: number) => {
-          const date = new Date(time * 1000);
-          return `${date.getHours()}:${String(date.getMinutes()).padStart(
-            2,
-            "0"
-          )}:${String(date.getSeconds()).padStart(2, "0")}`;
+          const p = getEtTimeParts(new Date(time * 1000));
+          return `${p.hour}:${p.minute}:${p.second}`;
         },
       },
       crosshair: {
@@ -292,14 +318,8 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       handleScale: false, // 禁止缩放
       localization: {
         timeFormatter: (time: number) => {
-          const date = new Date(time * 1000);
-          return (
-            `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ` +
-            `${date.getHours()}:${String(date.getMinutes()).padStart(
-              2,
-              "0"
-            )}:${String(date.getSeconds()).padStart(2, "0")}`
-          );
+          const p = getEtTimeParts(new Date(time * 1000));
+          return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
         },
       },
     });

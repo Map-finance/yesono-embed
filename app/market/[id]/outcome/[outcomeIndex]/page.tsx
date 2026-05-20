@@ -453,6 +453,7 @@ export default function OutcomeDetailPage() {
               eventEndDate={eventData?.endDate}
               needTimeTagTags={needTimeTagTags}
               onLiveSlugChange={setLiveMarketSlug}
+              isFinance={isFinanceEvent}
             />
           </div>
           {showPriceChartOption && (

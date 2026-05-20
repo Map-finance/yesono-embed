@@ -126,6 +126,15 @@ export function formatLocalizedEndDateLabel(
   const diffDays =
     getCalendarDayIndex(date, ET_TIME_ZONE) -
     getCalendarDayIndex(now, ET_TIME_ZONE);
+
+  // daily/weekly：每期一个、结算时刻固定，时间是冗余信息 →
+  // 一律只显示绝对日期（不含时间、也不用"今天/明天"），靠日期区分
+  const isDateOnlyFreq = /^(daily|weekly|\d+D|\d+W)$/i.test(frequencySlug);
+  if (isDateOnlyFreq) {
+    const dateLabel = formatLocalizedMonthDay(date, locale, ET_TIME_ZONE);
+    return { timeLabel: dateLabel, relativeDay: "", fullStr: dateLabel };
+  }
+
   const isMinuteFreq = /^\d+M$/i.test(frequencySlug);
   const timeLabel = formatLocalizedTime(date, locale, {
     timeZone: ET_TIME_ZONE,

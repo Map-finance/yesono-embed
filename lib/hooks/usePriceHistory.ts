@@ -103,17 +103,26 @@ const getRangeConfig = (range: TimeRange): {
   }
 };
 
-// Fast date formatting (avoids toLocaleString which is 10-100x slower)
-const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// 图表 x 轴标签统一按美东时区（与 TimeCapsule / 图表 tooltip 对齐），避免使用浏览器本地时区
+const ET_TIME_ZONE = 'America/New_York';
 const formatDate = (timestamp: number, range: TimeRange): string => {
   const d = new Date(timestamp);
-  const mon = MONTHS_SHORT[d.getMonth()];
-  const day = d.getDate();
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const h12 = h % 12 || 12;
-  const ampm = h < 12 ? 'AM' : 'PM';
-  const mm = m < 10 ? `0${m}` : String(m);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: ET_TIME_ZONE,
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  const mon = get('month');
+  const day = get('day');
+  const year = get('year');
+  const h12 = get('hour');
+  const mm = get('minute');
+  const ampm = get('dayPeriod');
 
   switch (range) {
     case '1H':
@@ -125,7 +134,7 @@ const formatDate = (timestamp: number, range: TimeRange): string => {
     case '1M':
       return `${mon} ${day}`;
     case 'ALL':
-      return `${mon} ${d.getFullYear()}`;
+      return `${mon} ${year}`;
     default:
       return `${mon} ${day}`;
   }

@@ -10,9 +10,12 @@ import React, {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import useSWR from "swr";
+import { Popover } from "@/components/ui/Popover";
+import CapsuleTooltip from "./CapsuleTooltip";
 import { useTranslation } from "@/lib/i18n";
 import {
   getCryptoEndDates,
+  getFinanceEndDates,
   CryptoEndDateItem,
 } from "@/lib/services/homeService";
 import {
@@ -22,16 +25,20 @@ import {
 } from "./TimeCapsule.format";
 import CaretDownIcon from "./CaretDownIcon";
 
+const CRYPTO_END_DATES_PREFIX = "crypto-end-dates:";
+const FINANCE_END_DATES_PREFIX = "finance-end-dates:";
 
 /**
- * SWR fetcher：key 格式为 "crypto-end-dates:<sorted-slugs-json>"
- * 模块级缓存保证同一 key 在 5 分钟内跨组件挂载只发起一次网络请求
+ * SWR fetcher：key 格式为 "<crypto|finance>-end-dates:<sorted-slugs-json>"
+ * 模块级缓存保证同一 key 在 5 分钟内跨组件挂载只发起一次网络请求。
+ * 金融事件走 /api/finance/end-dates，加密走 /api/crypto/end-dates。
  */
 async function endDatesFetcher(key: string): Promise<CryptoEndDateItem[]> {
-  const prefix = "crypto-end-dates:";
+  const isFinance = key.startsWith(FINANCE_END_DATES_PREFIX);
+  const prefix = isFinance ? FINANCE_END_DATES_PREFIX : CRYPTO_END_DATES_PREFIX;
   const slugs = JSON.parse(key.slice(prefix.length)) as string[];
   if (!slugs.length) return [];
-  return getCryptoEndDates(slugs);
+  return isFinance ? getFinanceEndDates(slugs) : getCryptoEndDates(slugs);
 }
 
 const END_DATES_EXHAUSTED_REVALIDATE_COOLDOWN_MS = 30000;
@@ -50,6 +57,8 @@ interface TimeCapsuleProps {
   eventEndDate?: number;
   /** liveSlug 变化时回调父组件，用于 LivePriceHeader 的"Go to live market"跳转 */
   onLiveSlugChange?: (slug: string) => void;
+  /** 金融事件：走 /api/finance/end-dates 且不套用按币种 slug 前缀的过滤 */
+  isFinance?: boolean;
 }
 
 // ============== 主组件 ==============
@@ -58,6 +67,7 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
   tags,
   needTimeTagTags,
   eventEndDate,
+  isFinance = false,
   onLiveSlugChange,
 }) => {
   const pathname = usePathname();
@@ -122,7 +132,9 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
   // 同一币种的不同市场切换时 tagsKey 不变，直接命中内存缓存，无额外请求
   const swrKey =
     matchedFreqSlug && tags && tags.length > 0
-      ? `crypto-end-dates:${tagsKey}`
+      ? `${
+          isFinance ? FINANCE_END_DATES_PREFIX : CRYPTO_END_DATES_PREFIX
+        }${tagsKey}`
       : null;
 
   const {
@@ -158,15 +170,9 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
     onLiveSlugChange?.(liveSlug);
   }, [liveSlug, onLiveSlugChange]);
 
-  // 按当前 URL 中的币种前缀过滤数据（700 条 → ~175 条）
-  // pathname 变化时自动重新过滤，无需重新请求接口
-  const endDates = useMemo(() => {
-    if (allEndDates.length === 0) return [];
-    // 从 pathname 提取币种前缀：/market/btc-updown-5m-xxx → "btc"
-    const coinPrefix = routeMeta.slug.split("-")[0]?.toLowerCase();
-    if (!coinPrefix) return allEndDates;
-    return allEndDates.filter((item) => item.slug.startsWith(coinPrefix + "-"));
-  }, [allEndDates, routeMeta.slug]);
+  // /api/{crypto,finance}/end-dates 已按事件 tag 过滤到当前币种/系列，
+  // 前端无需再按 URL slug 前缀二次过滤（曾因 slug 解析对金融市场误删）
+  const endDates = allEndDates;
 
   const maybeRevalidateExhaustedEndDates = useCallback(
     (dates: CryptoEndDateItem[], now: number) => {
@@ -433,25 +439,42 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
           if (!labelObj) return null;
 
           return (
-            <Link
+            <Popover
               key={item.slug}
-              href={buildHref(item.slug)}
-              onClick={() => handleNavClick(item.slug)}
-              className={`flex items-center gap-2 h-8 px-4 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                isActive
-                  ? "bg-(--text-primary) text-(--bg-primary)"
-                  : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
-              }`}
+              trigger="hover"
+              placement="top"
+              className="shrink-0"
+              content={() => {
+                const nowMs = Date.now();
+                return (
+                  <CapsuleTooltip
+                    endDate={item.endDate}
+                    isLive={isLive}
+                    isEnded={Number(item.endDate) < nowMs}
+                    currentTime={nowMs}
+                  />
+                );
+              }}
             >
-              {isLive && (
-                <div className="relative flex items-center justify-center w-3 h-3 shrink-0">
-                  <div className="absolute inset-0 rounded-full bg-[#FF453A]/40"></div>
-                  <div className="absolute inset-0 rounded-full bg-[#FF453A] animate-ping opacity-75"></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#FF453A] relative z-10"></div>
-                </div>
-              )}
-              {labelObj.fullStr}
-            </Link>
+              <Link
+                href={buildHref(item.slug)}
+                onClick={() => handleNavClick(item.slug)}
+                className={`flex items-center gap-2 h-8 px-4 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive
+                    ? "bg-(--text-primary) text-(--bg-primary)"
+                    : "bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-hover)"
+                }`}
+              >
+                {isLive && (
+                  <div className="relative flex items-center justify-center w-3 h-3 shrink-0">
+                    <div className="absolute inset-0 rounded-full bg-[#FF453A]/40"></div>
+                    <div className="absolute inset-0 rounded-full bg-[#FF453A] animate-ping opacity-75"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#FF453A] relative z-10"></div>
+                  </div>
+                )}
+                {labelObj.fullStr}
+              </Link>
+            </Popover>
           );
         })}
       </div>
