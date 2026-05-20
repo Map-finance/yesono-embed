@@ -98,6 +98,8 @@ export default {
   connect: 'Подключить',
   connectWallet: 'Подключить кошелек',
   pleaseLoginInParent: 'Войдите через родительскую страницу',
+  orderResumeAfterLogin: 'Log in via the host page — your order will be placed automatically',
+  waitingForLogin: 'Waiting for login…',
   deposit: 'Пополнить',
   balance: 'Баланс',
   accountSettings: 'Настройки аккаунта',

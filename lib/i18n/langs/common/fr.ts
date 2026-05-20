@@ -98,6 +98,8 @@ export default {
   connect: 'Connecter',
   connectWallet: 'Connecter le Wallet',
   pleaseLoginInParent: 'Veuillez vous connecter via la page hôte',
+  orderResumeAfterLogin: 'Log in via the host page — your order will be placed automatically',
+  waitingForLogin: 'Waiting for login…',
   deposit: 'Dépôt',
   balance: 'Solde',
   accountSettings: 'Paramètres du compte',

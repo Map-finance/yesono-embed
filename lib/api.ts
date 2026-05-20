@@ -2,6 +2,7 @@ import { Response } from "@/types/resoonse";
 import { http, ApiResponse } from "./request";
 import { HoldRankGroup } from "@/types/types";
 import { getEmbedToken } from "@/lib/embed/EmbedContext";
+import { embedFetch } from "@/lib/embed/embedFetch";
 import { getAuthApiHost } from "@/lib/config/authApiUrl";
 
 const BASE_URL = process.env.NEXT_PUBLIC_C2C_API_BASE_URL!;
@@ -29,15 +30,20 @@ export async function authFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<globalThis.Response> {
-  const accessToken = getEmbedToken();
-  const headers = new Headers(options.headers || {});
-  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
-  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
-  }
-  return fetch(url, {
+  // 用「当前」token 构建鉴权头；401 重放时 embedFetch 会再调一次重建，拿新 token
+  const buildHeaders = (): Headers => {
+    const accessToken = getEmbedToken();
+    const headers = new Headers(options.headers || {});
+    if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+    if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+      headers.set("Content-Type", "application/json");
+    }
+    return headers;
+  };
+  return embedFetch(url, {
     ...options,
-    headers,
+    headers: buildHeaders(),
+    rebuildHeaders: buildHeaders,
   });
 }
 
@@ -118,6 +124,43 @@ export async function getComments({
 
 export async function getSubComments(commentId: number) {
   return request(`${AUTH_BASE_URL}/comments/${commentId}/replies`, {}, {});
+}
+
+interface CreateCommentParams {
+  marketId: string;
+  parentId?: number;
+  replyToUserId?: string | null;
+  content?: string;
+}
+
+/** 创建评论 / 回复 */
+export async function createComment(params: CreateCommentParams) {
+  return request(
+    `${AUTH_BASE_URL}/comments`,
+    {
+      method: "POST",
+      body: JSON.stringify(params),
+    },
+    getLanguageHeaders()
+  );
+}
+
+/** 点赞 / 取消点赞评论 */
+export async function toggleLikeComment(commentId: number) {
+  return request(
+    `${AUTH_BASE_URL}/comments/${commentId}/like`,
+    { method: "POST" },
+    getLanguageHeaders()
+  );
+}
+
+/** 删除评论 */
+export async function deleteComment(commentId: number) {
+  return request(
+    `${AUTH_BASE_URL}/comments/${commentId}`,
+    { method: "DELETE" },
+    getLanguageHeaders()
+  );
 }
 
 
@@ -518,6 +561,36 @@ export async function getPriceHistory(
     `${AUTH_BASE_URL}/price-history?startTs=${startTs}&market=${market}&fidelity=${fidelity}`,
     {},
     {}
+  );
+}
+
+/**
+ * 事件结算价（开盘价 / 收盘价）。
+ * - 未开盘：openPrice、closePrice 均为 null
+ * - 进行中：openPrice 有值，closePrice 为 null（结算后才会有）
+ * - 已收盘：两者均有值
+ * 用于金融 / 加密货币市场详情页展示"Price to beat"（开盘价）与"Final price"（收盘价）。
+ */
+export interface EventSettlementPrices {
+  eventId: string;
+  openPrice: number | null;
+  closePrice: number | null;
+}
+
+export interface EventSettlementPricesResponse {
+  code: number;
+  success: boolean;
+  data: EventSettlementPrices | null;
+  msg: string;
+}
+
+export async function getEventSettlementPrices(
+  eventId: string | number
+): Promise<EventSettlementPricesResponse> {
+  return request(
+    `${AUTH_BASE_URL}/events/${eventId}/settlement-prices`,
+    {},
+    getLanguageHeaders()
   );
 }
 

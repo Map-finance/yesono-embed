@@ -4,6 +4,7 @@
  */
 
 import { getValidAccessToken, getLanguageHeaders } from '../api';
+import { embedFetch } from '@/lib/embed/embedFetch';
 import { getAuthApiUrl } from '@/lib/config/authApiUrl';
 
 const REVIEW_API_HOST = process.env.NEXT_PUBLIC_REVIEW_API_HOST || 'https://review.yesono.trade';
@@ -17,6 +18,15 @@ async function getAIHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['tk'] = token;
   return headers;
+}
+
+/**
+ * AI 接口（tk 鉴权）统一 fetch：包一层 embedFetch，401 时走父页续期 + 重放。
+ * 重放用 getAIHeaders 重建带「新」token 的头。仅用于已鉴权的 AI/review 端点；
+ * 无鉴权端点（market/create、market/tags）仍用原生 fetch。
+ */
+function aiAuthedFetch(url: string, init: RequestInit): Promise<Response> {
+  return embedFetch(url, { ...init, rebuildHeaders: getAIHeaders });
 }
 
 /**
@@ -213,7 +223,7 @@ export interface CreateGeneralMarketResponse {
 export async function aiSupplementMarket(
   request: AISupplementRequest
 ): Promise<AISupplementResponse['data']> {
-  const response = await fetch(`${AI_API_BASE}/review/v1/market/crypto/general/supplement`, {
+  const response = await aiAuthedFetch(`${AI_API_BASE}/review/v1/market/crypto/general/supplement`, {
     method: 'POST',
     headers: await getAIHeaders(),
     body: JSON.stringify(request),
@@ -243,7 +253,7 @@ export async function aiSupplementMarket(
 export async function aiReviewMarket(
   request: AIReviewRequest
 ): Promise<AIReviewResponse['data']> {
-  const response = await fetch(`${AI_API_BASE}/review/v1/market/crypto/general`, {
+  const response = await aiAuthedFetch(`${AI_API_BASE}/review/v1/market/crypto/general`, {
     method: 'POST',
     headers: await getAIHeaders(),
     body: JSON.stringify(request),
@@ -447,7 +457,7 @@ export interface CreateMarketV2Response {
 export async function eventSupplement(
   request: EventSupplementRequest
 ): Promise<EventSupplementResponse> {
-  const response = await fetch(`${AI_API_BASE}/review/v1/event/supplement`, {
+  const response = await aiAuthedFetch(`${AI_API_BASE}/review/v1/event/supplement`, {
     method: 'POST',
     headers: await getAIHeaders(),
     body: JSON.stringify(request),
@@ -473,7 +483,7 @@ export async function eventSupplement(
 export async function eventMarketSupplement(
   request: EventMarketSupplementRequest
 ): Promise<EventMarketSupplementResponse> {
-  const response = await fetch(`${AI_API_BASE}/review/v1/event/market/supplement`, {
+  const response = await aiAuthedFetch(`${AI_API_BASE}/review/v1/event/market/supplement`, {
     method: 'POST',
     headers: await getAIHeaders(),
     body: JSON.stringify(request),
@@ -498,7 +508,7 @@ export async function eventMarketSupplement(
 export async function eventReview(
   request: EventReviewRequest
 ): Promise<EventReviewResponse> {
-  const response = await fetch(`${AI_API_BASE}/review/v1/event/`, {
+  const response = await aiAuthedFetch(`${AI_API_BASE}/review/v1/event/`, {
     method: 'POST',
     headers: await getAIHeaders(),
     body: JSON.stringify(request),
@@ -545,15 +555,17 @@ export async function getMarketTags(label?: string): Promise<TagItem[]> {
 export async function createGeneralMarketV2(
   request: CreateMarketV2Request
 ): Promise<CreateMarketV2Response> {
-  const token = await getValidAccessToken();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+  const buildHeaders = async (): Promise<Record<string, string>> => {
+    const token = await getValidAccessToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  };
 
-  const response = await fetch(`${AUTH_API_BASE}/market/common`, {
+  const response = await embedFetch(`${AUTH_API_BASE}/market/common`, {
     method: 'POST',
-    headers,
+    headers: await buildHeaders(),
+    rebuildHeaders: buildHeaders,
     body: JSON.stringify(request),
   });
 
@@ -623,7 +635,7 @@ export async function createReviewRecord(
   // 确保使用 walletAddress 而非 smartAccountAddress
   const walletAddress = await getWalletAddress();
   const body = { ...request, wallet: walletAddress || request.wallet };
-  const response = await fetch(`${AI_API_BASE}/review/v1/event/review_record/create`, {
+  const response = await aiAuthedFetch(`${AI_API_BASE}/review/v1/event/review_record/create`, {
     method: 'POST',
     headers: await getAIHeaders(),
     body: JSON.stringify(body),
@@ -654,7 +666,7 @@ export interface UpdateReviewRecordRequest {
 export async function updateReviewRecord(
   request: UpdateReviewRecordRequest
 ): Promise<void> {
-  const response = await fetch(`${AI_API_BASE}/review/v1/event/review_record/update`, {
+  const response = await aiAuthedFetch(`${AI_API_BASE}/review/v1/event/review_record/update`, {
     method: 'POST',
     headers: await getAIHeaders(),
     body: JSON.stringify(request),
@@ -682,7 +694,7 @@ export async function markReviewRecordUsed(
 ): Promise<void> {
   // 确保使用 walletAddress 而非 smartAccountAddress
   const walletAddress = (await getWalletAddress()) || wallet;
-  const response = await fetch(`${AI_API_BASE}/review/v1/event/review_record/update/used`, {
+  const response = await aiAuthedFetch(`${AI_API_BASE}/review/v1/event/review_record/update/used`, {
     method: 'POST',
     headers: await getAIHeaders(),
     body: JSON.stringify({ id, wallet: walletAddress }),
@@ -713,14 +725,16 @@ export async function getReviewRecordList(
   if (request.page != null) params.set('page', String(request.page));
   if (request.page_size != null) params.set('page_size', String(request.page_size));
 
-  const response = await fetch(
+  const buildHeaders = async () => ({
+    ...getLanguageHeaders(),
+    ...(await getAIHeaders()),
+  });
+  const response = await embedFetch(
     `${AI_API_BASE}/review/v1/event/review_record/list?${params.toString()}`,
     {
       method: 'GET',
-      headers: {
-        ...getLanguageHeaders(),
-        ...(await getAIHeaders()),
-      },
+      headers: await buildHeaders(),
+      rebuildHeaders: buildHeaders,
     },
   );
 

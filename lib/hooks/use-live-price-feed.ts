@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import { livePriceWS } from "@/lib/services/live-price-ws";
-import type { PriceMsg, PricePoint } from "@/lib/services/live-price-ws";
+import type {
+  PriceKind,
+  PriceMsg,
+  PricePoint,
+} from "@/lib/services/live-price-ws";
 
 export interface LivePriceFeedHandlers {
   onSnapshot?: (points: PricePoint[]) => void;
@@ -12,17 +16,19 @@ export interface LivePriceFeedHandlers {
  * 订阅 live price 流。组件不感知 WS 存在；具体怎么把数据推给 chart / state，
  * 由调用方在 handlers 里决定。
  *
- * handlers 用 ref 拿到最新值，所以 effect 依赖只有 symbol，避免每次 render 都重建订阅。
+ * 按 eventId 订阅，kind 区分 crypto(cryptoPrice) / finance(objectivePrice)。
+ * handlers 用 ref 拿到最新值，所以 effect 依赖只有 eventId/kind，避免每次 render 都重建订阅。
  */
 export function useLivePriceFeed(
-  symbol: string | undefined,
+  eventId: string | number | undefined,
+  kind: PriceKind,
   handlers: LivePriceFeedHandlers
 ): void {
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
   useEffect(() => {
-    if (!symbol) return;
+    if (!eventId) return;
     const dispatch = (msg: PriceMsg) => {
       const h = handlersRef.current;
       switch (msg.type) {
@@ -37,6 +43,6 @@ export function useLivePriceFeed(
           break;
       }
     };
-    return livePriceWS.subscribePrice(symbol, dispatch);
-  }, [symbol]);
+    return livePriceWS.subscribePrice(String(eventId), kind, dispatch);
+  }, [eventId, kind]);
 }

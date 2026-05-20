@@ -95,6 +95,8 @@ export default {
   connect: "Kết nối",
   connectWallet: "Kết nối ví",
   pleaseLoginInParent: 'Vui lòng đăng nhập từ trang chủ',
+  orderResumeAfterLogin: 'Log in via the host page — your order will be placed automatically',
+  waitingForLogin: 'Waiting for login…',
   deposit: "Nạp tiền",
   balance: "Số dư",
   accountSettings: "Cài đặt tài khoản",

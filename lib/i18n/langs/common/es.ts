@@ -98,6 +98,8 @@ export default {
   connect: 'Conectar',
   connectWallet: 'Conectar Billetera',
   pleaseLoginInParent: 'Inicie sesión en la página principal',
+  orderResumeAfterLogin: 'Log in via the host page — your order will be placed automatically',
+  waitingForLogin: 'Waiting for login…',
   deposit: 'Depositar',
   balance: 'Saldo',
   accountSettings: 'Configuración de cuenta',

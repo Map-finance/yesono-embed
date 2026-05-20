@@ -98,6 +98,8 @@ export default {
   connect: "接続",
   connectWallet: "ウォレット接続",
   pleaseLoginInParent: '親ページでログインしてください',
+  orderResumeAfterLogin: 'Log in via the host page — your order will be placed automatically',
+  waitingForLogin: 'Waiting for login…',
   deposit: "入金",
   balance: "残高",
   accountSettings: "アカウント設定",

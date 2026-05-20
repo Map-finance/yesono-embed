@@ -98,6 +98,8 @@ export default {
   connect: 'اتصال',
   connectWallet: 'ربط المحفظة',
   pleaseLoginInParent: 'يرجى تسجيل الدخول عبر الصفحة المضيفة',
+  orderResumeAfterLogin: 'Log in via the host page — your order will be placed automatically',
+  waitingForLogin: 'Waiting for login…',
   deposit: 'إيداع',
   balance: 'الرصيد',
   accountSettings: 'إعدادات الحساب',

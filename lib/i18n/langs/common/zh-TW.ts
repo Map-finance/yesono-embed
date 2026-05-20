@@ -98,6 +98,8 @@ export default {
   connect: '連接',
   connectWallet: '連接錢包',
   pleaseLoginInParent: '請先在父頁面登入',
+  orderResumeAfterLogin: '請在父頁面登入，登入後將自動為你完成下單',
+  waitingForLogin: '等待登入中…',
   deposit: '充值',
   balance: '餘額',
   accountSettings: '帳戶設置',

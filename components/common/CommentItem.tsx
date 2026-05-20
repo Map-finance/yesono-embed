@@ -72,7 +72,6 @@ export default function CommentItem({
           <Avatar
             src={comment.avatarUrl}
             name={commentName}
-            id={String(comment.userId || comment.username || "")}
             size={32}
           />
         </button>
@@ -82,7 +81,6 @@ export default function CommentItem({
           <UserProfile
             userId={String(comment.userId || comment.username)}
             displayName={commentName}
-            avatar={comment.avatarUrl || undefined}
           >
             <span
               className="font-medium text-sm text-(--text-primary) truncate hover:underline cursor-pointer"

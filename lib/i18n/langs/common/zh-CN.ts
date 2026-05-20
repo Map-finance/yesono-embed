@@ -98,6 +98,8 @@ export default {
   connect: '连接',
   connectWallet: '连接钱包',
   pleaseLoginInParent: '请先在父页面登录',
+  orderResumeAfterLogin: '请在父页面登录，登录后将自动为你完成下单',
+  waitingForLogin: '等待登录中…',
   deposit: '充值',
   balance: '余额',
   accountSettings: '账户设置',

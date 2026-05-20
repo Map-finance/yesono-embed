@@ -13,6 +13,7 @@ import {
   PolymarketEventResp,
 } from "@/types/home";
 import { getValidAccessToken } from "@/lib/api";
+import { embedFetch } from "@/lib/embed/embedFetch";
 import { getAuthApiUrl } from "@/lib/config/authApiUrl";
 
 const NEED_TIME_TAG_TAGS_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -72,12 +73,21 @@ async function getCommonHeaders(): Promise<Record<string, string>> {
 }
 
 /**
+ * 本服务统一的鉴权 fetch：包一层 embedFetch，401 时走父页续期 + 重放。
+ * 各调用点的 init.headers 仍由 getCommonHeaders() 现场构建，
+ * 重放时 rebuildHeaders 再调一次拿到「新」token 的头。
+ */
+function authedFetch(url: string, init: RequestInit): Promise<Response> {
+  return embedFetch(url, { ...init, rebuildHeaders: getCommonHeaders });
+}
+
+/**
  * 仅获?API 动态导航项（不含固定项?
  */
 export async function getDynamicNavigation(): Promise<NavigationItem[]> {
   try {
     // 直接访问 API
-    const response = await fetch(getAuthApiUrl("/api/navigation"), {
+    const response = await authedFetch(getAuthApiUrl("/api/navigation"), {
       method: "GET",
       headers: await getCommonHeaders(),
     });
@@ -124,7 +134,7 @@ export async function getTagTree(
       params.append("category", category);
     }
     // 直接访问 API
-    const response = await fetch(
+    const response = await authedFetch(
       `${getAuthApiUrl("/api/tag")}?${params.toString()}`,
       {
         method: "GET",
@@ -218,7 +228,7 @@ export async function getEvents(query: EventsQuery = {}): Promise<EventsResp> {
       params.toString() ? `?${params.toString()}` : ""
     }`;
 
-    const response = await fetch(url, {
+    const response = await authedFetch(url, {
       method: "GET",
       headers: await getCommonHeaders(),
       cache: "no-store",
@@ -287,7 +297,7 @@ export async function getCryptoEvents(
 
     const url = `${getAuthApiUrl("/api/crypto")}?${params.toString()}`;
 
-    const response = await fetch(url, {
+    const response = await authedFetch(url, {
       method: "GET",
       headers: await getCommonHeaders(),
       cache: "no-store",
@@ -354,7 +364,7 @@ export async function getFinanceEvents(
 
     const url = `${getAuthApiUrl("/api/finance")}?${params.toString()}`;
 
-    const response = await fetch(url, {
+    const response = await authedFetch(url, {
       method: "GET",
       headers: await getCommonHeaders(),
       cache: "no-store",
@@ -412,7 +422,7 @@ export async function getFinanceNeedTimeTagTags(
 
   financeNeedTimeTagTagsInFlight = (async () => {
     try {
-      const response = await fetch(
+      const response = await authedFetch(
         getAuthApiUrl("/api/finance/need-time-tag-tags"),
         {
           method: "GET",
@@ -474,7 +484,7 @@ export async function getNeedTimeTagTags(
 
   needTimeTagTagsInFlight = (async () => {
     try {
-      const response = await fetch(getAuthApiUrl("/api/need-time-tag-tags"), {
+      const response = await authedFetch(getAuthApiUrl("/api/need-time-tag-tags"), {
         method: "GET",
         headers: await getCommonHeaders(),
         cache: "no-store",
@@ -528,7 +538,7 @@ export async function getCryptoEndDates(
   tagSlugs: string[]
 ): Promise<CryptoEndDateItem[]> {
   try {
-    const response = await fetch(getAuthApiUrl("/api/crypto/end-dates"), {
+    const response = await authedFetch(getAuthApiUrl("/api/crypto/end-dates"), {
       method: "POST",
       headers: await getCommonHeaders(),
       body: JSON.stringify(tagSlugs),
@@ -562,7 +572,7 @@ export async function getFinanceEndDates(
   tagSlugs: string[]
 ): Promise<CryptoEndDateItem[]> {
   try {
-    const response = await fetch(getAuthApiUrl("/api/finance/end-dates"), {
+    const response = await authedFetch(getAuthApiUrl("/api/finance/end-dates"), {
       method: "POST",
       headers: await getCommonHeaders(),
       body: JSON.stringify(tagSlugs),
@@ -596,7 +606,7 @@ export async function getEventBySlug(
   slug: string
 ): Promise<PolymarketEventResp | null> {
   try {
-    const response = await fetch(getAuthApiUrl(`/api/event/${slug}`), {
+    const response = await authedFetch(getAuthApiUrl(`/api/event/${slug}`), {
       method: "GET",
       headers: await getCommonHeaders(),
       cache: "no-store",

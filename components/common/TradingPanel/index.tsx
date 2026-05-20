@@ -70,6 +70,13 @@ import { trackEvent } from "@/lib/sentryClient";
 type OrderType = "market" | "limit";
 type TradeType = "buy" | "sell";
 
+/**
+ * 「待执行下单意图」有效期：用户点下单时未登录 / token 失效 → 通知父页续期，
+ * 在这个时间窗内拿到新 token 就自动把那一单补发。超过则视为用户已放弃，不自动下单
+ * （避免隔很久突然弹出一笔成交吓到用户）。
+ */
+const PENDING_TRADE_TTL_MS = 90_000;
+
 function parseExpiration(
   expiration: string,
   endDate?: string | number
@@ -191,6 +198,8 @@ export default function TradingPanel({
     t.common.down,
   ]);
   const { login, authenticated } = usePrivy();
+  // 直接取 embed 续期通道 + token：未登录/401 时记录下单意图，新 token 到达后自动续上
+  const { requestAuthRefresh, token: embedToken } = useEmbed();
   const [orderType, setOrderType] = useState<OrderType>("market");
 
   // Local state for form inputs
@@ -220,6 +229,13 @@ export default function TradingPanel({
   // CTF 代币持仓（YES/NO shares）：卖单 MAX / 校验依赖这个值
   // number 单位是 shares（与 h2-market 一致：getUserCtfBalance 返回 string，直接 parseFloat）
   const [tokenBalance, setTokenBalance] = useState<number>(0);
+
+  // 待执行下单意图（未登录 / token 失效时记录），新 token 到达后自动续上
+  const pendingTradeAtRef = useRef<number | null>(null);
+  // 镜像最新的 handleTradingClick，给 auto-resume effect 调用（避免闭包陈旧）
+  const handleTradingClickRef = useRef<() => void>(() => {});
+  // 「等待登录后自动下单」UI 态：按钮转圈 + 文案提示
+  const [resumingAfterAuth, setResumingAfterAuth] = useState(false);
 
   // Clear form when market changes
   useEffect(() => {
@@ -425,14 +441,17 @@ export default function TradingPanel({
 
   async function handleTradingClick() {
     if (!authenticated) {
-      // embed 在 iframe 里没法自己弹登录；通知父页面拉起登录并给用户明确反馈
-      toast.error(
-        t.common?.pleaseLoginInParent ?? "Please log in via the host page"
+      // embed 在 iframe 里没法自己弹登录：记录这一单的意图 + 通知父页拉起登录，
+      // 登录拿到新 token 后由 auto-resume effect 自动把单补发，做到「无感续单」。
+      // 走 requestAuthRefresh（authQueue 去重 + 标准 ChildMsgType.AuthRequired），
+      // 不再用 login() 裸 postMessage，避免与 401 续期重复发 auth-required
+      pendingTradeAtRef.current = Date.now();
+      setResumingAfterAuth(true);
+      requestAuthRefresh("missing");
+      toast.info(
+        t.common?.orderResumeAfterLogin ??
+          "Log in via the host page — your order will be placed automatically"
       );
-      openLoginModalWithTrack({
-        login,
-        triggerAction: "trade_click",
-      });
       return;
     }
 
@@ -678,6 +697,19 @@ export default function TradingPanel({
       }
     } catch (e: any) {
       console.error("Trade failed", e);
+      // token 失效（HTTP 401）：axios 层已重放过一次仍失败（典型是父页 15s 内没回新
+      // token）。这里记录意图 + 再请一次续期；新 token 到达后由 auto-resume effect 补发，
+      // 不给用户报错，做到无感续单
+      if (e?.response?.status === 401) {
+        pendingTradeAtRef.current = Date.now();
+        setResumingAfterAuth(true);
+        requestAuthRefresh("expired");
+        toast.info(
+          t.common?.orderResumeAfterLogin ??
+            "Session expired — your order will be placed automatically after re-login"
+        );
+        return;
+      }
       hapticNotification('Error');
       // 优先展示后端返回的业务错误信息（如 SELF_TRADE_PREVENTION 的详细 message）
       const backendMsg = e?.response?.data?.message;
@@ -686,6 +718,36 @@ export default function TradingPanel({
       setIsSubmitting(false);
     }
   }
+
+  // 每次渲染镜像最新的 handler，供 auto-resume effect 调用
+  handleTradingClickRef.current = handleTradingClick;
+
+  // auto-resume：新 token 到达（embedToken 变化）或重新登录（authenticated 变 true）后，
+  // 若存在「待执行下单意图」且仍在有效期内，自动补发那一单。
+  // - 未登录场景：authenticated false→true 触发
+  // - token 失效场景：authenticated 始终为 true，靠 embedToken 变化触发
+  useEffect(() => {
+    const at = pendingTradeAtRef.current;
+    if (at == null) return;
+    if (!authenticated || !embedToken) return;
+    // 消费意图（先清，避免重复触发 / 循环）
+    pendingTradeAtRef.current = null;
+    setResumingAfterAuth(false);
+    if (Date.now() - at <= PENDING_TRADE_TTL_MS) {
+      void handleTradingClickRef.current?.();
+    }
+     
+  }, [authenticated, embedToken]);
+
+  // 兜底：父页迟迟不下发新 token 时，超过有效期清掉等待态，避免按钮一直卡在「等待登录」
+  useEffect(() => {
+    if (!resumingAfterAuth) return;
+    const timer = setTimeout(() => {
+      pendingTradeAtRef.current = null;
+      setResumingAfterAuth(false);
+    }, PENDING_TRADE_TTL_MS);
+    return () => clearTimeout(timer);
+  }, [resumingAfterAuth]);
 
   return (
     <div className="font-semibold relative p-4">
@@ -1030,12 +1092,20 @@ export default function TradingPanel({
         size="lg"
         className="w-full mt-8"
         onClick={handleTradingClick}
-        disabled={isSubmitting || isTrading}
+        disabled={isSubmitting || isTrading || resumingAfterAuth}
       >
         {isSubmitting || isTrading ? (
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="animate-spin" size={20} />
             <span>{t.trade.processing}</span>
+          </div>
+        ) : resumingAfterAuth ? (
+          // 等待父页下发新 token，到达后自动续单
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="animate-spin" size={20} />
+            <span>
+              {t.common?.waitingForLogin ?? "Waiting for login…"}
+            </span>
           </div>
         ) : !authenticated ? (
           t.common?.pleaseLoginInParent ?? "Please log in via the host page"

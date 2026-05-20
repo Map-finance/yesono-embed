@@ -98,6 +98,8 @@ export default {
   connect: 'اتصال',
   connectWallet: 'اتصال کیف پول',
   pleaseLoginInParent: 'لطفاً از صفحه میزبان وارد شوید',
+  orderResumeAfterLogin: 'Log in via the host page — your order will be placed automatically',
+  waitingForLogin: 'Waiting for login…',
   deposit: 'واریز',
   balance: 'موجودی',
   accountSettings: 'تنظیمات حساب',

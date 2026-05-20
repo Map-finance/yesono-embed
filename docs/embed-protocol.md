@@ -202,3 +202,85 @@ DevTools 验证：
 | verify 返回 401 | 渠道 JWT 解码失败或过期（payload `exp` 已过 / 缺字段） |
 | verify 返回 429 | 命中登录限流，子页会发 `embed:error { code: "tob_auth_rate_limited" }` 给父页 |
 | 业务接口 401 反复 | 父页没监听 `embed:auth-required`，没回 `embed:token-refresh`；或 `auth-queue` 超时了（默认 30s） |
+
+---
+
+## 7. 接入方集成指南：token 握手（父页必读）
+
+子页（embed）**没有自己刷新 token 的能力**——它不持有 refresh token，session 完全归父页所有。子页能做的只是「喊一嗓子」请求续期，**父页必须实现下面两件事**，否则 token 过期后子页的下单 / 列表等会失效且无法自动恢复。
+
+### 7.1 父页要实现的两条消息
+
+| 方向 | 消息 | 父页职责 |
+| --- | --- | --- |
+| 父 → 子 | `embed:auth` | **首次握手必发**。把「渠道 JWT」下发给子页，子页据此调 `/api/tob/auth/verify` 完成登录 |
+| 父 → 子 | `embed:token-refresh` | **收到子页 `embed:auth-required` 后必回**。下发一个**新的渠道 JWT**，子页重新 verify 拿到新 accessToken |
+| 子 → 父 | `embed:auth-required` | 子页主动发出（token 过期 / 失效 / 缺失，或用户在未登录时点了下单）。父页**监听**它并触发上面的 `embed:token-refresh` |
+
+> 渠道 JWT ≠ 本系统 accessToken。父页全程只下发**渠道 JWT**；accessToken 是子页 verify 后自己持有的，父页不感知、也不要传。
+
+### 7.2 父页参考实现（可直接照抄）
+
+```js
+const iframe = document.getElementById("yesono-embed");
+// 必须是 embed 应用自身的 origin（即 iframe src 的源），不要用 "*"
+const EMBED_ORIGIN = "https://embed.yesono.trade";
+
+function postToEmbed(msg) {
+  iframe.contentWindow?.postMessage({ v: 1, ts: Date.now(), ...msg }, EMBED_ORIGIN);
+}
+
+// —— 1. 首次握手：iframe 加载后下发渠道 JWT ——
+// 建议等子页发来 embed:ready 后再发，确保子页 bridge 已就绪
+async function sendAuth() {
+  const channelJwt = await fetchFreshChannelJwt(); // ← 父页自己的取 token 逻辑
+  postToEmbed({
+    type: "embed:auth",
+    token: channelJwt,
+    expiresAt: Date.now() + 15 * 60 * 1000, // 可选：渠道 JWT 过期时间(epoch ms)
+    userCode: "...",   // 可选
+    channel: "...",    // 可选
+    locale: "zh-CN",   // 可选
+    theme: "dark",     // 可选
+  });
+}
+
+// —— 2. 监听子页的续期请求，回发新的渠道 JWT ——
+window.addEventListener("message", async (ev) => {
+  // 只信任 embed 的 origin，丢弃其它来源
+  if (ev.origin !== EMBED_ORIGIN) return;
+  const data = ev.data;
+  if (!data || typeof data !== "object") return;
+
+  if (data.type === "embed:ready") {
+    sendAuth(); // 子页就绪 → 首次握手
+    return;
+  }
+
+  if (data.type === "embed:auth-required") {
+    // data.reason: "expired" | "invalid" | "missing"
+    // 关键：尽快（建议 < 10s）拿到一个新的渠道 JWT 回发
+    const channelJwt = await fetchFreshChannelJwt();
+    postToEmbed({ type: "embed:token-refresh", token: channelJwt });
+  }
+});
+```
+
+### 7.3 时效要求（影响「无感」程度）
+
+子页这边有两个等待窗口，父页响应越快体验越无感：
+
+- **401 自动重放**：业务请求 401 后，子页 `auth-queue` 等父页回 `token-refresh`，**默认 15s** 超时。父页在窗口内回 → 失败的请求自动重放，用户完全无感。
+- **下单自动续单**：用户点下单时若未登录 / token 失效，子页记录这一单的意图并发 `embed:auth-required`，**90s 内**拿到新 token 就**自动把那一单补发**；超时则放弃（按钮从「等待登录」恢复，不会延迟很久突然成交）。
+
+### 7.4 不实现的后果
+
+- 不发 `embed:auth`：子页永远匿名，所有需要登录的操作（下单、持仓、创建市场、审核记录）不可用。
+- 不回 `embed:token-refresh`：token 一过期，列表静默变空、下单失败且**无法自动恢复**；子页等满超时后只能提示用户。
+
+### 7.5 自检清单
+
+1. iframe `src` 的 origin 已加入子页白名单 env `NEXT_PUBLIC_EMBED_ALLOWED_PARENT_ORIGINS`（生产不允许 `*`）。
+2. 父页 `postMessage` 的 `targetOrigin` 用的是 embed 的具体 origin，不是 `"*"`。
+3. 收到 `embed:auth-required` 能在 ~10s 内回 `embed:token-refresh`。
+4. 渠道 JWT 每次都取**新鲜**的（过期的 JWT 会让子页 verify 继续 401，陷入反复续期）。

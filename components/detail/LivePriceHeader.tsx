@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import NumberFlow from "@number-flow/react";
 import { getAssetColor } from "@/utils/format";
 import { useTranslation } from "@/lib/i18n";
-import { getAuthApiUrl } from "@/lib/config/authApiUrl";
+import { getEventSettlementPrices } from "@/lib/api";
 
 interface LivePriceHeaderProps {
   isLive: boolean; // Computed by parent, true if we haven't reached endDate
@@ -14,13 +14,16 @@ interface LivePriceHeaderProps {
   priceChange: number;
   endDate?: number; // timestamp in milliseconds
   symbol?: string;
+  /** 事件 ID：用于拉取开盘价 / 收盘价（settlement-prices 接口） */
+  eventId?: string | number;
   /** 市场频率标签，如 "5m" / "15m" / "1h" / "4h" / "daily" / "weekly" */
   frequencySlug?: string;
   /** 当前处于 LIVE 状态的市场 slug，用于"Go to live market"跳转 */
   liveMarketSlug?: string;
 }
 
-const PRICE_API_BASE = getAuthApiUrl('/api/crypto/chainlink/price');
+/** 市场结束后 closePrice 仍为 null（结算延迟）时的轮询间隔 */
+const CLOSE_PRICE_POLL_INTERVAL_MS = 5000;
 
 const DEFAULT_LIVE_PRICE_HEADER_TEXT = {
   currentPrice: "Current price",
@@ -41,56 +44,13 @@ function getMarketRouteSuffix(pathname: string) {
   return match?.[1] ?? "";
 }
 
-function parseFrequencyOffsetMs(frequencySlug?: string): number | null {
-  if (!frequencySlug) return null;
-
-  const minuteMatch = frequencySlug.match(/^(\d+)M$/);
-  if (minuteMatch) return Number(minuteMatch[1]) * 60 * 1000;
-
-  const hourMatch = frequencySlug.match(/^(\d+)H$/);
-  if (hourMatch) return Number(hourMatch[1]) * 60 * 60 * 1000;
-
-  const dayMatch = frequencySlug.match(/^(\d+)D$/);
-  if (dayMatch) return Number(dayMatch[1]) * 24 * 60 * 60 * 1000;
-
-  const weekMatch = frequencySlug.match(/^(\d+)W$/);
-  if (weekMatch) return Number(weekMatch[1]) * 7 * 24 * 60 * 60 * 1000;
-
-  if (frequencySlug === "DAILY" || frequencySlug === "daily") {
-    return 24 * 60 * 60 * 1000;
-  }
-  if (frequencySlug === "WEEKLY" || frequencySlug === "weekly") {
-    return 7 * 24 * 60 * 60 * 1000;
-  }
-
-  return null;
-}
-
-async function fetchChainlinkPrice(
-  symbol: string,
-  payloadTimestamp: number
-): Promise<number | null> {
-  try {
-    const url = `${PRICE_API_BASE}?symbol=${encodeURIComponent(
-      symbol
-    )}&payloadTimestamp=${payloadTimestamp}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return typeof data?.data?.value === "number" ? data.data.value : null;
-  } catch (e) {
-    console.warn('[LivePriceHeader] Failed to fetch live price', e);
-    return null;
-  }
-}
-
 export default function LivePriceHeader({
   isLive,
   currentPrice,
   priceChange,
   endDate,
   symbol,
-  frequencySlug,
+  eventId,
   liveMarketSlug,
 }: LivePriceHeaderProps) {
   const pathname = usePathname();
@@ -110,28 +70,57 @@ export default function LivePriceHeader({
     maximumFractionDigits: 2,
   })}`;
 
+  // 开盘价（Price to beat）/ 收盘价（Final price）来自 settlement-prices 接口（按 eventId）
   const [priceToBeat, setPriceToBeat] = useState<number | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
-  const hasFetchedFinalRef = useRef(false);
 
-  // Fetch Price to beat once when endDate / symbol / frequencySlug are available
+  // openPrice → Price to beat，closePrice → Final price。进行中的 Current price 仍由父组件的 WS 实时价提供。
   useEffect(() => {
-    if (!endDate || !symbol) {
+    if (!eventId) {
       setPriceToBeat(null);
+      setFinalPrice(null);
       return;
     }
-    hasFetchedFinalRef.current = false;
-    setFinalPrice(null);
+    let cancelled = false;
     setPriceToBeat(null);
-    const offsetMs = parseFrequencyOffsetMs(frequencySlug);
-    if (offsetMs === null) {
-      return;
-    }
-    const ts = endDate - offsetMs;
-    fetchChainlinkPrice(symbol, ts).then((price) => {
-      if (price !== null) setPriceToBeat(price);
-    });
-  }, [endDate, symbol, frequencySlug]);
+    setFinalPrice(null);
+    getEventSettlementPrices(eventId)
+      .then((resp) => {
+        if (cancelled) return;
+        const open = resp?.data?.openPrice;
+        const close = resp?.data?.closePrice;
+        if (typeof open === "number") setPriceToBeat(open);
+        if (typeof close === "number") setFinalPrice(close);
+      })
+      .catch((e) =>
+        console.warn("[LivePriceHeader] 拉取 settlement-prices 失败", e)
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
+
+  // 市场已结束但 closePrice 仍为 null（结算延迟）：轮询直到拿到收盘价
+  useEffect(() => {
+    if (isLive || !eventId || finalPrice !== null) return;
+    let cancelled = false;
+    const poll = () => {
+      getEventSettlementPrices(eventId)
+        .then((resp) => {
+          if (cancelled) return;
+          const close = resp?.data?.closePrice;
+          if (typeof close === "number") setFinalPrice(close);
+        })
+        .catch((e) =>
+          console.warn("[LivePriceHeader] 轮询 settlement-prices 失败", e)
+        );
+    };
+    const timer = setInterval(poll, CLOSE_PRICE_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [eventId, isLive, finalPrice]);
 
   // Internal ticking state to guarantee smooth 1s updates for NumberFlow animation
   // without relying on parent re-renders which might get batched or delayed
@@ -146,13 +135,6 @@ export default function LivePriceHeader({
     // If not live, or missing endDate, zero out the countdown
     if (!isLive || !endDate) {
       setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      // isLive just became false (market ended) — fetch Final Price exactly once
-      if (!isLive && endDate && symbol && !hasFetchedFinalRef.current) {
-        hasFetchedFinalRef.current = true;
-        fetchChainlinkPrice(symbol, endDate).then((price) => {
-          if (price !== null) setFinalPrice(price);
-        });
-      }
       return;
     }
 
@@ -160,13 +142,6 @@ export default function LivePriceHeader({
       const difference = endDate - Date.now();
       if (difference <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        // Fallback: countdown loop hits zero before isLive prop updates
-        if (!hasFetchedFinalRef.current && symbol) {
-          hasFetchedFinalRef.current = true;
-          fetchChainlinkPrice(symbol, endDate).then((price) => {
-            if (price !== null) setFinalPrice(price);
-          });
-        }
         return;
       }
       setTimeLeft({
@@ -199,7 +174,7 @@ export default function LivePriceHeader({
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [endDate, isLive, symbol]);
+  }, [endDate, isLive]);
 
   return (
     <div className="flex items-start sm:items-center justify-between w-full py-2 mb-4 gap-3">

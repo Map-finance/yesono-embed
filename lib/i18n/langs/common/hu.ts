@@ -98,6 +98,8 @@ export default {
   connect: 'Csatlakozás',
   connectWallet: 'Tárca csatlakoztatása',
   pleaseLoginInParent: 'Jelentkezzen be a gazdaoldalon',
+  orderResumeAfterLogin: 'Log in via the host page — your order will be placed automatically',
+  waitingForLogin: 'Waiting for login…',
   deposit: 'Befizetés',
   balance: 'Egyenleg',
   accountSettings: 'Fiókbeállítások',

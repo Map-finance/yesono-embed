@@ -19,6 +19,7 @@ import {
   getEventBySlug,
   formatEndTime,
   getNeedTimeTagTags,
+  getFinanceNeedTimeTagTags,
 } from "@/lib/services/homeService";
 import { formatNumber, formatDate } from "@/utils/format";
 
@@ -90,6 +91,8 @@ export default function MarketDetailPage() {
   const [market, setMarket] = useState<Market | null>(null);
   const [eventData, setEventData] = useState<PolymarketEventResp | null>(null);
   const [needTimeTagTags, setNeedTimeTagTags] = useState<string[]>([]);
+  // 事件 tags 含 "finance" → 走 finance 的 need-time-tag-tags + WS objectivePrice 订阅
+  const [isFinanceEvent, setIsFinanceEvent] = useState(false);
   // 使用精准 selector 订阅 tradingStore，避免 orderBookRaw 高频更新时整个详情页重渲染
   const selectedMarket = useTradingStore((s) => s.market);
   const setSelectedMarket = useTradingStore((s) => s.setMarket);
@@ -268,10 +271,15 @@ export default function MarketDetailPage() {
     isLoadingRef.current = true;
     try {
       setLoading(true);
-      const [eventResp, timeTagTags] = await Promise.all([
-        getEventBySlug(id),
-        getNeedTimeTagTags(),
-      ]);
+      const eventResp = await getEventBySlug(id);
+      // 先按事件 tags 判断是否 finance，再取对应的 need-time-tag-tags
+      const financeFlag = !!eventResp?.tags?.some(
+        (tag) => tag.slug === "finance"
+      );
+      setIsFinanceEvent(financeFlag);
+      const timeTagTags = await (financeFlag
+        ? getFinanceNeedTimeTagTags()
+        : getNeedTimeTagTags());
       setNeedTimeTagTags(timeTagTags);
 
       if (eventResp) {
@@ -535,6 +543,8 @@ export default function MarketDetailPage() {
               <LivePriceChart
                 symbol={liveChartSymbol}
                 eventSlug={eventData?.slug}
+                eventId={eventData?.id}
+                isFinance={isFinanceEvent}
                 height={350}
                 isLive={!isMarketEnded}
                 endDate={eventData?.endDate}

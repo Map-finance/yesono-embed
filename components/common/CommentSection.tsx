@@ -39,7 +39,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   entityId,
   onCommentCreated,
 }) => {
-  const { comments, loading, create, toggleLike, deleteComment, setOrderBy, toggleSubComments } = useComments(entityId);
+  const { comments, loading, currentUserId, create, toggleLike, deleteComment, setOrderBy, toggleSubComments } = useComments(entityId);
   const [sortBy, setSortBy] = useState<'time' | 'like'>('time');
   const [commentText, setCommentText] = useState('');
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -179,7 +179,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               toggleLike={handleLike}
               deleteComment={deleteComment}
               toggleSubComments={toggleSubComments}
-              currentUserId={undefined}
+              currentUserId={currentUserId}
             />
           ))
         )}

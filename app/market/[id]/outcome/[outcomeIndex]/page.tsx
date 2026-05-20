@@ -15,7 +15,11 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Market } from "@/types/types";
 
-import { getEventBySlug, getNeedTimeTagTags } from "@/lib/services/homeService";
+import {
+  getEventBySlug,
+  getNeedTimeTagTags,
+  getFinanceNeedTimeTagTags,
+} from "@/lib/services/homeService";
 import { polymarketEventToMarket } from "@/lib/utils/eventToMarket";
 import { PolymarketEventResp, PolymarketMarketResp } from "@/types/home";
 import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
@@ -74,6 +78,8 @@ export default function OutcomeDetailPage() {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showMobileTrading, setShowMobileTrading] = useState(false);
   const [needTimeTagTags, setNeedTimeTagTags] = useState<string[]>([]);
+  // 事件 tags 含 "finance" → 走 finance need-time-tag-tags + WS objectivePrice 订阅
+  const [isFinanceEvent, setIsFinanceEvent] = useState(false);
   const [isMarketEnded, setIsMarketEnded] = useState(false);
   const [liveMarketSlug, setLiveMarketSlug] = useState("");
   const [mobileLiveCountdown, setMobileLiveCountdown] = useState({
@@ -100,10 +106,14 @@ export default function OutcomeDetailPage() {
     const loadMarket = async () => {
       try {
         setLoading(true);
-        const [data, timeTagTags] = await Promise.all([
-          getEventBySlug(marketId),
-          getNeedTimeTagTags(),
-        ]);
+        const data = await getEventBySlug(marketId);
+        const financeFlag = !!data?.tags?.some(
+          (tag) => tag.slug === "finance"
+        );
+        setIsFinanceEvent(financeFlag);
+        const timeTagTags = await (financeFlag
+          ? getFinanceNeedTimeTagTags()
+          : getNeedTimeTagTags());
         setNeedTimeTagTags(timeTagTags);
         if (data) {
           const convertedMarket = polymarketEventToMarket(data);
@@ -421,6 +431,8 @@ export default function OutcomeDetailPage() {
             <LivePriceChart
               symbol={liveChartSymbol}
               eventSlug={realEventSlug || market.slug}
+              eventId={eventData?.id}
+              isFinance={isFinanceEvent}
               height={200}
               isLive={!isMarketEnded}
               endDate={eventData?.endDate}

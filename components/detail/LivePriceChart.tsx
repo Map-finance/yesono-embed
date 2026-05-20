@@ -28,6 +28,10 @@ interface TradeTapeItem {
 interface LivePriceChartProps {
   symbol?: string;
   eventSlug?: string;
+  /** 事件 ID：WS 实时价订阅键 + 传给 LivePriceHeader 拉取开盘价 / 收盘价 */
+  eventId?: string | number;
+  /** 金融（objective）事件：WS 用 objectivePrice 订阅，否则 cryptoPrice */
+  isFinance?: boolean;
   height?: number;
   /** 由父组件传入：市场是否仍在进行（false 则显示 Final price） */
   isLive: boolean;
@@ -93,6 +97,8 @@ function getMockTradeAutoStopMs(): number {
 export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   symbol = "eth/usd",
   eventSlug,
+  eventId,
+  isFinance = false,
   height = 320,
   isLive,
   endDate,
@@ -364,7 +370,8 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   }, [symbol, height, themeColor]);
 
   // ============== Live price feed（替换原组件内 new WebSocket） ==============
-  useLivePriceFeed(symbol, {
+  // 按 eventId 订阅：finance 用 objectivePrice，其余用 cryptoPrice
+  useLivePriceFeed(eventId, isFinance ? "finance" : "crypto", {
     onSnapshot: (points) => {
       const series = seriesRef.current;
       if (!series || points.length === 0) return;
@@ -484,6 +491,7 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
         priceChange={livePriceChange}
         endDate={endDate}
         symbol={symbol}
+        eventId={eventId}
         frequencySlug={frequencySlug}
         liveMarketSlug={liveMarketSlug}
       />
