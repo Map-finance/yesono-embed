@@ -233,8 +233,11 @@ export default function ChartToggleSwitch({
       </div>
 
       {/* Sliding Background Block */}
+      {/* 注意：垂直居中只用内联 transform 的 -50%，不要再加 Tailwind 的 -translate-y-1/2。
+          v4 里 translate 工具走独立的 `translate` 属性，会和内联 `transform` 叠加，
+          导致 Y 方向被平移两次（-100%），滑块顶出容器。 */}
       <div
-        className={`absolute pointer-events-none top-1/2 -translate-y-1/2 w-8 h-8 shrink-0 rounded-sm transition-all! duration-200 z-0
+        className={`absolute pointer-events-none top-1/2 w-8 h-8 shrink-0 rounded-sm transition-all! duration-200 z-0
         ${!isPrice ? "bg-[#3b82f6]/10 dark:bg-[#3b82f6]/20" : ""}`}
         style={{
           ...(isPrice ? { backgroundColor: assetColor, opacity: 0.15 } : {}),
