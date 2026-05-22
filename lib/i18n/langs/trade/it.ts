@@ -17,6 +17,7 @@ export default {
   "percent25": "25%",
   "percent50": "50%",
   "toWin": "Per vincere",
+  toWinTooltip: "L'importo che riceverai se questo esito vince. Ogni quota paga 1 $ alla liquidazione.",
   "avgPrice": "Prezzo medio",
   "setExpiration": "Imposta scadenza",
   "total": "Totale",

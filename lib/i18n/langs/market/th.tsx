@@ -27,7 +27,7 @@ export default {
   settlement: {
     halfWin: 'ชนะครึ่ง',
     halfLose: 'แพ้ครึ่ง',
-    push: 'เสมอ (คืนเงิน)',
+    push: 'เสมอ',
     awaiting: 'รอการชำระบัญชี',
   },
   trades: 'การซื้อขาย',

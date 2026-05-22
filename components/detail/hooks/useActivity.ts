@@ -136,6 +136,12 @@ export function useActivity({
       size: message.size,
       timestamp: message.timestamp,
       assetId: message.assetId,
+      hash:
+        message.hash ??
+        (message as any).transactionHash ??
+        (message as any).transaction_hash ??
+        (message as any).txHash ??
+        undefined,
     };
 
     // 添加到待刷新队列

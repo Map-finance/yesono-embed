@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: '半勝ち',
     halfLose: '半負け',
-    push: '引き分け（返金）',
+    push: '引き分け',
     awaiting: '清算待ち',
   },
   trades: '取引',

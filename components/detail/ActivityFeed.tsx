@@ -8,6 +8,7 @@ import {
 import { ChevronDown, ExternalLink, Loader2 } from "lucide-react";
 import { useActivity } from "./hooks/useActivity";
 import { formatTimestamp } from "@/lib/services/orderBookService";
+import { getBasescanUrl } from "@/lib/config";
 import { PolymarketMarketResp } from "@/types/home";
 import Avatar from "@/components/common/Avatar";
 
@@ -435,10 +436,22 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                       <span className="text-xs text-(--text-tertiary)">
                         {formatTimestamp(trade.timestamp)}
                       </span>
-                      <ExternalLink
-                        size={14}
-                        className="text-(--text-tertiary)"
-                      />
+                      {/* 仅当有链上交易哈希时才显示跳转图标（无 hash 不显示） */}
+                      {trade.hash && (
+                        <a
+                          href={getBasescanUrl.transaction(trade.hash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-(--text-tertiary) hover:text-(--text-primary) transition-colors"
+                          title={
+                            (t.market.activityText as any)?.viewOnExplorer ||
+                            "View on explorer"
+                          }
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
                     </div>
                   </div>
                 );

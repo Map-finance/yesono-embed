@@ -27,7 +27,7 @@ export default {
   settlement: {
     halfWin: '赢一半',
     halfLose: '输一半',
-    push: '平局(退款)',
+    push: '平局',
     awaiting: '已截止,等待结算',
   },
   trades: '笔交易',

@@ -30,6 +30,7 @@ export default {
 
   // Win preview
   toWin: "To win",
+  toWinTooltip: "The amount you'll receive if this outcome wins. Each share pays out $1 at settlement.",
   avgPrice: "Avg. Price",
 
   // New additions

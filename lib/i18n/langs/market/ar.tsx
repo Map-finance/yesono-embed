@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: 'فوز نصفي',
     halfLose: 'خسارة نصفية',
-    push: 'تعادل (استرداد)',
+    push: 'تعادل',
     awaiting: 'في انتظار التسوية',
   },
   trades: 'تداولات',

@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: 'Demi-gain',
     halfLose: 'Demi-perte',
-    push: 'Nul (remboursement)',
+    push: 'Nul',
     awaiting: 'En attente de règlement',
   },
   trades: 'transactions',

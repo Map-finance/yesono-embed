@@ -30,6 +30,7 @@ export default {
   
   // Win preview
   toWin: "可赢得",
+  toWinTooltip: "若该结果获胜,你将获得的金额。每份额结算时兑付 $1。",
   avgPrice: "平均价格",
 
   // New additions

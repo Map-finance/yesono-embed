@@ -26,7 +26,7 @@ export default {
   settlement: {
     halfWin: 'ឈ្នះពាក់កណ្តាល',
     halfLose: 'ចាញ់ពាក់កណ្តាល',
-    push: 'ស្មើ (សងវិញ)',
+    push: '\u179F\u17D2\u1798\u17BE',
     awaiting: 'កំពុងរង់ចាំការទូទាត់',
   },
   trades: '\u1794\u17D2\u179A\u178F\u17B7\u1794\u178F\u17D2\u178F\u17B7\u1780\u17B6\u179A',

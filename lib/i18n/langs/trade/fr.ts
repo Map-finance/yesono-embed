@@ -17,6 +17,7 @@ export default {
   "percent25": "25%",
   "percent50": "50%",
   "toWin": "Gain potentiel",
+  toWinTooltip: "Le montant que vous recevrez si ce résultat gagne. Chaque part rapporte 1 $ au règlement.",
   "avgPrice": "Prix moyen",
   "setExpiration": "Définir l'expiration",
   "total": "Total",

@@ -76,6 +76,7 @@ export interface TradeMessage {
   size: number;
   timestamp: number;
   assetId?: string;  // 对应 outcome 列表中的 market
+  hash?: string;     // 链上交易哈希
 }
 
 // WebSocket 订阅响应
@@ -117,6 +118,7 @@ export interface TradeRecord {
   size: number;
   timestamp: number;
   assetId?: string;  // 对应 outcome 列表中的 market
+  hash?: string;     // 链上交易哈希
 }
 
 // API 响应
@@ -640,6 +642,18 @@ export async function getAllTrades(
   try {
     const response = await fetch(`${API_BASE_URL}/trades1/all?${params}`);
     const data = await response.json();
+    // 归一交易哈希字段（后端字段名可能为 hash / transactionHash / transaction_hash / txHash）
+    if (data && Array.isArray(data.data)) {
+      data.data = data.data.map((r: any) => ({
+        ...r,
+        hash:
+          r?.hash ??
+          r?.transactionHash ??
+          r?.transaction_hash ??
+          r?.txHash ??
+          undefined,
+      }));
+    }
     return data;
   } catch (error) {
     console.error('[OrderBookService] Failed to fetch trades:', error);

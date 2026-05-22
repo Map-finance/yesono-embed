@@ -17,6 +17,7 @@ export default {
   "percent25": "25%",
   "percent50": "50%",
   "toWin": "Nyeremény",
+  toWinTooltip: "Az az összeg, amit megkapsz, ha ez a kimenetel nyer. Minden részvény 1 $-t fizet elszámoláskor.",
   "avgPrice": "Átlagár",
   "setExpiration": "Lejárat beállítása",
   "total": "Összesen",

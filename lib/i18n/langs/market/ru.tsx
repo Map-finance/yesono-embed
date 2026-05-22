@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: 'Половина выигрыша',
     halfLose: 'Половина проигрыша',
-    push: 'Ничья (возврат)',
+    push: 'Ничья',
     awaiting: 'Ожидание расчёта',
   },
   trades: 'сделки',

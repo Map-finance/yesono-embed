@@ -1004,7 +1004,54 @@ export default function TradingPanel({
             <div className="flex justify-between items-center text-base">
               <div className="flex items-center gap-1.5 font-medium text-[var(--text-secondary)]">
                 {direction === "BUY" ? t.trade.toWin : t.trade.total}
-                <Info size={14} className="text-[var(--text-tertiary)] ml-1" />
+                <Popover
+                  trigger="hover"
+                  placement="top"
+                  content={(() => {
+                    // 价格→赔率换算（参考 Polymarket）：价格¢ / 美式 / 小数
+                    // 限价单用限价价格，市价单用选中档实时价（0-1）。
+                    const priceCents =
+                      orderType === "limit"
+                        ? parseFloat(limitPrice || "0")
+                        : (selectedPrice || 0) * 100;
+                    const p = priceCents / 100; // 概率 0-1
+                    const valid = p > 0 && p < 1;
+                    const decimal = valid ? (1 / p).toFixed(3) : "—";
+                    const american = valid
+                      ? p <= 0.5
+                        ? `+${Math.round((1 / p - 1) * 100)}`
+                        : `-${Math.round(100 / (1 / p - 1))}`
+                      : "—";
+                    const row = (label: string, val: string) => (
+                      <div className="flex justify-between gap-8">
+                        <span className="text-[var(--text-tertiary)]">
+                          {label}
+                        </span>
+                        <span className="text-[var(--text-primary)] font-medium tabular-nums">
+                          {val}
+                        </span>
+                      </div>
+                    );
+                    return (
+                      <div className="p-3 min-w-[170px] flex flex-col gap-1.5 text-sm">
+                        {row(
+                          (t.trade as any).price,
+                          valid ? `${priceCents.toFixed(1)}¢` : "—"
+                        )}
+                        {row((t.trade as any).american, american)}
+                        {row(
+                          (t.trade as any).decimal,
+                          valid ? `${decimal}x` : "—"
+                        )}
+                      </div>
+                    );
+                  })()}
+                >
+                  <Info
+                    size={14}
+                    className="text-[var(--text-tertiary)] ml-1 cursor-help"
+                  />
+                </Popover>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-green-500 font-bold text-xl flex items-center">

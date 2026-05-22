@@ -17,7 +17,10 @@ import { PolymarketMarketResp } from "@/types/home";
 import { useTranslation } from "@/lib/i18n";
 import { getOutcomesByMarket } from "@/lib/utils/outcomes";
 import { useTradingStore } from "@/lib/store/tradingStore";
-import { clampOutcomeProbabilityPercent } from "@/utils/format";
+import {
+  clampOutcomeProbabilityPercent,
+  fillEvenSplitWhenAllZero,
+} from "@/utils/format";
 import { useSettlementResults } from "@/lib/hooks/useSettlementResults";
 import OutcomeRow from "./OutcomeRow";
 import type { DisplayOption } from "./OutcomeList.helpers";
@@ -80,14 +83,27 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
             noPriceRaw = prices[1];
           }
 
+          // 无盘口/价格全 0 时按 50/50 均分展示（与 TradingPanel 一致），
+          // 否则按钮会被 clamp 成误导性的 0.1¢
+          const [yesPriceFilled, noPriceFilled] = fillEvenSplitWhenAllZero([
+            yesPriceRaw,
+            noPriceRaw,
+          ]);
+          yesPriceRaw = yesPriceFilled ?? yesPriceRaw;
+          noPriceRaw = noPriceFilled ?? noPriceRaw;
+
           // rowOutcomePrice 用于百分比显示（优先）
           const rowPrices = (m as any).rowOutcomePrice
             ? JSON.parse((m as any).rowOutcomePrice)
             : null;
           if (rowPrices && rowPrices.length > 0) {
-            yesPercentage = clampOutcomeProbabilityPercent(rowPrices[0]);
+            // 同样对全 0 行情做均分，避免百分比显示成 1%
+            const [rowYesFilled] = fillEvenSplitWhenAllZero(rowPrices);
+            yesPercentage = clampOutcomeProbabilityPercent(
+              rowYesFilled ?? rowPrices[0],
+            );
           } else {
-            // fallback 到 outcomePrices
+            // fallback 到 outcomePrices（已做均分处理）
             yesPercentage = clampOutcomeProbabilityPercent(yesPriceRaw);
           }
 

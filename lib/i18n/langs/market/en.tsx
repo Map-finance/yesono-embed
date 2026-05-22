@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: 'Half win',
     halfLose: 'Half lose',
-    push: 'Push (refund)',
+    push: 'Push',
     awaiting: 'Awaiting settlement',
   },
   trades: 'trades',

@@ -27,7 +27,7 @@ export default {
   settlement: {
     halfWin: 'Thắng một nửa',
     halfLose: 'Thua một nửa',
-    push: 'Hòa (hoàn tiền)',
+    push: 'Hòa',
     awaiting: 'Đang chờ thanh toán',
   },
   trades: 'giao dịch',

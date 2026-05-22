@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: 'Μισή νίκη',
     halfLose: 'Μισή ήττα',
-    push: 'Ισοπαλία (επιστροφή)',
+    push: 'Ισοπαλία',
     awaiting: 'Σε αναμονή διακανονισμού',
   },
   trades: 'συναλλαγές',

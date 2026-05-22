@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: 'Halber Gewinn',
     halfLose: 'Halber Verlust',
-    push: 'Unentschieden (Rückerstattung)',
+    push: 'Unentschieden',
     awaiting: 'Warten auf Abrechnung',
   },
   trades: 'Trades',

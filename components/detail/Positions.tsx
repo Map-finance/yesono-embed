@@ -7,20 +7,30 @@ import { Popover } from "../ui/Popover";
 import Avatar from "@/components/common/Avatar";
 import { UserProfile } from "@/components/common/UserProfile";
 import { PolymarketMarketResp } from "@/types/home";
+import { normalizeBinaryOutcomeLabel } from "@/lib/utils/outcomes";
 
 interface PositionsProps {
   markets: PolymarketMarketResp[];
 }
 
+// 注：分组 outcomeName 是真实档位名（yes/no、up/down、队名…），不能写死按 YES/NO
+// 匹配（否则 up/down 等市场全空、不展示）。统一按 originalIndex 取第 0/1 档，并返回
+// 真实档位名用于列标题。
 function usePositions(market: PolymarketMarketResp | undefined) {
-  const [loading, setLoading] = useState(false);
-  const [yesHold, setYesHold] = useState<Holding[]>([]);
-  const [noHold, setNoHold] = useState<Holding[]>([]);
+  // 默认 loading=true：接口返回前不渲染两列（避免空列闪现）
+  const [loading, setLoading] = useState(true);
+  const [firstHold, setFirstHold] = useState<Holding[]>([]);
+  const [secondHold, setSecondHold] = useState<Holding[]>([]);
+  const [firstName, setFirstName] = useState<string>("");
+  const [secondName, setSecondName] = useState<string>("");
 
   useEffect(() => {
     if (!market?.id) {
-      setYesHold([]);
-      setNoHold([]);
+      setFirstHold([]);
+      setSecondHold([]);
+      setFirstName("");
+      setSecondName("");
+      setLoading(false);
       return;
     }
 
@@ -29,19 +39,27 @@ function usePositions(market: PolymarketMarketResp | undefined) {
       try {
         const res = await getHoldRankPnl({ marketId: market.id });
         if (res?.code === 200 && Array.isArray(res.data)) {
-          const groups: HoldRankGroup[] = res.data;
-          const yesGroup = groups.find(g => g.outcomeName?.toUpperCase() === "YES");
-          const noGroup = groups.find(g => g.outcomeName?.toUpperCase() === "NO");
-          setYesHold(yesGroup?.rankings ?? []);
-          setNoHold(noGroup?.rankings ?? []);
+          const groups: HoldRankGroup[] = [...res.data].sort(
+            (a, b) => (a.originalIndex ?? 0) - (b.originalIndex ?? 0)
+          );
+          const first = groups[0];
+          const second = groups[1];
+          setFirstHold(first?.rankings ?? []);
+          setSecondHold(second?.rankings ?? []);
+          setFirstName(first?.outcomeName ?? "");
+          setSecondName(second?.outcomeName ?? "");
         } else {
-          setYesHold([]);
-          setNoHold([]);
+          setFirstHold([]);
+          setSecondHold([]);
+          setFirstName("");
+          setSecondName("");
         }
       } catch (err) {
         console.error("[Positions] Failed to fetch PnL:", err);
-        setYesHold([]);
-        setNoHold([]);
+        setFirstHold([]);
+        setSecondHold([]);
+        setFirstName("");
+        setSecondName("");
       } finally {
         setLoading(false);
       }
@@ -49,7 +67,7 @@ function usePositions(market: PolymarketMarketResp | undefined) {
     asyncFn();
   }, [market?.id]);
 
-  return { loading, yesHold, noHold };
+  return { loading, firstHold, secondHold, firstName, secondName };
 }
 
 interface PositionListProps {
@@ -143,7 +161,26 @@ const Positions: React.FC<PositionsProps> = ({ markets }) => {
     return markets.find(m => String(m.id) === selectedMarketId);
   }, [markets, selectedMarketId]);
 
-  const { loading, yesHold, noHold } = usePositions(selectedMarket);
+  const { loading, firstHold, secondHold, firstName, secondName } =
+    usePositions(selectedMarket);
+
+  // 列标题用真实档位名归一（yes/no、up/down…），回退到通用 Yes/No
+  const outcomeDict = {
+    yes: t.common.yes as string,
+    no: t.common.no as string,
+    up: t.common.up as string,
+    down: t.common.down as string,
+  };
+  const firstTitle = normalizeBinaryOutcomeLabel(
+    firstName,
+    t.common.yes as string,
+    outcomeDict
+  );
+  const secondTitle = normalizeBinaryOutcomeLabel(
+    secondName,
+    t.common.no as string,
+    outcomeDict
+  );
 
   return (
     <>
@@ -195,14 +232,14 @@ const Positions: React.FC<PositionsProps> = ({ markets }) => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
           <PositionList
-            title={t.market.yesHolders}
-            holders={yesHold}
+            title={firstTitle}
+            holders={firstHold}
             highlight="green"
             t={t}
           />
           <PositionList
-            title={t.market.noHolders}
-            holders={noHold}
+            title={secondTitle}
+            holders={secondHold}
             highlight="red"
             t={t}
           />

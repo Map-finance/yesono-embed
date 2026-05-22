@@ -2,6 +2,7 @@ import React from "react";
 import Avatar from "@/components/common/Avatar";
 import { Holding } from "@/types/types";
 import { UserProfile } from "@/components/common/UserProfile";
+import { useTranslation } from "@/lib/i18n";
 
 interface HoldersListProps {
   title: string;
@@ -14,6 +15,7 @@ const HoldersList: React.FC<HoldersListProps> = ({
   holders,
   highlight = "default",
 }) => {
+  const { t } = useTranslation();
   return (
     <div>
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-(--border)">
@@ -21,7 +23,7 @@ const HoldersList: React.FC<HoldersListProps> = ({
           {title}
         </span>
         <span className="text-xs text-(--text-secondary) uppercase">
-          Shares
+          {t.market.shares}
         </span>
       </div>
       <div className="space-y-1">

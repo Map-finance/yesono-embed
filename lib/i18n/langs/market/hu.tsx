@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: 'Fél nyeremény',
     halfLose: 'Fél veszteség',
-    push: 'Döntetlen (visszatérítés)',
+    push: 'Döntetlen',
     awaiting: 'Elszámolásra vár',
   },
   trades: 'tranzakció',

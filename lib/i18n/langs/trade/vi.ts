@@ -23,6 +23,7 @@ export default {
   percent50: "50%",
 
   toWin: "Để thắng",
+  toWinTooltip: "Số tiền bạn sẽ nhận nếu kết quả này thắng. Mỗi phần trả $1 khi thanh toán.",
   avgPrice: "Giá trung bình",
 
   setExpiration: "Đặt thời hạn",

@@ -17,6 +17,7 @@ export default {
   "percent25": "25%",
   "percent50": "50%",
   "toWin": "预期收益",
+  toWinTooltip: "若该结果获胜,你将获得的金额。每份额结算时兑付 $1。",
   "avgPrice": "均价",
   "setExpiration": "设置过期时间",
   "total": "总计",

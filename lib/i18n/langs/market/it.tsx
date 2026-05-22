@@ -28,7 +28,7 @@ export default {
   settlement: {
     halfWin: 'Mezza vittoria',
     halfLose: 'Mezza sconfitta',
-    push: 'Pareggio (rimborso)',
+    push: 'Pareggio',
     awaiting: 'In attesa di liquidazione',
   },
   trades: 'transazioni',

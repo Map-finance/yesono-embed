@@ -17,6 +17,7 @@ export default {
   "percent25": "25%",
   "percent50": "50%",
   "toWin": "Para ganar",
+  toWinTooltip: "La cantidad que recibirás si este resultado gana. Cada acción paga 1 $ al liquidarse.",
   "avgPrice": "Precio promedio",
   "setExpiration": "Establecer expiración",
   "total": "Total",

@@ -17,6 +17,7 @@ export default {
   "percent25": "25%",
   "percent50": "50%",
   "toWin": "Gewinn",
+  toWinTooltip: "Der Betrag, den du erhältst, wenn dieses Ergebnis gewinnt. Jeder Anteil zahlt bei Abrechnung 1 $ aus.",
   "avgPrice": "Durchschnittspreis",
   "setExpiration": "Ablauf festlegen",
   "total": "Gesamt",

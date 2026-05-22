@@ -28,7 +28,7 @@ import MarketDetailTabs from "@/components/detail/MarketDetailTabs";
 import ProxyImage from "@/components/common/ProxyImage";
 import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { useSingleMarketPriceHistory } from "@/lib/hooks/usePriceHistory";
-import { formatNumber } from "@/utils/format";
+import { formatNumber, fillEvenSplitWhenAllZero } from "@/utils/format";
 import { useTranslation } from "@/lib/i18n";
 import {
   getOutcomeLabel,
@@ -247,10 +247,16 @@ export default function OutcomeDetailPage() {
       const prices = JSON.parse(
         (eventMarket as any)?.outcomePrices || "[]"
       ) as number[];
-      const yes = prices[0] !== undefined ? Math.round(prices[0] * 100) : 0;
+      // 无盘口/价格全 0 时按 50/50 均分展示（与 TradingPanel/OutcomeList 一致），
+      // 否则 buy 按钮会显示成误导性的 0¢
+      const [yesFilled, noFilled] = fillEvenSplitWhenAllZero([
+        prices[0],
+        prices[1],
+      ]);
+      const yes = yesFilled != null ? Math.round(yesFilled * 100) : 0;
       const no =
-        prices[1] !== undefined
-          ? Math.round(prices[1] * 100)
+        noFilled != null
+          ? Math.round(noFilled * 100)
           : yes > 0
             ? 100 - yes
             : 0;

@@ -17,6 +17,7 @@ export default {
   "percent25": "25%",
   "percent50": "50%",
   "toWin": "للربح",
+  toWinTooltip: "المبلغ الذي ستحصل عليه إذا فازت هذه النتيجة. تدفع كل حصة 1$ عند التسوية.",
   "avgPrice": "متوسط السعر",
   "setExpiration": "تعيين الانتهاء",
   "total": "الإجمالي",

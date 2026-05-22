@@ -17,6 +17,7 @@ export default {
   "percent25": "25%",
   "percent50": "50%",
   "toWin": "予想利益",
+  toWinTooltip: "この結果が勝った場合に受け取る金額です。各シェアは決済時に $1 を支払います。",
   "avgPrice": "平均価格",
   "setExpiration": "有効期限を設定",
   "total": "合計",
