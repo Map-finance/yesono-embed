@@ -1,21 +1,22 @@
 /**
  * Live price + trade tape WebSocket manager.
- * 实现 docs/react-component-guide.md §6.1 的 Manager 模式：
- *   - 共享单条底层 WebSocket 连接
- *   - 暴露 subscribePrice / subscribeTrades 两个频道
- *   - 内置指数退避重连、心跳-style 由服务端主导（无需 ping）
- *   - 引用计数 + iframe visibility pause
  *
- * 协议（统一按 eventId 订阅，operation 固定 subscribe，type 区分行情类型）：
+ * 连接模型（与 h2-market 对齐、按后端要求）：
+ *   **每个订阅一条专属 WebSocket 连接**，不多路复用、不跨订阅复用。
+ *   原因：后端协议 (1) 无显式 unsubscribe —— 想停掉一个订阅只能关连接；
+ *   (2) 推送响应不回显 eventId —— 连接本身就是路由标识，一条连接只能对应
+ *   一个订阅。因此切市场 = 关旧连 + 开新连（即"每个都重连"）。
+ *
+ * 管理器只负责：按 key 复用/创建/销毁 Channel + 引用计数 + iframe 可见性暂停。
+ *
+ * 协议：
  *   - price 订阅：{ operation: "subscribe", type: "cryptoPrice" | "objectivePrice", eventId }
- *       · 加密货币用 cryptoPrice，金融（objective）用 objectivePrice
  *     收到：
- *       { type: "subscribe", topic: "crypto_prices",          payload: { data: [...] } } → snapshot（两类通用）
- *       { type: "update",    topic: "crypto_prices_chainlink", payload: { timestamp, value } } → crypto update
- *       { type: "update",    topic: "crypto_prices", price, timestamp }                       → finance update（顶层 price/timestamp）
- *     注：响应不回显 eventId，单组件单订阅场景按"广播给所有活跃 price 订阅"分发。
+ *       { type:"subscribe", topic:"crypto_prices"|"finance_prices", payload:{ data:[...] } } → snapshot
+ *       { type:"update",    topic:"crypto_prices_chainlink",        payload:{ timestamp,value } } → crypto update
+ *       { type:"update",    topic:"crypto_prices"|"finance_prices", payload:{ value,timestamp } } → finance update
  *   - trade 订阅：{ operation: "subscribe", type: "trade_message", event_slug }
- *     收到：{ type: "trade_message", side, price, size, ... }
+ *     收到：{ type:"trade_message", side, price, size, ... }
  */
 
 import type { Time } from "lightweight-charts";
@@ -64,172 +65,95 @@ const RECONNECT_BASE_MS = 1500;
 const RECONNECT_MAX_MS = 30_000;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
-interface PriceSub {
-  refs: number;
-  handlers: Set<PriceHandler>;
-  hasData: boolean;
-  unsupportedTimer: ReturnType<typeof setTimeout> | null;
-  unsupportedEmitted: boolean;
-  /** crypto=cryptoPrice / finance=objectivePrice，重连时按此重发订阅 */
-  kind: PriceKind;
-}
+// ============== Channel：一条订阅 = 一条连接 ==============
 
-interface TradeSub {
-  refs: number;
-  handlers: Set<TradeHandler>;
-}
-
-class LivePriceWebSocket {
-  private ws: WebSocket | null = null;
+/**
+ * 单订阅专属连接基类：管理一条 WS 的生命周期（连接 / 指数退避重连 / 关闭 /
+ * 可见性暂停）。子类提供订阅消息体与消息解析。
+ */
+abstract class Channel {
+  protected ws: WebSocket | null = null;
   private isConnecting = false;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private paused = false;
+  /** 引用计数：同一 key 的多个订阅者共享同一条连接（仍是"一订阅一连接"语义） */
+  refs = 0;
 
-  private prices = new Map<string, PriceSub>();
-  private trades = new Map<string, TradeSub>();
+  /** 连接 open 后发送的订阅消息体 */
+  protected abstract subscribePayload(): object;
+  /** 解析并分发一条服务端消息 */
+  protected abstract onMessage(msg: Record<string, unknown>): void;
+  /** open 之后的额外动作（如 price 的 unsupported 计时） */
+  protected onOpenExtra(): void {}
 
-  constructor() {
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", this.handleVisibility);
+  open(): void {
+    if (this.paused) return;
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.OPEN ||
+        this.ws.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
     }
+    this.connect();
   }
 
-  // ============== 公共 API ==============
+  private connect(): void {
+    this.isConnecting = true;
+    try {
+      const ws = new WebSocket(WS_URL);
+      this.ws = ws;
 
-  subscribePrice(
-    eventId: string,
-    kind: PriceKind,
-    handler: PriceHandler
-  ): () => void {
-    let sub = this.prices.get(eventId);
-    if (!sub) {
-      sub = {
-        refs: 0,
-        handlers: new Set(),
-        hasData: false,
-        unsupportedTimer: null,
-        unsupportedEmitted: false,
-        kind,
-      };
-      this.prices.set(eventId, sub);
-    } else {
-      sub.kind = kind;
-    }
-    sub.refs += 1;
-    sub.handlers.add(handler);
-
-    void this.ensureConnected().then(() => this.sendSubscribePrice(eventId));
-    this.armUnsupportedTimer(eventId);
-
-    return () => {
-      const cur = this.prices.get(eventId);
-      if (!cur) return;
-      cur.handlers.delete(handler);
-      cur.refs -= 1;
-      if (cur.refs <= 0) {
-        if (cur.unsupportedTimer) clearTimeout(cur.unsupportedTimer);
-        this.prices.delete(eventId);
-        // 服务端协议无显式 unsubscribe，最多重连后不再 re-subscribe 即可
-      }
-    };
-  }
-
-  subscribeTrades(eventSlug: string, handler: TradeHandler): () => void {
-    let sub = this.trades.get(eventSlug);
-    if (!sub) {
-      sub = { refs: 0, handlers: new Set() };
-      this.trades.set(eventSlug, sub);
-    }
-    sub.refs += 1;
-    sub.handlers.add(handler);
-
-    void this.ensureConnected().then(() => this.sendSubscribeTrades(eventSlug));
-
-    return () => {
-      const cur = this.trades.get(eventSlug);
-      if (!cur) return;
-      cur.handlers.delete(handler);
-      cur.refs -= 1;
-      if (cur.refs <= 0) this.trades.delete(eventSlug);
-    };
-  }
-
-  forceReconnect(): void {
-    this.reconnectAttempts = 0;
-    this.closeSocket();
-    void this.ensureConnected();
-  }
-
-  // ============== 连接管理 ==============
-
-  private ensureConnected(): Promise<void> {
-    if (this.paused) return Promise.resolve();
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) return Promise.resolve();
-    if (this.isConnecting) {
-      // 简单等待 open
-      return new Promise((resolve) => {
-        const check = () => {
-          if (!this.isConnecting) resolve();
-          else setTimeout(check, 50);
-        };
-        check();
-      });
-    }
-    return this.connect();
-  }
-
-  private connect(): Promise<void> {
-    return new Promise((resolve) => {
-      this.isConnecting = true;
-      try {
-        const ws = new WebSocket(WS_URL);
-        this.ws = ws;
-
-        ws.onopen = () => {
-          this.isConnecting = false;
-          this.reconnectAttempts = 0;
-          // 重连后重新订阅所有活跃频道
-          this.prices.forEach((_sub, eventId) =>
-            this.sendSubscribePrice(eventId)
-          );
-          this.trades.forEach((_sub, eventSlug) =>
-            this.sendSubscribeTrades(eventSlug)
-          );
-          resolve();
-        };
-
-        ws.onmessage = (event) => this.handleMessage(event);
-
-        ws.onclose = () => {
-          this.isConnecting = false;
-          this.ws = null;
-          if (!this.paused) this.scheduleReconnect();
-        };
-
-        ws.onerror = () => {
-          // 让 onclose 兜底重连
-          try {
-            ws.close();
-          } catch {
-            // ignore
-          }
-        };
-      } catch (err) {
+      ws.onopen = () => {
         this.isConnecting = false;
-        console.error("[live-price-ws] connect failed", err);
-        this.scheduleReconnect();
-        resolve();
-      }
-    });
+        this.reconnectAttempts = 0;
+        try {
+          ws.send(JSON.stringify(this.subscribePayload()));
+        } catch {
+          // ignore
+        }
+        this.onOpenExtra();
+      };
+
+      ws.onmessage = (event) => {
+        if (!event.data || (event.data as string).length === 0) return;
+        let data: unknown;
+        try {
+          data = JSON.parse(event.data as string);
+        } catch (err) {
+          console.error("[live-price-ws] parse error", err);
+          return;
+        }
+        if (!data || typeof data !== "object") return;
+        this.onMessage(data as Record<string, unknown>);
+      };
+
+      ws.onclose = () => {
+        this.isConnecting = false;
+        this.ws = null;
+        if (!this.paused) this.scheduleReconnect();
+      };
+
+      ws.onerror = () => {
+        // 让 onclose 兜底重连
+        try {
+          ws.close();
+        } catch {
+          // ignore
+        }
+      };
+    } catch (err) {
+      this.isConnecting = false;
+      console.error("[live-price-ws] connect failed", err);
+      this.scheduleReconnect();
+    }
   }
 
   private scheduleReconnect(): void {
     if (this.reconnectTimer) return;
     if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.error(
-        "[live-price-ws] max reconnect attempts reached, giving up"
-      );
+      console.error("[live-price-ws] max reconnect attempts reached, giving up");
       return;
     }
     const delay = Math.min(
@@ -239,11 +163,11 @@ class LivePriceWebSocket {
     this.reconnectAttempts += 1;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      void this.connect();
+      this.connect();
     }, delay);
   }
 
-  private closeSocket(): void {
+  close(): void {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -264,174 +188,235 @@ class LivePriceWebSocket {
     this.isConnecting = false;
   }
 
-  // ============== 订阅消息 ==============
-
-  private sendSubscribePrice(eventId: string): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    const sub = this.prices.get(eventId);
-    if (!sub) return;
-    this.ws.send(
-      JSON.stringify({
-        operation: "subscribe",
-        type: sub.kind === "finance" ? "objectivePrice" : "cryptoPrice",
-        eventId: String(eventId),
-      })
-    );
+  pause(): void {
+    this.paused = true;
+    this.close();
   }
 
-  private sendSubscribeTrades(eventSlug: string): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    this.ws.send(
-      JSON.stringify({
-        operation: "subscribe",
-        type: "trade_message",
-        event_slug: eventSlug,
-      })
-    );
+  resume(): void {
+    this.paused = false;
+    this.reconnectAttempts = 0;
+    this.open();
+  }
+}
+
+/** price 专属连接：一条连接订阅一个 eventId（含 unsupported 检测） */
+class PriceChannel extends Channel {
+  readonly handlers = new Set<PriceHandler>();
+  private hasData = false;
+  private unsupportedTimer: ReturnType<typeof setTimeout> | null = null;
+  private unsupportedEmitted = false;
+
+  constructor(
+    private readonly eventId: string,
+    private readonly kind: PriceKind
+  ) {
+    super();
   }
 
-  // ============== 消息分发 ==============
-
-  private handleMessage(event: MessageEvent): void {
-    if (!event.data || (event.data as string).length === 0) return;
-    let data: unknown;
-    try {
-      data = JSON.parse(event.data as string);
-    } catch (err) {
-      console.error("[live-price-ws] parse error", err);
-      return;
-    }
-    if (!data || typeof data !== "object") return;
-    const msg = data as Record<string, unknown>;
-
-    if (msg.type === "subscribe" && msg.topic === "crypto_prices") {
-      this.dispatchPriceSnapshot(msg);
-      return;
-    }
-    if (msg.type === "update" && msg.topic === "crypto_prices_chainlink") {
-      // crypto 实时更新：payload.{timestamp,value}
-      this.dispatchPriceUpdate(msg);
-      return;
-    }
-    if (msg.type === "update" && msg.topic === "crypto_prices") {
-      // finance（objectivePrice）实时更新：顶层 price/timestamp
-      this.dispatchFinancePriceUpdate(msg);
-      return;
-    }
-    if (msg.type === "trade_message") {
-      this.dispatchTrade(msg);
-      return;
-    }
-  }
-
-  /** 广播一个 price 事件给所有活跃订阅（响应不回显 eventId，按订阅推断） */
-  private broadcastPrice(make: (eventId: string) => PriceMsg): void {
-    this.prices.forEach((sub, eventId) => {
-      sub.hasData = true;
-      if (sub.unsupportedTimer) {
-        clearTimeout(sub.unsupportedTimer);
-        sub.unsupportedTimer = null;
-      }
-      sub.handlers.forEach((h) => h(make(eventId)));
-    });
-  }
-
-  private dispatchPriceSnapshot(msg: Record<string, unknown>): void {
-    const payload = msg.payload as { data?: unknown } | undefined;
-    const raw = Array.isArray(payload?.data) ? payload!.data : null;
-    if (!raw) return;
-    if (raw.length === 0) {
-      // 空数组：保留 unsupported timer，让它兜底
-      return;
-    }
-
-    const points: PricePoint[] = (raw as Array<Record<string, unknown>>)
-      .map((item) => ({
-        time: ((item.timestamp as number) / 1000) as Time,
-        value: item.value as number,
-      }))
-      .sort((a, b) => (a.time as number) - (b.time as number))
-      .filter(
-        (item, index, self) => index === 0 || item.time !== self[index - 1].time
-      );
-
-    this.broadcastPrice((eventId) => ({ type: "snapshot", eventId, data: points }));
-  }
-
-  private dispatchPriceUpdate(msg: Record<string, unknown>): void {
-    const payload = msg.payload as
-      | { timestamp?: unknown; value?: unknown }
-      | undefined;
-    if (!payload) return;
-    const ts = Number(payload.timestamp);
-    const value = Number(payload.value);
-    if (!Number.isFinite(ts) || !Number.isFinite(value)) return;
-    const point: PricePoint = { time: (ts / 1000) as Time, value };
-    this.broadcastPrice((eventId) => ({ type: "update", eventId, point }));
-  }
-
-  /**
-   * finance objectivePrice 更新：{ type:"update", topic:"crypto_prices", ... }
-   * 价格字段已统一为 payload.value / payload.timestamp（兼容旧顶层 price/timestamp 兜底）。
-   */
-  private dispatchFinancePriceUpdate(msg: Record<string, unknown>): void {
-    const payload = (msg.payload ?? {}) as {
-      timestamp?: unknown;
-      value?: unknown;
+  protected subscribePayload(): object {
+    return {
+      operation: "subscribe",
+      type: this.kind === "finance" ? "objectivePrice" : "cryptoPrice",
+      eventId: String(this.eventId),
     };
-    const ts = Number(
-      typeof payload.timestamp === "number" ? payload.timestamp : msg.timestamp
-    );
-    const value = Number(
-      typeof payload.value === "number" ? payload.value : msg.price
-    );
-    if (!Number.isFinite(ts) || !Number.isFinite(value)) return;
-    const point: PricePoint = { time: (ts / 1000) as Time, value };
-    this.broadcastPrice((eventId) => ({ type: "update", eventId, point }));
   }
 
-  private dispatchTrade(msg: Record<string, unknown>): void {
+  protected onOpenExtra(): void {
+    this.armUnsupportedTimer();
+  }
+
+  private emit(msg: PriceMsg): void {
+    this.handlers.forEach((h) => h(msg));
+  }
+
+  private markHasData(): void {
+    this.hasData = true;
+    if (this.unsupportedTimer) {
+      clearTimeout(this.unsupportedTimer);
+      this.unsupportedTimer = null;
+    }
+  }
+
+  /** >3s 无真实数据 → 判定该 eventId 不支持（订阅时 + open 时各 arm 一次） */
+  armUnsupportedTimer(): void {
+    if (this.unsupportedEmitted || this.hasData || this.unsupportedTimer) return;
+    this.unsupportedTimer = setTimeout(() => {
+      this.unsupportedTimer = null;
+      if (this.hasData || this.unsupportedEmitted) return;
+      this.unsupportedEmitted = true;
+      this.emit({ type: "unsupported", eventId: this.eventId });
+    }, UNSUPPORTED_TIMEOUT_MS);
+  }
+
+  protected onMessage(msg: Record<string, unknown>): void {
+    // 历史快照：加密 crypto_prices / 金融 finance_prices（后端改名，兼容两者）
+    if (
+      msg.type === "subscribe" &&
+      (msg.topic === "crypto_prices" || msg.topic === "finance_prices")
+    ) {
+      const payload = msg.payload as { data?: unknown } | undefined;
+      const raw = Array.isArray(payload?.data) ? payload!.data : null;
+      if (!raw || raw.length === 0) return; // 空数组：保留 unsupported timer 兜底
+      const points: PricePoint[] = (raw as Array<Record<string, unknown>>)
+        .map((item) => ({
+          time: ((item.timestamp as number) / 1000) as Time,
+          value: item.value as number,
+        }))
+        .sort((a, b) => (a.time as number) - (b.time as number))
+        .filter(
+          (item, i, self) => i === 0 || item.time !== self[i - 1].time
+        );
+      this.markHasData();
+      this.emit({ type: "snapshot", eventId: this.eventId, data: points });
+      return;
+    }
+
+    // crypto 实时更新：payload.{timestamp,value}
+    if (msg.type === "update" && msg.topic === "crypto_prices_chainlink") {
+      const payload = msg.payload as
+        | { timestamp?: unknown; value?: unknown }
+        | undefined;
+      if (!payload) return;
+      const ts = Number(payload.timestamp);
+      const value = Number(payload.value);
+      if (!Number.isFinite(ts) || !Number.isFinite(value)) return;
+      this.markHasData();
+      this.emit({
+        type: "update",
+        eventId: this.eventId,
+        point: { time: (ts / 1000) as Time, value },
+      });
+      return;
+    }
+
+    // finance 实时更新：topic crypto_prices / finance_prices；价格字段 payload.value
+    // （兼容旧顶层 price/timestamp）
+    if (
+      msg.type === "update" &&
+      (msg.topic === "crypto_prices" || msg.topic === "finance_prices")
+    ) {
+      const payload = (msg.payload ?? {}) as {
+        timestamp?: unknown;
+        value?: unknown;
+      };
+      const ts = Number(
+        typeof payload.timestamp === "number" ? payload.timestamp : msg.timestamp
+      );
+      const value = Number(
+        typeof payload.value === "number" ? payload.value : msg.price
+      );
+      if (!Number.isFinite(ts) || !Number.isFinite(value)) return;
+      this.markHasData();
+      this.emit({
+        type: "update",
+        eventId: this.eventId,
+        point: { time: (ts / 1000) as Time, value },
+      });
+    }
+  }
+}
+
+/** trade 专属连接：一条连接订阅一个 eventSlug */
+class TradeChannel extends Channel {
+  readonly handlers = new Set<TradeHandler>();
+
+  constructor(private readonly eventSlug: string) {
+    super();
+  }
+
+  protected subscribePayload(): object {
+    return {
+      operation: "subscribe",
+      type: "trade_message",
+      event_slug: this.eventSlug,
+    };
+  }
+
+  protected onMessage(msg: Record<string, unknown>): void {
+    if (msg.type !== "trade_message") return;
     const side = msg.side;
     if (side !== "BUY" && side !== "SELL") return;
     const price = Number(msg.price);
     const size = Number(msg.size);
     if (!Number.isFinite(price) || !Number.isFinite(size)) return;
+    this.handlers.forEach((h) =>
+      h({ type: "trade", eventSlug: this.eventSlug, side, price, size })
+    );
+  }
+}
 
-    // trade_message 协议未必带 event_slug 回显；与旧实现一致：广播给所有活跃 trade 订阅。
-    this.trades.forEach((sub, eventSlug) => {
-      sub.handlers.forEach((h) =>
-        h({ type: "trade", eventSlug, side, price, size })
-      );
-    });
+// ============== 管理器：按 key 复用 Channel + 可见性暂停 ==============
+
+class LivePriceWebSocket {
+  // price key: `${kind}:${eventId}`；trade key: eventSlug
+  private priceChannels = new Map<string, PriceChannel>();
+  private tradeChannels = new Map<string, TradeChannel>();
+
+  constructor() {
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", this.handleVisibility);
+    }
   }
 
-  // ============== unsupported 检测 ==============
+  subscribePrice(
+    eventId: string,
+    kind: PriceKind,
+    handler: PriceHandler
+  ): () => void {
+    const key = `${kind}:${eventId}`;
+    let ch = this.priceChannels.get(key);
+    if (!ch) {
+      ch = new PriceChannel(eventId, kind);
+      this.priceChannels.set(key, ch);
+    }
+    ch.handlers.add(handler);
+    ch.refs += 1;
+    ch.open();
+    ch.armUnsupportedTimer();
 
-  private armUnsupportedTimer(eventId: string): void {
-    const sub = this.prices.get(eventId);
-    if (!sub || sub.unsupportedEmitted || sub.hasData) return;
-    if (sub.unsupportedTimer) return;
-    sub.unsupportedTimer = setTimeout(() => {
-      sub.unsupportedTimer = null;
-      if (sub.hasData || sub.unsupportedEmitted) return;
-      sub.unsupportedEmitted = true;
-      sub.handlers.forEach((h) => h({ type: "unsupported", eventId }));
-    }, UNSUPPORTED_TIMEOUT_MS);
+    return () => {
+      const cur = this.priceChannels.get(key);
+      if (!cur) return;
+      cur.handlers.delete(handler);
+      cur.refs -= 1;
+      // 引用归零：关闭这条专属连接（切市场即"每个都重连"）
+      if (cur.refs <= 0) {
+        cur.close();
+        this.priceChannels.delete(key);
+      }
+    };
+  }
+
+  subscribeTrades(eventSlug: string, handler: TradeHandler): () => void {
+    let ch = this.tradeChannels.get(eventSlug);
+    if (!ch) {
+      ch = new TradeChannel(eventSlug);
+      this.tradeChannels.set(eventSlug, ch);
+    }
+    ch.handlers.add(handler);
+    ch.refs += 1;
+    ch.open();
+
+    return () => {
+      const cur = this.tradeChannels.get(eventSlug);
+      if (!cur) return;
+      cur.handlers.delete(handler);
+      cur.refs -= 1;
+      if (cur.refs <= 0) {
+        cur.close();
+        this.tradeChannels.delete(eventSlug);
+      }
+    };
   }
 
   // ============== iframe visibility pause（§6.1 #7） ==============
 
   private handleVisibility = (): void => {
     if (typeof document === "undefined") return;
-    if (document.visibilityState === "hidden") {
-      this.paused = true;
-      this.closeSocket();
-    } else {
-      this.paused = false;
-      if (this.prices.size > 0 || this.trades.size > 0) {
-        void this.ensureConnected();
-      }
-    }
+    const hidden = document.visibilityState === "hidden";
+    this.priceChannels.forEach((ch) => (hidden ? ch.pause() : ch.resume()));
+    this.tradeChannels.forEach((ch) => (hidden ? ch.pause() : ch.resume()));
   };
 }
 

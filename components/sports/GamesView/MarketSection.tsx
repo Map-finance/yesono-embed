@@ -145,11 +145,6 @@ function getAbbr(title: string): string {
   return word.slice(0, 4).toUpperCase();
 }
 
-function formatPrice(price: string): string {
-  // clamp 100/0 边界（详见 utils/format.ts）
-  return formatOutcomeProbabilityCents(parseFloat(price));
-}
-
 /**
  * 组内全 0 时把每个 outcome 价格替换成平分概率，然后按 outcomeIdx 取出格式化。
  * 用于"该 market 内 outcomes 全 0"（市场无流动性）时显示 50/50 而非 0.1¢/0.1¢。
