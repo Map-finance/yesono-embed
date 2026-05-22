@@ -7,10 +7,15 @@
 
 import React from "react";
 import { useTranslation } from "@/lib/i18n";
+import type { SettlementDisplay } from "@/lib/utils/settlementResult";
 
 interface OutcomeBottomBuyBarProps {
   isResolved: boolean;
   resolvedOutcome?: string;
+  /** 结算结果五态展示（YES 侧赔付比例归一）；null 时回退到 resolvedOutcome 文案 */
+  settlementDisplay?: SettlementDisplay | null;
+  /** 已截止但未结算：展示"等待结算"中间态、禁止下单 */
+  tradingEnded?: boolean;
   yesLabel: string;
   noLabel: string;
   yesPrice: string;
@@ -21,6 +26,8 @@ interface OutcomeBottomBuyBarProps {
 const OutcomeBottomBuyBar: React.FC<OutcomeBottomBuyBarProps> = ({
   isResolved,
   resolvedOutcome,
+  settlementDisplay,
+  tradingEnded,
   yesLabel,
   noLabel,
   yesPrice,
@@ -32,8 +39,25 @@ const OutcomeBottomBuyBar: React.FC<OutcomeBottomBuyBarProps> = ({
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-(--bg-card) border-t border-(--border) p-3 safe-area-bottom z-40">
       {isResolved ? (
-        <div className="py-2.5 rounded-lg text-center text-sm font-semibold bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)]">
-          {t.market.resolved}: {resolvedOutcome || t.market.common.yes}
+        settlementDisplay ? (
+          <div
+            className="py-2.5 rounded-lg text-center text-sm font-semibold border"
+            style={{
+              color: settlementDisplay.accent,
+              backgroundColor: settlementDisplay.bg,
+              borderColor: settlementDisplay.border,
+            }}
+          >
+            {t.market.resolved}: {settlementDisplay.label}
+          </div>
+        ) : (
+          <div className="py-2.5 rounded-lg text-center text-sm font-semibold bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)]">
+            {t.market.resolved}: {resolvedOutcome || t.market.common.yes}
+          </div>
+        )
+      ) : tradingEnded ? (
+        <div className="py-2.5 rounded-lg text-center text-sm font-semibold bg-[rgba(107,114,128,0.12)] text-(--text-secondary) border border-[rgba(107,114,128,0.25)]">
+          {t.market.settlement.awaiting}
         </div>
       ) : (
         <div className="flex gap-2.5">

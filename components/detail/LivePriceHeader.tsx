@@ -6,24 +6,21 @@ import { usePathname } from "next/navigation";
 import NumberFlow from "@number-flow/react";
 import { getAssetColor } from "@/utils/format";
 import { useTranslation } from "@/lib/i18n";
-import { getEventSettlementPrices } from "@/lib/api";
 
 interface LivePriceHeaderProps {
   isLive: boolean; // Computed by parent, true if we haven't reached endDate
   currentPrice: number;
   priceChange: number;
+  /** 开盘价（Price to beat）/ 收盘价（Final price），由父组件 LivePriceChart 统一拉取下发 */
+  priceToBeat?: number | null;
+  finalPrice?: number | null;
   endDate?: number; // timestamp in milliseconds
   symbol?: string;
-  /** 事件 ID：用于拉取开盘价 / 收盘价（settlement-prices 接口） */
-  eventId?: string | number;
   /** 市场频率标签，如 "5m" / "15m" / "1h" / "4h" / "daily" / "weekly" */
   frequencySlug?: string;
   /** 当前处于 LIVE 状态的市场 slug，用于"Go to live market"跳转 */
   liveMarketSlug?: string;
 }
-
-/** 市场结束后 closePrice 仍为 null（结算延迟）时的轮询间隔 */
-const CLOSE_PRICE_POLL_INTERVAL_MS = 5000;
 
 const DEFAULT_LIVE_PRICE_HEADER_TEXT = {
   currentPrice: "Current price",
@@ -48,9 +45,10 @@ export default function LivePriceHeader({
   isLive,
   currentPrice,
   priceChange,
+  priceToBeat = null,
+  finalPrice = null,
   endDate,
   symbol,
-  eventId,
   liveMarketSlug,
 }: LivePriceHeaderProps) {
   const pathname = usePathname();
@@ -70,57 +68,8 @@ export default function LivePriceHeader({
     maximumFractionDigits: 2,
   })}`;
 
-  // 开盘价（Price to beat）/ 收盘价（Final price）来自 settlement-prices 接口（按 eventId）
-  const [priceToBeat, setPriceToBeat] = useState<number | null>(null);
-  const [finalPrice, setFinalPrice] = useState<number | null>(null);
-
-  // openPrice → Price to beat，closePrice → Final price。进行中的 Current price 仍由父组件的 WS 实时价提供。
-  useEffect(() => {
-    if (!eventId) {
-      setPriceToBeat(null);
-      setFinalPrice(null);
-      return;
-    }
-    let cancelled = false;
-    setPriceToBeat(null);
-    setFinalPrice(null);
-    getEventSettlementPrices(eventId)
-      .then((resp) => {
-        if (cancelled) return;
-        const open = resp?.data?.openPrice;
-        const close = resp?.data?.closePrice;
-        if (typeof open === "number") setPriceToBeat(open);
-        if (typeof close === "number") setFinalPrice(close);
-      })
-      .catch((e) =>
-        console.warn("[LivePriceHeader] 拉取 settlement-prices 失败", e)
-      );
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId]);
-
-  // 市场已结束但 closePrice 仍为 null（结算延迟）：轮询直到拿到收盘价
-  useEffect(() => {
-    if (isLive || !eventId || finalPrice !== null) return;
-    let cancelled = false;
-    const poll = () => {
-      getEventSettlementPrices(eventId)
-        .then((resp) => {
-          if (cancelled) return;
-          const close = resp?.data?.closePrice;
-          if (typeof close === "number") setFinalPrice(close);
-        })
-        .catch((e) =>
-          console.warn("[LivePriceHeader] 轮询 settlement-prices 失败", e)
-        );
-    };
-    const timer = setInterval(poll, CLOSE_PRICE_POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [eventId, isLive, finalPrice]);
+  // priceToBeat（开盘价）/ finalPrice（收盘价）由父组件 LivePriceChart 经
+  // useEventSettlementPrices 统一拉取并下发，保证与折线图末点同源。
 
   // Internal ticking state to guarantee smooth 1s updates for NumberFlow animation
   // without relying on parent re-renders which might get batched or delayed

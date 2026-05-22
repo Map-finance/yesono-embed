@@ -11,7 +11,7 @@
  *   - outcomePage.helpers.ts       UITimeRange / mapToApiRange / COIN_ALIAS / 倒计时默认文案
  */
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Market } from "@/types/types";
 
@@ -38,6 +38,8 @@ import {
 } from "@/lib/utils/outcomes";
 import dynamic from "next/dynamic";
 import { useToast } from "@/components/ui/Toast";
+import { useSettlementResults } from "@/lib/hooks/useSettlementResults";
+import { getSettlementDisplay } from "@/lib/utils/settlementResult";
 import {
   COIN_ALIAS,
   DEFAULT_LIVE_COUNTDOWN_LABELS,
@@ -331,8 +333,91 @@ export default function OutcomeDetailPage() {
   }, [market?.slug]);
 
   // Bottom buy button handlers
+  // 已结算时拉结算结果（YES 侧赔付比例），用于底部五态徽标（与列表页共享缓存）
+  const settlementResults = useSettlementResults(
+    isResolved ? [(eventMarket as any)?.id] : []
+  );
+  const settlementDisplay = useMemo(() => {
+    if (!isResolved) return null;
+    return getSettlementDisplay(
+      settlementResults[String((eventMarket as any)?.id)],
+      {
+        yes: yesLabel,
+        no: noLabel,
+        halfWin: t.market.settlement.halfWin,
+        halfLose: t.market.settlement.halfLose,
+        push: t.market.settlement.push,
+      }
+    );
+  }, [isResolved, settlementResults, eventMarket, yesLabel, noLabel, t.market.settlement]);
+
+  // 已截止但未结算：展示"等待结算"中间态、禁止下单
+  const tradingEnded = useMemo(() => {
+    if (isResolved) return false;
+    if (isMarketEnded) return true;
+    const m = eventMarket as any;
+    return m?.closed === true || m?.acceptingOrders === false;
+  }, [isResolved, isMarketEnded, eventMarket]);
+
+  // 截止后有限轮询刷新结算状态（与主详情页同款）：到点触发，封顶 ~15min，
+  // 仅当本 market 结算状态确有变化时才更新。
+  const statusSigRef = useRef<string>("");
+  useEffect(() => {
+    if (!isMarketEnded || isResolved || !marketId) return;
+
+    const sigOf = (m?: PolymarketMarketResp | null) =>
+      m ? `${m.id}:${m.umaResolutionStatus}:${(m as any).closed ? 1 : 0}` : "";
+
+    let stopped = false;
+    let tries = 0;
+    const MAX_TRIES = 45; // ~15 分钟封顶
+    const INTERVAL_MS = 20000;
+    statusSigRef.current = sigOf(eventMarket);
+
+    const refresh = async () => {
+      try {
+        const data = await getEventBySlug(marketId);
+        if (stopped || !data) return;
+        const em = data.markets?.[outcomeIndex] ?? null;
+        const sig = sigOf(em);
+        if (sig !== statusSigRef.current) {
+          statusSigRef.current = sig;
+          setEventData(data);
+          if (data.markets) setAllMarkets(data.markets);
+          if (em) setEventMarket(em);
+        }
+      } catch (e) {
+        console.warn("[OutcomeDetailPage] 结算状态轮询刷新失败", e);
+      }
+    };
+
+    refresh();
+    const timer = setInterval(() => {
+      tries += 1;
+      if (tries >= MAX_TRIES) {
+        clearInterval(timer);
+        return;
+      }
+      refresh();
+    }, INTERVAL_MS);
+
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMarketEnded, isResolved, marketId, outcomeIndex]);
+
+  // 市场结算 / 截止后，自动关闭已打开的移动端交易弹窗
+  useEffect(() => {
+    if ((isResolved || tradingEnded) && showMobileTrading) {
+      setShowMobileTrading(false);
+    }
+  }, [isResolved, tradingEnded, showMobileTrading]);
+
   const handleBuyClick = (_side: "yes" | "no") => {
-    if (isResolved) return;
+    // 已结算 / 已截止待结算的市场禁止下单
+    if (isResolved || tradingEnded) return;
     setShowMobileTrading(true);
   };
 
@@ -544,6 +629,8 @@ export default function OutcomeDetailPage() {
       <OutcomeBottomBuyBar
         isResolved={isResolved}
         resolvedOutcome={resolvedOutcome}
+        settlementDisplay={settlementDisplay}
+        tradingEnded={tradingEnded}
         yesLabel={yesLabel}
         noLabel={noLabel}
         yesPrice={yesPrice}

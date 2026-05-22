@@ -23,7 +23,7 @@ import {
 } from "@/lib/services/homeService";
 import { formatNumber, formatDate } from "@/utils/format";
 
-import { ArrowLeft, Share2, Bookmark, Calendar, X } from "lucide-react";
+import { ArrowLeft, Share2, Bookmark, Calendar, X, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { useTranslation, useLocale } from "@/lib/i18n";
 import { useTradingStore } from "@/lib/store/tradingStore";
@@ -32,7 +32,9 @@ import { favoriteEvent } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { isSportsEvent, buildSportsEventUrl } from "@/lib/utils/sportsNav";
 import { trackEvent } from "@/lib/sentryClient";
-import { getOutcomesByMarket } from "@/lib/utils/outcomes";
+import { getOutcomesByMarket, getBinaryOutcomeLabels } from "@/lib/utils/outcomes";
+import { useSettlementResults } from "@/lib/hooks/useSettlementResults";
+import { getSettlementDisplay } from "@/lib/utils/settlementResult";
 import TradingPanel from "@/components/tob/TradingPanel";
 
 const MarketChart = dynamic(() => import("@/components/detail/MarketChart"), {
@@ -214,8 +216,126 @@ export default function MarketDetailPage() {
     (t.market as any).livePriceHeader?.countdown ??
     DEFAULT_LIVE_COUNTDOWN_LABELS;
 
+  // 选中市场对象：取真实 yes/no outcome 文案 + 实时判断结算状态
+  const selectedMarketObj = useMemo(
+    () =>
+      eventData?.markets?.find(
+        (m) => String(m.id) === String(selectedMarketInfo?.marketId)
+      ),
+    [eventData?.markets, selectedMarketInfo?.marketId]
+  );
+  // 结算状态以最新 eventData 为准：onMarketSelect 只在"切换市场"时上报，不会在
+  // "选中市场原地结算"时重新触发，故这里从 selectedMarketObj 派生，保证截止后轮询
+  // 刷新 eventData 后右侧面板能自动从交易面板翻成结算面板。
+  const selectedIsResolved = useMemo(() => {
+    if (selectedMarketInfo?.isResolved) return true;
+    const m = selectedMarketObj as any;
+    return m?.umaResolutionStatus === "RESOLVED" || m?.status === "RESOLVED";
+  }, [selectedMarketInfo?.isResolved, selectedMarketObj]);
+
+  // 已截止但未结算：展示"等待结算"中间态、禁止下单。
+  // 即时信号 isMarketEnded（到达 endDate）+ 后端权威信号 closed/停止接单，取或。
+  const selectedTradingEnded = useMemo(() => {
+    if (selectedIsResolved) return false;
+    if (isMarketEnded) return true;
+    const m = selectedMarketObj as any;
+    return m?.closed === true || m?.acceptingOrders === false;
+  }, [selectedIsResolved, isMarketEnded, selectedMarketObj]);
+
+  // 选中市场已结算时拉结算结果（YES 侧赔付比例），用于右侧面板五态展示（与 OutcomeList 共享缓存）
+  const selectedSettlements = useSettlementResults(
+    selectedIsResolved && selectedMarketInfo?.marketId
+      ? [selectedMarketInfo.marketId]
+      : []
+  );
+  const selectedSettlementDisplay = useMemo(() => {
+    if (!selectedIsResolved || !selectedMarketInfo) return null;
+    const [yesLabel, noLabel] = getBinaryOutcomeLabels(selectedMarketObj, {
+      yes: t.common.yes,
+      no: t.common.no,
+      up: t.common.up,
+      down: t.common.down,
+    });
+    return getSettlementDisplay(
+      selectedSettlements[String(selectedMarketInfo.marketId)],
+      {
+        yes: yesLabel,
+        no: noLabel,
+        halfWin: t.market.settlement.halfWin,
+        halfLose: t.market.settlement.halfLose,
+        push: t.market.settlement.push,
+      }
+    );
+  }, [
+    selectedIsResolved,
+    selectedMarketInfo,
+    selectedMarketObj,
+    selectedSettlements,
+    t.common,
+    t.market.settlement,
+  ]);
+
+  // 截止后有限轮询刷新结算状态：isMarketEnded 到点触发，封顶 ~15min，
+  // 仅当某 market 结算状态确有变化时才 setEventData（不碰选中/WS），避免打断用户操作。
+  const statusSigRef = useRef<string>("");
+  useEffect(() => {
+    if (!isMarketEnded || selectedIsResolved) return;
+    const id = params.id as string;
+    if (!id) return;
+
+    const sigOf = (markets?: PolymarketMarketResp[]) =>
+      (markets || [])
+        .map((m) => `${m.id}:${m.umaResolutionStatus}:${(m as any).closed ? 1 : 0}`)
+        .join("|");
+
+    let stopped = false;
+    let tries = 0;
+    const MAX_TRIES = 45; // ~15 分钟封顶（20s × 45）
+    const INTERVAL_MS = 20000;
+    statusSigRef.current = sigOf(eventData?.markets);
+
+    const refresh = async () => {
+      try {
+        const resp = await getEventBySlug(id);
+        if (stopped || !resp) return;
+        const sig = sigOf(resp.markets);
+        if (sig !== statusSigRef.current) {
+          statusSigRef.current = sig;
+          setEventData(resp);
+        }
+      } catch (e) {
+        console.warn("[MarketPage] 结算状态轮询刷新失败", e);
+      }
+    };
+
+    refresh();
+    const timer = setInterval(() => {
+      tries += 1;
+      if (tries >= MAX_TRIES) {
+        clearInterval(timer);
+        return;
+      }
+      refresh();
+    }, INTERVAL_MS);
+
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMarketEnded, selectedIsResolved, params.id]);
+
+  // 市场结算 / 截止后，自动关闭已打开的移动端交易弹窗
+  useEffect(() => {
+    if ((selectedIsResolved || selectedTradingEnded) && showMobileTrading) {
+      setShowMobileTrading(false);
+    }
+  }, [selectedIsResolved, selectedTradingEnded, showMobileTrading]);
+
   // 移动端点击 Buy Yes/No 时打开底部弹窗
   const handleMobileTrade = (outcomeIndex: number, side: "yes" | "no") => {
+    // 已结算 / 已截止待结算的市场禁止下单（双保险：行内 Buy 按钮此时已隐藏）
+    if (selectedIsResolved || selectedTradingEnded) return;
     setMobileTradeType(side);
     setShowMobileTrading(true);
   };
@@ -584,6 +704,7 @@ export default function MarketDetailPage() {
             market={market}
             onMobileTrade={handleMobileTrade}
             eventMarkets={eventData?.markets}
+            eventEnded={isMarketEnded}
             onMarketSelect={setSelectedMarketInfo}
           />
 
@@ -635,25 +756,17 @@ export default function MarketDetailPage() {
 
         {/* 右侧面板 - 移动端隐藏 */}
         <div className="w-80 shrink-0 space-y-4 hidden lg:block sticky top-[calc(120px+1.5rem)] max-h-[calc(100vh-120px)] scrollbar-hide overflow-y-auto">
-          {/* 已解决市场显示 Outcome 卡片；未解决时显示交易面板 */}
-          {!selectedMarketInfo?.isResolved
-            ? (() => {
-                const polyMarket =
-                  eventData?.markets?.find(
-                    (m) => String(m.id) === String(selectedMarketInfo?.marketId)
-                  ) || eventData?.markets?.[0];
-                return polyMarket ? (
-                  <TradingPanel
-                    market={polyMarket}
-                    eventId={selectedMarketInfo?.eventId || eventData?.id}
-                  />
-                ) : null;
-              })()
-            : null}
-          {selectedMarketInfo?.isResolved ? (
+          {/* 已结算 → 五态结算卡片；已截止待结算 → 等待结算卡片；否则交易面板 */}
+          {selectedIsResolved ? (
             <div className="p-6 rounded-xl border border-(--border) bg-(--bg-card) flex flex-col items-center">
-              {/* 勾选图标 */}
-              <div className="w-16 h-16 rounded-full bg-[#3b82f6] flex items-center justify-center mb-4">
+              {/* 勾选图标（颜色随结算五态变化） */}
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                style={{
+                  backgroundColor:
+                    selectedSettlementDisplay?.accent || "#3b82f6",
+                }}
+              >
                 <svg
                   width="32"
                   height="32"
@@ -667,17 +780,50 @@ export default function MarketDetailPage() {
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              {/* Outcome 文字 */}
-              <div className="text-xl font-semibold text-[#3b82f6] mb-2">
+              {/* Outcome 文字（优先用 settlement-result 五态结果） */}
+              <div
+                className="text-xl font-semibold mb-2 text-center"
+                style={{
+                  color: selectedSettlementDisplay?.accent || "#3b82f6",
+                }}
+              >
                 {t.market.common.outcome}{" "}
-                {selectedMarketInfo.resolvedOutcome || t.market.common.yes}
+                {selectedSettlementDisplay?.label ||
+                  selectedMarketInfo?.resolvedOutcome ||
+                  t.market.common.yes}
               </div>
               {/* 标题 */}
               <div className="text-sm text-(--text-secondary) text-center">
-                {selectedMarketInfo.title}
+                {selectedMarketInfo?.title || selectedMarketObj?.question}
               </div>
             </div>
-          ) : null}
+          ) : selectedTradingEnded ? (
+            <div className="p-6 rounded-xl border border-(--border) bg-(--bg-card) flex flex-col items-center">
+              {/* 时钟图标：已截止，等待结算结果 */}
+              <div className="w-16 h-16 rounded-full bg-[rgba(107,114,128,0.15)] flex items-center justify-center mb-4">
+                <Clock size={32} className="text-(--text-secondary)" />
+              </div>
+              <div className="text-lg font-semibold text-(--text-primary) mb-2 text-center">
+                {t.market.settlement.awaiting}
+              </div>
+              <div className="text-sm text-(--text-secondary) text-center">
+                {selectedMarketInfo?.title || selectedMarketObj?.question}
+              </div>
+            </div>
+          ) : (
+            (() => {
+              const polyMarket =
+                eventData?.markets?.find(
+                  (m) => String(m.id) === String(selectedMarketInfo?.marketId)
+                ) || eventData?.markets?.[0];
+              return polyMarket ? (
+                <TradingPanel
+                  market={polyMarket}
+                  eventId={selectedMarketInfo?.eventId || eventData?.id}
+                />
+              ) : null;
+            })()
+          )}
 
           {/* 相关市场 */}
           <RelatedMarkets

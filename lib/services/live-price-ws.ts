@@ -370,10 +370,21 @@ class LivePriceWebSocket {
     this.broadcastPrice((eventId) => ({ type: "update", eventId, point }));
   }
 
-  /** finance objectivePrice 更新：{ type:"update", topic:"crypto_prices", price, timestamp } */
+  /**
+   * finance objectivePrice 更新：{ type:"update", topic:"crypto_prices", ... }
+   * 价格字段已统一为 payload.value / payload.timestamp（兼容旧顶层 price/timestamp 兜底）。
+   */
   private dispatchFinancePriceUpdate(msg: Record<string, unknown>): void {
-    const ts = Number(msg.timestamp);
-    const value = Number(msg.price);
+    const payload = (msg.payload ?? {}) as {
+      timestamp?: unknown;
+      value?: unknown;
+    };
+    const ts = Number(
+      typeof payload.timestamp === "number" ? payload.timestamp : msg.timestamp
+    );
+    const value = Number(
+      typeof payload.value === "number" ? payload.value : msg.price
+    );
     if (!Number.isFinite(ts) || !Number.isFinite(value)) return;
     const point: PricePoint = { time: (ts / 1000) as Time, value };
     this.broadcastPrice((eventId) => ({ type: "update", eventId, point }));

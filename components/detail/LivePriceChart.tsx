@@ -7,15 +7,46 @@ import {
   Time,
   CrosshairMode,
   AreaSeries,
+  LineType,
 } from "lightweight-charts";
 import { Loader2 } from "lucide-react";
 import { getAssetColor } from "@/utils/format";
 import { useLivePriceFeed } from "@/lib/hooks/use-live-price-feed";
 import { useTradeTapeFeed } from "@/lib/hooks/use-trade-tape-feed";
 import type { PricePoint } from "@/lib/services/live-price-ws";
+import { useEventSettlementPrices } from "@/lib/hooks/useEventSettlementPrices";
+import { getMarketClosePrice } from "@/lib/api";
 import LivePriceHeader from "./LivePriceHeader";
 
 type Point = PricePoint;
+
+/**
+ * 市场结束后，把折线图序列"冻结"到结算时刻：
+ * - 数据若跨越 endDate：丢弃 endDate 之后的点，末点锚定到收盘价 closePrice，
+ *   让图收尾正好停在 Final price。
+ * - 数据若整段在 endDate 之后（WS 对老市场返回近端滚动价、给不出市场时间窗）：
+ *   不截断、不锚定，原样返回——避免清空图表（调用方仍会停掉实时更新）。
+ */
+function buildFrozenSeries(
+  data: Point[],
+  endDateMs: number | undefined,
+  closePrice: number | null
+): Point[] {
+  if (data.length === 0) return data;
+  const endSec = endDateMs ? Math.floor(endDateMs / 1000) : null;
+  if (endSec === null) return data;
+  const truncated = data.filter((p) => (p.time as number) <= endSec);
+  if (truncated.length === 0) return data;
+  if (closePrice === null) return truncated;
+  const copy = truncated.slice();
+  const lastTime = copy[copy.length - 1].time as number;
+  if (lastTime >= endSec) {
+    copy[copy.length - 1] = { time: lastTime as Time, value: closePrice };
+  } else {
+    copy.push({ time: endSec as Time, value: closePrice });
+  }
+  return copy;
+}
 
 interface TradeTapeItem {
   id: string;
@@ -153,6 +184,30 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   const onPriceUpdateRef = useRef(onPriceUpdate);
   const onUnsupportedRef = useRef(onUnsupported);
 
+  // —— 结束后冻结相关：供 feed 回调闭包读取最新值 ——
+  const isLiveRef = useRef(isLive);
+  const openPriceRef = useRef<number | null>(null);
+  const closePriceRef = useRef<number | null>(null);
+  const endDateRef = useRef<number | undefined>(endDate);
+  // 已结算事件的结算时间窗价格序列（来自 /market/close-price），结束后折线图的权威数据源
+  const closeSeriesRef = useRef<Point[] | null>(null);
+
+  // 结算价（开盘/收盘）：结束后用于折线图末点锚定 + 头部冻结涨跌幅，与 LivePriceHeader 同源
+  const { openPrice, closePrice } = useEventSettlementPrices(eventId, !isLive);
+
+  useEffect(() => {
+    isLiveRef.current = isLive;
+  }, [isLive]);
+  useEffect(() => {
+    openPriceRef.current = openPrice;
+  }, [openPrice]);
+  useEffect(() => {
+    closePriceRef.current = closePrice;
+  }, [closePrice]);
+  useEffect(() => {
+    endDateRef.current = endDate;
+  }, [endDate]);
+
   const themeColor = getAssetColor(symbol);
 
   const [loading, setLoading] = useState(true);
@@ -287,11 +342,15 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       },
       rightPriceScale: {
         borderVisible: false,
+        // 纵轴上下留边距，出现新高/新低时不会整条线猛跳
+        scaleMargins: { top: 0.15, bottom: 0.2 },
       },
       timeScale: {
         borderVisible: false,
         timeVisible: true,
         secondsVisible: true,
+        // 右侧留白，最新点/光点浮在离右边缘有段距离的位置，不贴边
+        rightOffset: 6,
         tickMarkFormatter: (time: number) => {
           const p = getEtTimeParts(new Date(time * 1000));
           return `${p.hour}:${p.minute}:${p.second}`;
@@ -333,6 +392,7 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       topColor: `${themeColor}33`, // roughly 20% opacity
       bottomColor: `${themeColor}00`, // 0% opacity
       lineWidth: 2,
+      lineType: LineType.Curved, // 平滑曲线，避免稀疏数据的硬折线/锯齿
       priceLineVisible: true,
       priceLineColor: themeColor,
       crosshairMarkerVisible: true,
@@ -396,17 +456,41 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       const series = seriesRef.current;
       if (!series || points.length === 0) return;
       basePriceRef.current = points[0].value;
-      const last = points[points.length - 1];
-      const change = last.value - basePriceRef.current;
-      setLivePrice(last.value);
-      setLivePriceChange(change);
-      onPriceUpdateRef.current?.(last.value, change);
-      series.setData(points);
+
+      // 已结束：优先用 close-price 权威序列；没有则把 WS 数据截断+锚定作兜底。进行中：照常
+      const ended = !isLiveRef.current;
+      const finalData = ended
+        ? closeSeriesRef.current?.length
+          ? closeSeriesRef.current
+          : buildFrozenSeries(points, endDateRef.current, closePriceRef.current)
+        : points;
+
+      if (ended) {
+        // 冻结涨跌幅 = 收盘价 − 开盘价（口径对齐 Price to beat / Final price）
+        const base = openPriceRef.current ?? basePriceRef.current;
+        const last =
+          closePriceRef.current ??
+          finalData[finalData.length - 1]?.value ??
+          base;
+        setLivePrice(last);
+        setLivePriceChange(last - base);
+        onPriceUpdateRef.current?.(last, last - base);
+      } else {
+        const last = points[points.length - 1];
+        const change = last.value - basePriceRef.current;
+        setLivePrice(last.value);
+        setLivePriceChange(change);
+        onPriceUpdateRef.current?.(last.value, change);
+      }
+
+      series.setData(finalData);
       chartRef.current?.timeScale().fitContent();
       setLoading(false);
       updatePulseDotRef.current();
     },
     onUpdate: (point) => {
+      // 市场已结束：忽略实时更新，折线图冻结在结算时刻
+      if (!isLiveRef.current) return;
       const series = seriesRef.current;
       if (!series) return;
       series.update(point);
@@ -422,6 +506,65 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       onUnsupportedRef.current?.();
     },
   });
+
+  // 已结算事件：拉结算时间窗价格序列（/market/close-price）作为折线图权威数据源，
+  // 刷新后也能精确显示该市场时段走势。WS 对老市场返回近端滚动数据不可靠，故结束后优先用它。
+  useEffect(() => {
+    if (isLive || !eventId) {
+      closeSeriesRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    getMarketClosePrice(eventId)
+      .then((resp) => {
+        if (cancelled) return;
+        const raw = Array.isArray(resp?.data) ? resp.data : [];
+        if (raw.length === 0) return;
+        const pts: Point[] = raw
+          .map((p) => {
+            const ts = Number(p.timestamp);
+            const sec = ts >= 1e12 ? Math.floor(ts / 1000) : ts; // 兼容 ms / s
+            return { time: sec as Time, value: Number(p.value) };
+          })
+          .filter(
+            (p) => Number.isFinite(p.time as number) && Number.isFinite(p.value)
+          )
+          .sort((a, b) => (a.time as number) - (b.time as number))
+          .filter((p, i, self) => i === 0 || p.time !== self[i - 1].time);
+        if (pts.length === 0) return;
+        closeSeriesRef.current = pts;
+        if (seriesRef.current) {
+          seriesRef.current.setData(pts);
+          chartRef.current?.timeScale().fitContent();
+          updatePulseDotRef.current();
+        }
+      })
+      .catch((e) => console.warn("[LivePriceChart] close-price 拉取失败", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [isLive, eventId]);
+
+  // 收盘价/结算价（数字）迟到：刷新 Final price 与冻结涨跌幅。折线若已有 close-price
+  // 权威序列则不动它；否则把已渲染的 WS 数据冻结（截断+锚定）到结算时刻作兜底。
+  useEffect(() => {
+    if (isLive || closePrice === null) return;
+    const base = openPrice ?? basePriceRef.current ?? closePrice;
+    setLivePrice(closePrice);
+    setLivePriceChange(closePrice - base);
+    onPriceUpdateRef.current?.(closePrice, closePrice - base);
+    const series = seriesRef.current;
+    if (!series) return;
+    if (closeSeriesRef.current?.length) {
+      updatePulseDotRef.current();
+      return;
+    }
+    const data = series.data() as Point[];
+    if (!data || data.length === 0) return;
+    series.setData(buildFrozenSeries(data, endDate, closePrice));
+    chartRef.current?.timeScale().fitContent();
+    updatePulseDotRef.current();
+  }, [isLive, closePrice, openPrice, endDate]);
 
   // 共享 trade pushTrade，给 mock 模式 + 真实流复用
   const pushTrade = useCallback(
@@ -509,9 +652,10 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
         isLive={isLive}
         currentPrice={livePrice}
         priceChange={livePriceChange}
+        priceToBeat={openPrice}
+        finalPrice={closePrice}
         endDate={endDate}
         symbol={symbol}
-        eventId={eventId}
         frequencySlug={frequencySlug}
         liveMarketSlug={liveMarketSlug}
       />
@@ -582,10 +726,13 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
             zIndex: 5,
           }}
         >
-          <div
-            className="absolute inset-0 rounded-full animate-ping opacity-75"
-            style={{ backgroundColor: themeColor }}
-          ></div>
+          {/* 进行中才脉冲；已结束为静态点（收尾停在结算价） */}
+          {isLive && (
+            <div
+              className="absolute inset-0 rounded-full animate-ping opacity-75"
+              style={{ backgroundColor: themeColor }}
+            ></div>
+          )}
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full"
             style={{ backgroundColor: themeColor }}

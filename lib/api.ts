@@ -595,6 +595,33 @@ export async function getEventSettlementPrices(
 }
 
 /**
+ * 已结算事件的资产价格序列（结算时间窗内），用于结束后价格折线图（LivePriceChart）的
+ * "冻结图"：刷新页面也能精确展示该市场时间段的价格走势，而非 WS 的近端滚动数据。
+ * timestamp 为 epoch（后端为 ms），value 为资产价格。
+ */
+export interface MarketClosePricePoint {
+  timestamp: number;
+  value: number;
+}
+
+export interface MarketClosePriceResponse {
+  code: number;
+  success: boolean;
+  data: MarketClosePricePoint[] | null;
+  msg: string;
+}
+
+export async function getMarketClosePrice(
+  eventId: string | number
+): Promise<MarketClosePriceResponse> {
+  return request(
+    `${AUTH_BASE_URL}/market/close-price?eventId=${eventId}`,
+    {},
+    getLanguageHeaders()
+  );
+}
+
+/**
  * 单个 market 的结算结果（YES 侧赔付比例）。
  * data 取值含义：
  * - 1.00 → YES 完胜（NO 完败）
