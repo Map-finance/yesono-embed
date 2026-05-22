@@ -25,6 +25,12 @@ export default {
     noMoreActivity: 'Καμία άλλη δραστηριότητα',
   },
   resolved: 'Λύθηκε',
+  settlement: {
+    halfWin: 'Μισή νίκη',
+    halfLose: 'Μισή ήττα',
+    push: 'Ισοπαλία (επιστροφή)',
+    awaiting: 'Σε αναμονή διακανονισμού',
+  },
   trades: 'συναλλαγές',
   addComment: 'Προσθήκη σχολίου',
   post: 'Δημοσίευση',

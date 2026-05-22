@@ -25,6 +25,12 @@ export default {
     noMoreActivity: 'Nincs több tevékenység',
   },
   resolved: 'Lezárva',
+  settlement: {
+    halfWin: 'Fél nyeremény',
+    halfLose: 'Fél veszteség',
+    push: 'Döntetlen (visszatérítés)',
+    awaiting: 'Elszámolásra vár',
+  },
   trades: 'tranzakció',
   addComment: 'Hozzászólás hozzáadása',
   post: 'Küldés',

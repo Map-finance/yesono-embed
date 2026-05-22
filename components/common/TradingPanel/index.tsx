@@ -66,6 +66,7 @@ import {
 } from "@/lib/utils/outcomes";
 import { openLoginModalWithTrack } from "@/lib/sentryClient";
 import { trackEvent } from "@/lib/sentryClient";
+import { fillEvenSplitWhenAllZero } from "@/utils/format";
 
 type OrderType = "market" | "limit";
 type TradeType = "buy" | "sell";
@@ -301,11 +302,18 @@ export default function TradingPanel({
         ? noOrderbook.bestAsk
         : noStaticPrice;
 
+    // 按钮 label 显示概率（cents）。yes/no staticPrice 都为 0（市场无流动性、
+    // 后端没价格）时平分成 50/50，避免显示 0.1¢/0.1¢ 误导"几乎不会发生"。
+    const [yesLabelPrice, noLabelPrice] = fillEvenSplitWhenAllZero([
+      yesStaticPrice,
+      noStaticPrice,
+    ]);
+
     return [
       {
         name: yesLabel,
         price: yesLivePrice,
-        labelPrice: yesStaticPrice,
+        labelPrice: yesLabelPrice ?? yesStaticPrice,
         buyPrice: yesOrderbook?.bestAsk || yesStaticPrice,
         sellPrice: yesOrderbook?.bestBid || yesStaticPrice,
         color: "#22c55e",
@@ -315,7 +323,7 @@ export default function TradingPanel({
       {
         name: noLabel,
         price: noLivePrice,
-        labelPrice: noStaticPrice,
+        labelPrice: noLabelPrice ?? noStaticPrice,
         buyPrice: noOrderbook?.bestAsk || noStaticPrice,
         sellPrice: noOrderbook?.bestBid || noStaticPrice,
         color: "#ef4444",

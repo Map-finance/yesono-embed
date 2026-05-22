@@ -174,6 +174,35 @@ export function formatOutcomeProbabilityCents(
 }
 
 /**
+ * 一组 outcome 价格，如果**整组全为 0 / null**（市场无流动性、后端没价格），
+ * 把每个价格替换成"平分概率"（二元 0.5、三元 0.333、N 元 1/N）；否则原样返回。
+ *
+ * 用法：caller 拿到一组 outcome.price[] 后，在 formatOutcomeProbabilityCents
+ * 之前调一下：
+ *   const filled = fillEvenSplitWhenAllZero(outcomes.map(o => o.price));
+ *   filled.map(p => formatOutcomeProbabilityCents(p));
+ *
+ * 注意：**只有整组全 0 才平分**，部分 0 不会被改（那些 0 仍走 clamp 显示 0.1¢
+ * 或调用方原本的逻辑），避免单条没流动性的 outcome 把概率盘吹偏。
+ */
+export function fillEvenSplitWhenAllZero(
+  rawPrices: (number | string | null | undefined)[],
+): (number | null)[] {
+  const nums: (number | null)[] = rawPrices.map((p) => {
+    if (p == null || p === "") return null;
+    const n = typeof p === "number" ? p : Number(p);
+    return Number.isFinite(n) ? n : null;
+  });
+  if (nums.length === 0) return nums;
+  const allZero = nums.every((n) => n == null || n === 0);
+  if (allZero) {
+    const share = 1 / nums.length;
+    return nums.map(() => share);
+  }
+  return nums;
+}
+
+/**
  * 预测市场 outcome 概率显示（% 后缀，"XX%"）。共用底层 clamp。
  */
 export function formatOutcomeProbabilityPercent(

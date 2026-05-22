@@ -24,6 +24,12 @@ export default {
     noMoreActivity: 'Không còn hoạt động',
   },
   resolved: 'Đã giải quyết',
+  settlement: {
+    halfWin: 'Thắng một nửa',
+    halfLose: 'Thua một nửa',
+    push: 'Hòa (hoàn tiền)',
+    awaiting: 'Đang chờ thanh toán',
+  },
   trades: 'giao dịch',
   addComment: 'Thêm bình luận',
   post: 'Đăng',

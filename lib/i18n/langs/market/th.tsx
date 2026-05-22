@@ -24,6 +24,12 @@ export default {
     noMoreActivity: 'ไม่มีกิจกรรมเพิ่มเติม',
   },
   resolved: 'แก้ไขแล้ว',
+  settlement: {
+    halfWin: 'ชนะครึ่ง',
+    halfLose: 'แพ้ครึ่ง',
+    push: 'เสมอ (คืนเงิน)',
+    awaiting: 'รอการชำระบัญชี',
+  },
   trades: 'การซื้อขาย',
   addComment: 'เพิ่มความคิดเห็น',
   post: 'โพสต์',

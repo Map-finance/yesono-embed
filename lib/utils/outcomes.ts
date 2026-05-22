@@ -66,9 +66,48 @@ export function sortOutcomesByOriginalIndex<T extends OutcomeLike>(
 }
 
 /**
+ * 取二元市场的 [yesLabel, noLabel] 显示文案。
+ * 与 OutcomeRow / outcome 详情页保持同一套逻辑：按 originalIndex 排序后，
+ * 对前两个 outcome 做 yes/no/up/down 归一；不足两项时回退到传入的 yes/no 文案。
+ */
+export function getBinaryOutcomeLabels(
+  market: PolymarketMarketResp | null | undefined,
+  translations: BinaryOutcomeLabels
+): [string, string] {
+  const outcomesRaw: any = (market as any)?.marketOutcomes;
+  const outcomes: OutcomeLike[] = Array.isArray(outcomesRaw)
+    ? outcomesRaw
+    : typeof outcomesRaw === "string"
+    ? (() => {
+        try {
+          return JSON.parse(outcomesRaw);
+        } catch {
+          return [];
+        }
+      })()
+    : [];
+  const sorted = sortOutcomesByOriginalIndex(outcomes);
+  if (sorted.length >= 2) {
+    return [
+      normalizeBinaryOutcomeLabel(
+        getOutcomeLabel(sorted[0]),
+        translations.yes,
+        translations
+      ),
+      normalizeBinaryOutcomeLabel(
+        getOutcomeLabel(sorted[1]),
+        translations.no,
+        translations
+      ),
+    ];
+  }
+  return [translations.yes, translations.no];
+}
+
+/**
  * 从市场数据中提取选项名称列表，优先使用 marketOutcomes 的 name 字段，如果没有则解析 outcomes 字段
- * @param market 
- * @returns 
+ * @param market
+ * @returns
  */
 export const getOutcomesByMarket = (market: PolymarketMarketResp): string[] => {
   let outcomes: string[] = [];

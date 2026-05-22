@@ -48,6 +48,8 @@ export interface DisplayOption {
   eventId?: string;
   clobTokenIds: string[];
   isResolved: boolean;
+  /** 已截止但未结算（后端 closed / 停止接单）：展示"等待结算"中间态，禁止下单 */
+  isEnded: boolean;
   resolvedOutcome?: string;
   icon?: string;
   volume: number;

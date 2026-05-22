@@ -25,6 +25,12 @@ export default {
     noMoreActivity: 'Keine weiteren Aktivitäten',
   },
   resolved: 'Aufgelöst',
+  settlement: {
+    halfWin: 'Halber Gewinn',
+    halfLose: 'Halber Verlust',
+    push: 'Unentschieden (Rückerstattung)',
+    awaiting: 'Warten auf Abrechnung',
+  },
   trades: 'Trades',
   addComment: 'Kommentar hinzufügen',
   post: 'Posten',

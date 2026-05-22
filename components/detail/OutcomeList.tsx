@@ -18,6 +18,7 @@ import { useTranslation } from "@/lib/i18n";
 import { getOutcomesByMarket } from "@/lib/utils/outcomes";
 import { useTradingStore } from "@/lib/store/tradingStore";
 import { clampOutcomeProbabilityPercent } from "@/utils/format";
+import { useSettlementResults } from "@/lib/hooks/useSettlementResults";
 import OutcomeRow from "./OutcomeRow";
 import type { DisplayOption } from "./OutcomeList.helpers";
 
@@ -26,6 +27,8 @@ interface OutcomeListProps {
   onMobileTrade?: (outcomeIndex: number, side: "yes" | "no") => void;
   /** Event markets from API - each market becomes an outcome row */
   eventMarkets?: PolymarketMarketResp[];
+  /** 事件级"已截止"（客户端到达 endDate）；为真时各行禁止下单、显示"等待结算" */
+  eventEnded?: boolean;
   /** Callback when market selection changes, passes market info */
   onMarketSelect?: (marketInfo: {
     isResolved: boolean;
@@ -43,6 +46,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
   market,
   onMobileTrade,
   eventMarkets,
+  eventEnded,
   onMarketSelect,
 }) => {
   // 精准 selector，避免 orderBookRaw 高频更新时重渲染整个列表容器
@@ -93,11 +97,15 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
           console.error("Error parsing clobTokenIds:", err);
         }
         // 判断解决结果
-        let resolvedOutcome: string | undefined;
-        if (
+        const resolved =
           m.umaResolutionStatus === "RESOLVED" ||
-          (m as any).status === "RESOLVED"
-        ) {
+          (m as any).status === "RESOLVED";
+        // 已截止但未结算：后端已 closed / 停止接单，用于"等待结算"中间态（禁止下单）
+        const ended =
+          !resolved &&
+          ((m as any).closed === true || (m as any).acceptingOrders === false);
+        let resolvedOutcome: string | undefined;
+        if (resolved) {
           // 找出获胜的 outcome（价格为 1 的那个，或价格最高的那个作为 fallback）
           try {
             const outcomes = getOutcomesByMarket(m);
@@ -128,9 +136,8 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
           marketId: m.id,
           questionID: m.conditionId,
           clobTokenIds: tokenIds,
-          isResolved:
-            m.umaResolutionStatus === "RESOLVED" ||
-            (m as any).status === "RESOLVED",
+          isResolved: resolved,
+          isEnded: ended,
           resolvedOutcome,
           icon: m.icon || m.image,
           eventId: m.eventId,
@@ -148,6 +155,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
       questionID: "",
       clobTokenIds: [] as string[],
       isResolved: false,
+      isEnded: false,
       resolvedOutcome: undefined,
       icon: market.icon,
       eventId: undefined as string | undefined,
@@ -168,6 +176,15 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
     const resolved = displayOptions.filter((opt) => opt.isResolved);
     return { activeOptions: active, resolvedOptions: resolved };
   }, [displayOptions]);
+
+  // 仅在展开"查看已结算"后才为已结算 market 拉取结算结果（YES 侧赔付比例），
+  // 避免折叠状态下白白并发 N 个请求。
+  const resolvedMarketIds = useMemo(
+    () =>
+      showResolved ? resolvedOptions.map((opt) => String(opt.marketId)) : [],
+    [showResolved, resolvedOptions]
+  );
+  const settlementResults = useSettlementResults(resolvedMarketIds);
 
   // 记录上次已通知父组件/store 的 marketId，防止 activeOptions 引用变化时重复调用 setMarket
   // setMarket 内部会关闭旧 WS 并打开新 WS，频繁调用会造成不必要的 WS 重连
@@ -297,6 +314,8 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
             isExpanded={expandedIndex === index}
             selectOutcomeId={selectOutcomeId}
             marketId={market.id}
+            settlementValue={settlementResults[String(option.marketId)]}
+            eventEnded={eventEnded}
             onToggleExpand={(idx, e) => handleToggleExpand(idx, e, option)}
             onSelectOutcomeId={setSelectOutcomeId}
             onSelectOutcome={handleSelectOutcome}
@@ -338,6 +357,8 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
                 isExpanded={expandedIndex === actualIndex}
                 selectOutcomeId={selectOutcomeId}
                 marketId={market.id}
+                settlementValue={settlementResults[String(option.marketId)]}
+                eventEnded={eventEnded}
                 onToggleExpand={(idx, e) => handleToggleExpand(idx, e, option)}
                 onSelectOutcomeId={setSelectOutcomeId}
                 onSelectOutcome={handleSelectOutcome}

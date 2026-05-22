@@ -23,6 +23,12 @@ export default {
     noMoreActivity: '\u1782\u17D2\u1798\u17B6\u1793\u179F\u1780\u1798\u17D2\u1798\u1797\u17B6\u1796\u1794\u1793\u17D2\u1790\u17C2\u1798',
   },
   resolved: '\u1794\u17B6\u1793\u178A\u17C4\u17C7\u179F\u17D2\u179A\u17B6\u1799',
+  settlement: {
+    halfWin: 'ឈ្នះពាក់កណ្តាល',
+    halfLose: 'ចាញ់ពាក់កណ្តាល',
+    push: 'ស្មើ (សងវិញ)',
+    awaiting: 'កំពុងរង់ចាំការទូទាត់',
+  },
   trades: '\u1794\u17D2\u179A\u178F\u17B7\u1794\u178F\u17D2\u178F\u17B7\u1780\u17B6\u179A',
   addComment: '\u1794\u1793\u17D2\u1790\u17C2\u1798\u1798\u178F\u17B7',
   post: '\u1795\u17D2\u179F\u17B6\u1799',

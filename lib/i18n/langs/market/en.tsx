@@ -25,6 +25,12 @@ export default {
     noMoreActivity: 'No more activity',
   },
   resolved: 'Resolved',
+  settlement: {
+    halfWin: 'Half win',
+    halfLose: 'Half lose',
+    push: 'Push (refund)',
+    awaiting: 'Awaiting settlement',
+  },
   trades: 'trades',
   addComment: 'Add a comment',
   post: 'Post',

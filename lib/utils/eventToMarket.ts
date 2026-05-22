@@ -23,6 +23,29 @@ export function formatPercentage(percentage: number): string {
 }
 
 /**
+ * rawOutcomes 的元素后端返回两种格式：
+ *   - 旧/常规：字符串数组   ["YES","NO"]
+ *   - 新/部分：对象数组     [{name:"YES",outcomeKey:"YES",originalIndex:0},...]
+ * 统一取出可显示的 label，避免 String(对象) 渲染成 "[object Object]"。
+ */
+function normalizeRawOutcomeLabel(item: unknown, fallback: string): string {
+  if (item == null) return fallback;
+  if (typeof item === "string") return item || fallback;
+  if (typeof item === "object") {
+    const o = item as Record<string, unknown>;
+    if (typeof o.name === "string" && o.name) return o.name;
+    if (typeof o.outcomeKey === "string" && o.outcomeKey) return o.outcomeKey;
+    return fallback;
+  }
+  return String(item) || fallback;
+}
+
+/** 卡片/列表里只展示可交易（ACTIVE）的 market，排除草稿/部署中/已结算等中间态 */
+function isDisplayableMarket(status: string | null | undefined): boolean {
+  return status !== "RESOLVED" && status !== "DRAFT" && status !== "DEPLOYING";
+}
+
+/**
  * 将 EventSummary 转换为 Market 类型
  * 每个 event 作为一个卡片，内部的 markets 作为选项列表显示
  * 每个选项显示 market 的问题/标题，以及 Yes/No 概率
@@ -35,7 +58,9 @@ export function eventToMarket(event: EventSummary): Market {
 
   if (event.markets && event.markets.length > 0) {
     // 过滤掉 status 为 RESOLVED 的 market
-    const activeMarkets = event.markets.filter((m) => m.status !== "RESOLVED");
+    // 只展示可交易的 market，排除 RESOLVED/DRAFT/DEPLOYING（草稿/部署中是脏数据
+    // 或半成品，不该出现在卡片上 —— 之前只排了 RESOLVED，导致 DRAFT 测试市场漏出）
+    const activeMarkets = event.markets.filter((m) => isDisplayableMarket(m.status));
     
     activeMarkets.forEach((market) => {
       // 优先使用 rowOutcomePrice 作为卡片显示的百分比
@@ -77,8 +102,8 @@ export function eventToMarket(event: EventSummary): Market {
           ? JSON.parse((market as any).rawOutcomes as string)
           : null;
         if (Array.isArray(rawOutcomes) && rawOutcomes.length >= 2) {
-          yesLabel = String(rawOutcomes[0] ?? "Yes");
-          noLabel = String(rawOutcomes[1] ?? "No");
+          yesLabel = normalizeRawOutcomeLabel(rawOutcomes[0], "Yes");
+          noLabel = normalizeRawOutcomeLabel(rawOutcomes[1], "No");
         } else if (market.outcomes && market.outcomes.length >= 2) {
           const sorted = sortOutcomesByOriginalIndex(market.outcomes as any);
           yesLabel = getOutcomeLabel(sorted[0]) || "Yes";
@@ -167,7 +192,11 @@ export function polymarketEventToMarket(event: PolymarketEventResp): Market {
   const options: MarketOption[] = [];
 
   if (event.markets && event.markets.length > 0) {
-    event.markets.forEach((market) => {
+    // 排除草稿/部署中的 market（详情页保留 RESOLVED 以便展示已结算结果）
+    const displayMarkets = event.markets.filter(
+      (m) => (m as any).status !== "DRAFT" && (m as any).status !== "DEPLOYING",
+    );
+    displayMarkets.forEach((market) => {
       // 优先使用 rowOutcomePrice 作为卡片显示的百分比
       // rowOutcomePrice: "[\"0\", \"1\"]" => yes <1%, no 100%
       let yesPrice = 0.5;
@@ -197,8 +226,8 @@ export function polymarketEventToMarket(event: PolymarketEventResp): Market {
           ? JSON.parse((market as any).rawOutcomes as string)
           : null;
         if (Array.isArray(rawOutcomes) && rawOutcomes.length >= 2) {
-          yesLabel = String(rawOutcomes[0] ?? "Yes");
-          noLabel = String(rawOutcomes[1] ?? "No");
+          yesLabel = normalizeRawOutcomeLabel(rawOutcomes[0], "Yes");
+          noLabel = normalizeRawOutcomeLabel(rawOutcomes[1], "No");
         }
       } catch(err) {
         console.error("Error parsing rawOutcomes:", err);

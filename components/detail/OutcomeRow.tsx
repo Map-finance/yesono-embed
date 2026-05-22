@@ -20,6 +20,7 @@ import SpotOrderbook from "./SpotOrderbook";
 import BuyButton from "./BuyButton";
 import OutcomeGraph from "./OutcomeGraph";
 import { formatButtonPrice, type DisplayOption } from "./OutcomeList.helpers";
+import { getSettlementDisplay } from "@/lib/utils/settlementResult";
 
 interface OutcomeRowProps {
   option: DisplayOption;
@@ -27,6 +28,10 @@ interface OutcomeRowProps {
   isExpanded: boolean;
   selectOutcomeId: string | null;
   marketId: string;
+  /** 该 market 的结算结果（YES 侧赔付比例）；null/undefined 时回退到 outcomePrices 推断 */
+  settlementValue?: number | null;
+  /** 事件级"已截止"（客户端到达 endDate）；与逐市场 isEnded 取或，作为禁止下单的即时信号 */
+  eventEnded?: boolean;
   onToggleExpand: (index: number, e: React.MouseEvent) => void;
   onSelectOutcomeId: (id: string) => void;
   onSelectOutcome: (option: DisplayOption, tokenId: string) => void;
@@ -40,6 +45,8 @@ const OutcomeRow = memo(
     isExpanded,
     selectOutcomeId,
     marketId,
+    settlementValue,
+    eventEnded,
     onToggleExpand,
     onSelectOutcomeId,
     onSelectOutcome,
@@ -127,6 +134,26 @@ const OutcomeRow = memo(
       t.common.down,
     ]);
 
+    // 结算结果五态展示（优先用 settlement-result 接口；无值时回退到 resolvedOutcome 文案）
+    const settlementDisplay = useMemo(
+      () =>
+        option.isResolved
+          ? getSettlementDisplay(settlementValue, {
+              yes: yesLabel,
+              no: noLabel,
+              halfWin: t.market.settlement.halfWin,
+              halfLose: t.market.settlement.halfLose,
+              push: t.market.settlement.push,
+            })
+          : null,
+      [option.isResolved, settlementValue, yesLabel, noLabel, t.market.settlement]
+    );
+
+    // 已截止但未结算：展示"等待结算"中间态、隐藏 Buy 按钮以禁止下单。
+    // 逐市场 isEnded（后端 closed/停止接单）与事件级 eventEnded（到达 endDate）取或。
+    const tradingEnded =
+      !option.isResolved && (option.isEnded || !!eventEnded);
+
     // 订单簿的 key 必须与 WS 推送的 asset_id 一致：这里是 tradingPair（如 `${marketId}-YES-USDT`）。
     // tokenId / clobTokenIds 是链上 tokenId，不用于索引 WS 订单簿，避免出现"看得到挂单但取不到深度"的问题。
     const yesOrderBook = getOrderBook(yesAssetId || "");
@@ -201,8 +228,25 @@ const OutcomeRow = memo(
 
           <div className="flex items-center gap-3 justify-end">
             {option.isResolved ? (
-              <div className="px-4 py-2 rounded-lg bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)] font-medium">
-                {t.market.resolved}: {option.resolvedOutcome || yesLabel}
+              settlementDisplay ? (
+                <div
+                  className="px-4 py-2 rounded-lg border font-medium"
+                  style={{
+                    color: settlementDisplay.accent,
+                    backgroundColor: settlementDisplay.bg,
+                    borderColor: settlementDisplay.border,
+                  }}
+                >
+                  {t.market.resolved}: {settlementDisplay.label}
+                </div>
+              ) : (
+                <div className="px-4 py-2 rounded-lg bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)] font-medium">
+                  {t.market.resolved}: {option.resolvedOutcome || yesLabel}
+                </div>
+              )
+            ) : tradingEnded ? (
+              <div className="px-4 py-2 rounded-lg bg-[rgba(107,114,128,0.12)] text-(--text-secondary) border border-[rgba(107,114,128,0.25)] font-medium">
+                {t.market.settlement.awaiting}
               </div>
             ) : (
               <>
@@ -252,8 +296,25 @@ const OutcomeRow = memo(
           </div>
 
           {option.isResolved ? (
-            <div className="mt-3 py-3 rounded-lg text-center bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)] font-medium">
-              {t.market.resolved}: {option.resolvedOutcome || yesLabel}
+            settlementDisplay ? (
+              <div
+                className="mt-3 py-3 rounded-lg text-center border font-medium"
+                style={{
+                  color: settlementDisplay.accent,
+                  backgroundColor: settlementDisplay.bg,
+                  borderColor: settlementDisplay.border,
+                }}
+              >
+                {t.market.resolved}: {settlementDisplay.label}
+              </div>
+            ) : (
+              <div className="mt-3 py-3 rounded-lg text-center bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)] font-medium">
+                {t.market.resolved}: {option.resolvedOutcome || yesLabel}
+              </div>
+            )
+          ) : tradingEnded ? (
+            <div className="mt-3 py-3 rounded-lg text-center bg-[rgba(107,114,128,0.12)] text-(--text-secondary) border border-[rgba(107,114,128,0.25)] font-medium">
+              {t.market.settlement.awaiting}
             </div>
           ) : (
             <div className="flex gap-3 mt-3">
@@ -345,6 +406,9 @@ const OutcomeRow = memo(
   (prev, next) => {
     if (prev.option !== next.option) return false;
     if (prev.index !== next.index) return false;
+    // 结算结果异步到达 / 事件截止状态变化时，必须重渲染以更新五态徽标 / "等待结算"态
+    if (prev.settlementValue !== next.settlementValue) return false;
+    if (prev.eventEnded !== next.eventEnded) return false;
     if (prev.isExpanded !== next.isExpanded) return false;
     if (prev.marketId !== next.marketId) return false;
 

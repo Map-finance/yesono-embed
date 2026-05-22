@@ -25,6 +25,12 @@ export default {
     noMoreActivity: 'Nessun\'altra attività',
   },
   resolved: 'Risolto',
+  settlement: {
+    halfWin: 'Mezza vittoria',
+    halfLose: 'Mezza sconfitta',
+    push: 'Pareggio (rimborso)',
+    awaiting: 'In attesa di liquidazione',
+  },
   trades: 'transazioni',
   addComment: 'Aggiungi un commento',
   post: 'Pubblica',

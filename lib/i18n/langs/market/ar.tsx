@@ -25,6 +25,12 @@ export default {
     noMoreActivity: 'لا يوجد المزيد من النشاط',
   },
   resolved: 'تم الحل',
+  settlement: {
+    halfWin: 'فوز نصفي',
+    halfLose: 'خسارة نصفية',
+    push: 'تعادل (استرداد)',
+    awaiting: 'في انتظار التسوية',
+  },
   trades: 'تداولات',
   addComment: 'إضافة تعليق',
   post: 'نشر',

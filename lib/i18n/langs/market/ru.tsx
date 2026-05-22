@@ -25,6 +25,12 @@ export default {
     noMoreActivity: 'Больше нет активности',
   },
   resolved: 'Завершен',
+  settlement: {
+    halfWin: 'Половина выигрыша',
+    halfLose: 'Половина проигрыша',
+    push: 'Ничья (возврат)',
+    awaiting: 'Ожидание расчёта',
+  },
   trades: 'сделки',
   addComment: 'Добавить комментарий',
   post: 'Опубликовать',

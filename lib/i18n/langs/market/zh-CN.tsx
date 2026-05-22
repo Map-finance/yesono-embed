@@ -24,6 +24,12 @@ export default {
     noMoreActivity: '没有更多活动',
   },
   resolved: '已结算',
+  settlement: {
+    halfWin: '赢一半',
+    halfLose: '输一半',
+    push: '平局(退款)',
+    awaiting: '已截止,等待结算',
+  },
   trades: '笔交易',
   addComment: '添加评论',
   post: '发布',

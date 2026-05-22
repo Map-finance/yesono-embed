@@ -594,6 +594,34 @@ export async function getEventSettlementPrices(
   );
 }
 
+/**
+ * 单个 market 的结算结果（YES 侧赔付比例）。
+ * data 取值含义：
+ * - 1.00 → YES 完胜（NO 完败）
+ * - 0.75 → YES 赢一半
+ * - 0.50 → 打平 / 退款（push）
+ * - 0.25 → YES 输一半
+ * - 0.00 → YES 完败（NO 完胜）
+ * - null → 尚未结算 / 无结果
+ * 用于市场详情页结算面板与 outcome 行徽标，展示精确的五态结算结果。
+ */
+export interface MarketSettlementResultResponse {
+  code: number;
+  success: boolean;
+  data: number | null;
+  msg: string;
+}
+
+export async function getMarketSettlementResult(
+  marketId: string | number
+): Promise<MarketSettlementResultResponse> {
+  return request(
+    `${AUTH_BASE_URL}/markets/${marketId}/settlement-result`,
+    {},
+    getLanguageHeaders()
+  );
+}
+
 export type { ApiResponse };
 
 /* ============================================================ */

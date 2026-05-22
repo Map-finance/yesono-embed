@@ -25,6 +25,12 @@ export default {
     noMoreActivity: 'پایان فعالیت‌ها',
   },
   resolved: 'حل شده',
+  settlement: {
+    halfWin: 'برد نیمه',
+    halfLose: 'باخت نیمه',
+    push: 'مساوی (بازپرداخت)',
+    awaiting: 'در انتظار تسویه',
+  },
   trades: 'معاملات',
   addComment: 'نظر دهید',
   post: 'ارسال',

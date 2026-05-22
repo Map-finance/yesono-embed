@@ -8,9 +8,12 @@
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
-import { SportsMarketItem, SportsMarketOutcome } from "@/types/sports";
+import { SportsMarketItem } from "@/types/sports";
 import { useTranslation } from "@/lib/i18n";
-import { formatOutcomeProbabilityCents } from "@/utils/format";
+import {
+  fillEvenSplitWhenAllZero,
+  formatOutcomeProbabilityCents,
+} from "@/utils/format";
 import GameButton from "@/components/sports/Live/GameButton";
 import {
   isMarketResolved,
@@ -147,15 +150,24 @@ function formatPrice(price: string): string {
   return formatOutcomeProbabilityCents(parseFloat(price));
 }
 
-function getYesOutcome(item: SportsMarketItem): SportsMarketOutcome | undefined {
+/**
+ * 组内全 0 时把每个 outcome 价格替换成平分概率，然后按 outcomeIdx 取出格式化。
+ * 用于"该 market 内 outcomes 全 0"（市场无流动性）时显示 50/50 而非 0.1¢/0.1¢。
+ */
+function formatPriceWithinMarket(
+  item: SportsMarketItem | undefined,
+  outcomeIdx: number,
+): string {
+  if (!item) return "—";
   const sorted = sortOutcomesByOriginalIndex(item.outcomes || []);
-  return sorted[0];
+  if (!sorted[outcomeIdx]) return "—";
+  const filled = fillEvenSplitWhenAllZero(sorted.map((o) => o.price));
+  return formatOutcomeProbabilityCents(filled[outcomeIdx]);
 }
 
 function getYesPrice(item?: SportsMarketItem): string {
-  if (!item) return "—";
-  const yes = getYesOutcome(item);
-  return yes ? formatPrice(yes.price) : "—";
+  // YES outcome 在该 market 内 sorted index = 0；走 group 兜底（全 0 显 50¢）
+  return formatPriceWithinMarket(item, 0);
 }
 
 function getSignedLineForOutcome(item: SportsMarketItem, outcomeOriginalIndex: number): string {
@@ -242,6 +254,14 @@ const MarketSection: React.FC<MarketSectionProps> = ({
     const homeAbbrFromOutcome = homeOutcome ? getAbbr(homeOutcome.outcome) : (homeAbbr || "H");
     const awayAbbrFromOutcome = awayOutcome ? getAbbr(awayOutcome.outcome) : (awayAbbr || "A");
     const isSelected = selectedMarketId === item.marketId;
+    // 组内全 0 时 home/away 平分（各 50%），避免显示 0.1¢/0.1¢ 误导
+    const filledPrices = fillEvenSplitWhenAllZero(sorted.map((o) => o.price));
+    const homePriceLabel = homeOutcome
+      ? formatOutcomeProbabilityCents(filledPrices[sorted.indexOf(homeOutcome)])
+      : "—";
+    const awayPriceLabel = awayOutcome
+      ? formatOutcomeProbabilityCents(filledPrices[sorted.indexOf(awayOutcome)])
+      : "—";
     return (
       <div className="flex gap-1.5 flex-wrap">
         <GameButton
@@ -255,7 +275,7 @@ const MarketSection: React.FC<MarketSectionProps> = ({
         >
           <span className="uppercase opacity-80 text-xs">{homeAbbrFromOutcome}</span>
           {homeLvStr && <span className="ml-1 text-xs">{homeLvStr}</span>}
-          <span className="ml-1 font-bold">{homeOutcome ? formatPrice(homeOutcome.price) : "—"}</span>
+          <span className="ml-1 font-bold">{homePriceLabel}</span>
         </GameButton>
         <GameButton
           key={`${item.marketId}-away`}
@@ -268,7 +288,7 @@ const MarketSection: React.FC<MarketSectionProps> = ({
         >
           <span className="uppercase opacity-80 text-xs">{awayAbbrFromOutcome}</span>
           {awayLvStr && <span className="ml-1 text-xs">{awayLvStr}</span>}
-          <span className="ml-1 font-bold">{awayOutcome ? formatPrice(awayOutcome.price) : "—"}</span>
+          <span className="ml-1 font-bold">{awayPriceLabel}</span>
         </GameButton>
       </div>
     );
@@ -285,6 +305,14 @@ const MarketSection: React.FC<MarketSectionProps> = ({
         const absLine = item.lineValue != null ? Math.abs(item.lineValue) : "";
         const active0 = isThisMarket && selectedOutcomeIdx === 0;
         const active1 = isThisMarket && selectedOutcomeIdx === 1;
+        // 组内全 0 时 O/U 平分（各 50%）
+        const filledPrices = fillEvenSplitWhenAllZero(sorted.map((o) => o.price));
+        const price0Label = outcome0
+          ? formatOutcomeProbabilityCents(filledPrices[0])
+          : "—";
+        const price1Label = outcome1
+          ? formatOutcomeProbabilityCents(filledPrices[1])
+          : "—";
         return (
           <div key={item.marketId} className="flex gap-1.5">
             <GameButton
@@ -297,7 +325,7 @@ const MarketSection: React.FC<MarketSectionProps> = ({
             >
               <span className="uppercase opacity-80 text-xs">O</span>
               {absLine !== "" && <span className="ml-1 text-xs">{absLine}</span>}
-              <span className="ml-1 font-bold">{outcome0 ? formatPrice(outcome0.price) : "—"}</span>
+              <span className="ml-1 font-bold">{price0Label}</span>
             </GameButton>
             <GameButton
               size="sm"
@@ -309,7 +337,7 @@ const MarketSection: React.FC<MarketSectionProps> = ({
             >
               <span className="uppercase opacity-80 text-xs">U</span>
               {absLine !== "" && <span className="ml-1 text-xs">{absLine}</span>}
-              <span className="ml-1 font-bold">{outcome1 ? formatPrice(outcome1.price) : "—"}</span>
+              <span className="ml-1 font-bold">{price1Label}</span>
             </GameButton>
           </div>
         );
