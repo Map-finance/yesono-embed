@@ -28,7 +28,12 @@ import MarketDetailTabs from "@/components/detail/MarketDetailTabs";
 import ProxyImage from "@/components/common/ProxyImage";
 import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { useSingleMarketPriceHistory } from "@/lib/hooks/usePriceHistory";
-import { formatNumber, fillEvenSplitWhenAllZero } from "@/utils/format";
+import {
+  formatNumber,
+  fillEvenSplitWhenAllZero,
+  formatOutcomeProbabilityCents,
+} from "@/utils/format";
+import { setLongTimeout } from "@/utils/timers";
 import { useTranslation } from "@/lib/i18n";
 import {
   getOutcomeLabel,
@@ -148,8 +153,9 @@ export default function OutcomeDetailPage() {
   }, [marketId, outcomeIndex]);
 
   useEffect(() => {
-    const end = eventData?.endDate;
-    if (!end) {
+    // endDate 后端是字符串("1796054399999"),显式 Number() 兜住
+    const end = eventData?.endDate != null ? Number(eventData.endDate) : NaN;
+    if (!Number.isFinite(end) || end <= 0) {
       setIsMarketEnded(false);
       return;
     }
@@ -158,9 +164,9 @@ export default function OutcomeDetailPage() {
       return;
     }
     setIsMarketEnded(false);
-    const delay = end - Date.now();
-    const timer = setTimeout(() => setIsMarketEnded(true), delay);
-    return () => clearTimeout(timer);
+    // 超长延迟(>24.8 天)用 setLongTimeout 兜住原生 setTimeout 的 32 位溢出,
+    // 否则远期市场会被立即误判为"已截止,等待结算"。
+    return setLongTimeout(() => setIsMarketEnded(true), end - Date.now());
   }, [eventData?.endDate]);
 
   const showMobileLiveCountdown = Boolean(eventData?.endDate) && !isMarketEnded;
@@ -243,7 +249,8 @@ export default function OutcomeDetailPage() {
     return { isResolved: resolved, resolvedOutcome: winner };
   }, [eventMarket]);
 
-  // 使用 outcomePrices 获取真实价格，而不是 percentage (默认 50)
+  // buy 按钮价(静态 outcomePrices)。注:本页交易盘口走 orderBookService(SpotOrderbook
+  // 订阅),不经 tradingStore,故无法用 useSideQuotes 取实时盘口,这里保持静态口径。
   const [yesPrice, noPrice] = useMemo(() => {
     try {
       const prices = JSON.parse(
@@ -255,14 +262,11 @@ export default function OutcomeDetailPage() {
         prices[0],
         prices[1],
       ]);
-      const yes = yesFilled != null ? Math.round(yesFilled * 100) : 0;
-      const no =
-        noFilled != null
-          ? Math.round(noFilled * 100)
-          : yes > 0
-            ? 100 - yes
-            : 0;
-      return [`${yes}¢`, `${no}¢`];
+      // 与桌面列表/TradingPanel 同一格式化(1 位小数 + clamp [0.1,99.9])
+      return [
+        formatOutcomeProbabilityCents(yesFilled ?? 0),
+        formatOutcomeProbabilityCents(noFilled ?? 0),
+      ];
     } catch (e) {
       console.error("[OutcomeDetailPage] Failed to parse outcome prices", e);
       return ["0¢", "0¢"];

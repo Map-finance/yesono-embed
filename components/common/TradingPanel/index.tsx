@@ -56,6 +56,7 @@ import Tabs from "@/components/ui/Tabs";
 import MergeShares from "./MergeShares";
 import SplitShares from "./SplitShares";
 import { useTradingStore } from "@/lib/store/tradingStore";
+import { applyMarketSlippage } from "@/lib/utils/outcomePricing";
 import { useToast } from "@/components/ui/Toast";
 import ProxyImage from "@/components/common/ProxyImage";
 import { useDydx } from "@/lib/hooks/useDydx";
@@ -66,7 +67,10 @@ import {
 } from "@/lib/utils/outcomes";
 import { openLoginModalWithTrack } from "@/lib/sentryClient";
 import { trackEvent } from "@/lib/sentryClient";
-import { fillEvenSplitWhenAllZero } from "@/utils/format";
+import {
+  fillEvenSplitWhenAllZero,
+  formatOutcomeProbabilityCents,
+} from "@/utils/format";
 
 type OrderType = "market" | "limit";
 type TradeType = "buy" | "sell";
@@ -658,7 +662,15 @@ export default function TradingPanel({
           ? parseFloat(amount || "0")
           : parseFloat(submitAmount || "0");
 
-      const orderPrice = priceParam ? parseFloat(priceParam) : undefined;
+      // 限价单用 limitPrice;市价单给 TOB /order/create 带 orderPrice 作保护价:
+      // 取当前可成交价 selectedPrice(BUY=bestAsk/SELL=bestBid)再套默认滑点(5%,BUY 上浮/SELL 下浮),
+      // 给市价单留出吃多档 / 容忍盘口移动的空间;clamp 到 (0,1),单位与限价一致(ratio 0-1)。
+      // 注:此处已把滑点算进 orderPrice,后端应直接用作保护价、不要再叠加一次滑点。
+      const orderPrice = priceParam
+        ? parseFloat(priceParam)
+        : selectedPrice > 0
+          ? applyMarketSlippage(selectedPrice, direction as "BUY" | "SELL")
+          : undefined;
 
       // MARKET=0, LIMIT+GTT=64, LIMIT 无过期=0
       const orderFlags: number =
@@ -1252,7 +1264,9 @@ function ButtonGroup({
           >
             <span className="truncate">{item.name}</span>
             <span className="flex-shrink-0 ml-1">
-              {(item.labelPrice * 100).toFixed(1)}¢
+              {/* 显示实时可成交价(BUY=bestAsk/SELL=bestBid),无盘口回退静态 labelPrice
+                  (与列表行按钮口径一致,见 lib/utils/outcomePricing.ts) */}
+              {formatOutcomeProbabilityCents(displayPrice || item.labelPrice)}
             </span>
           </GameButton>
         );

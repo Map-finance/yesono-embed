@@ -15,7 +15,11 @@ import {
 } from "@/lib/utils/outcomes";
 import { formatNumber } from "@/utils/format";
 import { formatPercentage } from "@/lib/utils/eventToMarket";
-import { useTradingStore } from "@/lib/store/tradingStore";
+import { useTradingStore, useSideQuotes } from "@/lib/store/tradingStore";
+import {
+  resolveButtonPrices,
+  resolveYesPercent,
+} from "@/lib/utils/outcomePricing";
 import SpotOrderbook from "./SpotOrderbook";
 import BuyButton from "./BuyButton";
 import OutcomeGraph from "./OutcomeGraph";
@@ -53,12 +57,10 @@ const OutcomeRow = memo(
     onMobileTrade,
   }: OutcomeRowProps) => {
     const { t } = useTranslation();
-    // 精准 selector：只在 direction / market 变化时重渲染
-    // orderBookRaw 订阅独立保留，仅用于触发实时价格更新（已被 tradingStore 节流到 500ms）
+    // 精准 selector：只在 direction 变化时重渲染。
+    // 实时盘口经 useSideQuotes（shallow）订阅：只有选中市场的 key 在 orderBookRaw 中、
+    // 其 6 个报价值才会变动并触发本行重渲染，未选中行恒为 0、shallow 相等不重渲染。
     const direction = useTradingStore((s) => s.direction);
-    const market = useTradingStore((s) => s.market);
-    const getOrderBook = useTradingStore((s) => s.getOrderBook);
-    useTradingStore((s) => s.orderBookRaw); // 订阅 orderBookRaw 变化以刷新买卖盘价格
 
     const [activeTab, setActiveTab] = useState<
       "orderbook" | "graph" | "resolution"
@@ -154,31 +156,31 @@ const OutcomeRow = memo(
     // 翻转 —— 对齐 Polymarket（endDate 过了未 closed 仍可下单），不用客户端 endDate 直接禁单。
     const tradingEnded = !option.isResolved && option.isEnded;
 
-    // 订单簿的 key 必须与 WS 推送的 asset_id 一致：这里是 tradingPair（如 `${marketId}-YES-USDT`）。
-    // tokenId / clobTokenIds 是链上 tokenId，不用于索引 WS 订单簿，避免出现"看得到挂单但取不到深度"的问题。
-    const yesOrderBook = getOrderBook(yesAssetId || "");
-    const noOrderBook = getOrderBook(noAssetId || "");
+    // 取价口径与右侧 TradingPanel 统一(见 lib/utils/outcomePricing.ts):
+    // 按钮价优先实时盘口(BUY=bestAsk/SELL=bestBid),概率优先盘口 midpoint,无盘口回退静态。
+    // 订单簿 key 必须与 WS 推送的 asset_id 一致：tradingPair（如 `${marketId}-YES-USDT`），
+    // 即 yesAssetId / noAssetId（链上 tokenId 不用于索引订单簿）。
+    // 实时盘口仅"当前选中市场"在 tradingStore 中存在，故只有选中行实时、其余行回退静态。
+    const q = useSideQuotes(yesAssetId || "", noAssetId || "");
+    const yesQuote = { bestAsk: q.yesAsk, bestBid: q.yesBid, mid: q.yesMid };
+    const noQuote = { bestAsk: q.noAsk, bestBid: q.noBid, mid: q.noMid };
 
-    const yesRaw = useMemo(() => {
-      if (market?.id === option.marketId) {
-        const side = direction === "BUY" ? yesOrderBook?.asks?.[0] : yesOrderBook?.bids?.[0];
-        const px = side ? Number(side.price) : NaN;
-        return Number.isFinite(px) && px > 0 ? px : option.yesPriceRaw;
-      }
-      return option.yesPriceRaw;
-    }, [market, option.marketId, direction, yesOrderBook, option.yesPriceRaw]);
-
-    const noRaw = useMemo(() => {
-      if (market?.id === option.marketId) {
-        const side = direction === "BUY" ? noOrderBook?.asks?.[0] : noOrderBook?.bids?.[0];
-        const px = side ? Number(side.price) : NaN;
-        return Number.isFinite(px) && px > 0 ? px : option.noPriceRaw;
-      }
-      return option.noPriceRaw;
-    }, [market, option.marketId, direction, noOrderBook, option.noPriceRaw]);
-
-    const yesPrice = formatButtonPrice(yesRaw);
-    const noPrice = formatButtonPrice(noRaw);
+    const { yes: yesPriceRatio, no: noPriceRatio } = resolveButtonPrices({
+      direction,
+      yesQuote,
+      noQuote,
+      yesStatic: option.yesPriceRaw,
+      noStatic: option.noPriceRaw,
+    });
+    const yesPrice = formatButtonPrice(yesPriceRatio);
+    const noPrice = formatButtonPrice(noPriceRatio);
+    // 概率%:优先 YES 盘口 midpoint,无盘口回退既有静态 option.percentage(其口径含 rowOutcomePrice)
+    const displayPercent = resolveYesPercent(yesQuote, option.percentage);
+    // 实时涨跌箭头:静态 24h 变化(option.change)叠加"自快照以来的实时移动"(displayPercent − 静态 %)。
+    // = 当前价 − 24h 前价,不会重复计数。选中行有盘口→跟着实时动;未选中行两者相等→退化为纯 24h 静态。
+    const intradayMove = displayPercent - option.percentage;
+    const effectiveChange = Math.round((option.change ?? 0) + intradayMove);
+    const showChange = option.change !== undefined || intradayMove !== 0;
 
     const tabs = [
       { id: "orderbook", label: t.market.orderBook },
@@ -212,14 +214,14 @@ const OutcomeRow = memo(
             {!option.isResolved && (
               <>
                 <span className="text-lg font-semibold text-(--text-primary)">
-                  {formatPercentage(option.percentage)}
+                  {formatPercentage(displayPercent)}
                 </span>
-                {option.change !== undefined && (
+                {showChange && (
                   <span
-                    className={`ml-2 text-xs ${option.change >= 0 ? "text-(--green)" : "text-(--red)"}`}
+                    className={`ml-2 text-xs ${effectiveChange >= 0 ? "text-(--green)" : "text-(--red)"}`}
                   >
-                    {option.change >= 0 ? "▲" : "▼"}
-                    {Math.abs(option.change)}%
+                    {effectiveChange >= 0 ? "▲" : "▼"}
+                    {Math.abs(effectiveChange)}%
                   </span>
                 )}
               </>
@@ -290,7 +292,7 @@ const OutcomeRow = memo(
             </div>
             {!option.isResolved && (
               <span className="text-2xl font-bold text-(--text-primary)">
-                {formatPercentage(option.percentage)}
+                {formatPercentage(displayPercent)}
               </span>
             )}
           </div>

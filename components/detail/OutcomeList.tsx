@@ -73,14 +73,18 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
           const yesIndex = outcomes.findIndex((o) => o.toLowerCase() === "yes");
           const noIndex = outcomes.findIndex((o) => o.toLowerCase() === "no");
 
-          // outcomePrices 用于 buy yes/buy no 按钮价格
-          if (yesIndex >= 0 && prices[yesIndex] !== undefined) {
-            yesPriceRaw = prices[yesIndex];
+          // outcomePrices 用于 buy yes/buy no 按钮价格。
+          // outcomePrices 顺序与 outcomes 一致(index 0 = 第一个 outcome)。按 "yes"/"no"
+          // 文案匹配在 Up/Down 这类非 yes/no 命名的市场会取不到(findIndex 返回 -1),
+          // 导致 yesPriceRaw 落回默认 0、按钮显示成误导性的 0.1¢,且与右侧 TradingPanel
+          // (用 prices[0]/prices[1])对不上。这里 findIndex 取不到时回退到位置 0/1。
+          const yIdx = yesIndex >= 0 ? yesIndex : 0;
+          const nIdx = noIndex >= 0 ? noIndex : 1;
+          if (prices[yIdx] !== undefined) {
+            yesPriceRaw = prices[yIdx];
           }
-          if (noIndex >= 0 && prices[noIndex] !== undefined) {
-            noPriceRaw = prices[noIndex];
-          } else if (prices.length > 1) {
-            noPriceRaw = prices[1];
+          if (prices[nIdx] !== undefined) {
+            noPriceRaw = prices[nIdx];
           }
 
           // 无盘口/价格全 0 时按 50/50 均分展示（与 TradingPanel 一致），

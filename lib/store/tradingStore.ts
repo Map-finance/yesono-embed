@@ -1,6 +1,7 @@
 import { WS_URL } from "@/lib/services/orderBookService";
 import { PolymarketEventResp, PolymarketMarketResp } from "@/types/home";
 import { create } from "zustand";
+import { shallow } from "zustand/shallow";
 
 // ============== OrderBook Types ==============
 export interface ProcessedOrderBookEntry {
@@ -312,4 +313,25 @@ function processStoreData(store?: AssetStore): ProcessedOrderBook {
         bestBid,
         bestAsk
     };
+}
+
+/**
+ * 读取某市场两侧(yes/no)的实时盘口报价(bestAsk/bestBid/midpoint,ratio 0-1)。
+ * 用 shallow 比较 6 个原始值:只有"当前选中市场"(其 key 在 orderBookRaw 中)的值会变动
+ * 并触发重渲染;未选中行的 key 不在盘口里,恒返回 0,shallow 相等不重渲染 —— 故可放心
+ * 给列表每一行使用,不会引起整列表高频重渲染。
+ */
+export function useSideQuotes(yesKey: string, noKey: string) {
+    return useTradingStore((s) => {
+        const y = yesKey ? s.getOrderBook(yesKey) : undefined;
+        const n = noKey ? s.getOrderBook(noKey) : undefined;
+        return {
+            yesAsk: y?.bestAsk ?? 0,
+            yesBid: y?.bestBid ?? 0,
+            yesMid: y?.midPrice ?? 0,
+            noAsk: n?.bestAsk ?? 0,
+            noBid: n?.bestBid ?? 0,
+            noMid: n?.midPrice ?? 0,
+        };
+    }, shallow);
 }
