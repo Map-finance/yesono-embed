@@ -53,7 +53,16 @@ export default function LivePriceHeader({
 }: LivePriceHeaderProps) {
   const pathname = usePathname();
   const { t, locale } = useTranslation();
-  const isPositive = priceChange >= 0;
+  // 价差用「头部实际展示的两个价格（都按 2 位小数四舍五入）」相减，保证
+  // 价差 === 目标价 − 最终价（显示值）。openPrice/closePrice 是后端全精度数，
+  // 直接用全精度算会出现视觉上 3.69、却显示成 3.68 的割裂。缺价格时回退到 priceChange。
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const comparePrice = isLive ? currentPrice : finalPrice;
+  const displayChange =
+    priceToBeat != null && comparePrice != null
+      ? round2(comparePrice) - round2(priceToBeat)
+      : priceChange;
+  const isPositive = displayChange >= 0;
   const assetColor = getAssetColor(symbol);
   // Green for up, red for down. Match Polymarket styling.
   const changeColor = isPositive ? "text-[#00C213]" : "text-[#FF453A]";
@@ -63,7 +72,7 @@ export default function LivePriceHeader({
   const routeSuffix = getMarketRouteSuffix(pathname);
   const countdownText =
     livePriceHeaderText.countdown ?? DEFAULT_LIVE_PRICE_HEADER_TEXT.countdown;
-  const formatChange = `$${Math.abs(priceChange).toLocaleString(locale, {
+  const formatChange = `$${Math.abs(displayChange).toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

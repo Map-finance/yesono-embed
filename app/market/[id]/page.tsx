@@ -22,6 +22,7 @@ import {
   getFinanceNeedTimeTagTags,
 } from "@/lib/services/homeService";
 import { formatNumber, formatDate } from "@/utils/format";
+import { setLongTimeout } from "@/utils/timers";
 
 import { ArrowLeft, Share2, Bookmark, Calendar, X, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/shadcn/skeleton";
@@ -127,8 +128,9 @@ export default function MarketDetailPage() {
     seconds: 0,
   });
   useEffect(() => {
-    const end = eventData?.endDate;
-    if (!end) {
+    // endDate 后端可能是字符串（"1796054399999"），显式 Number() 兜住
+    const end = eventData?.endDate != null ? Number(eventData.endDate) : NaN;
+    if (!Number.isFinite(end) || end <= 0) {
       setIsMarketEnded(false);
       return;
     }
@@ -137,9 +139,9 @@ export default function MarketDetailPage() {
       return;
     }
     setIsMarketEnded(false);
-    const delay = end - Date.now();
-    const timer = setTimeout(() => setIsMarketEnded(true), delay);
-    return () => clearTimeout(timer);
+    // 超长延迟（>24.8 天）用 setLongTimeout 兜住原生 setTimeout 的 32 位溢出，
+    // 否则远期市场会被立即误判为"已截止，等待结算"。
+    return setLongTimeout(() => setIsMarketEnded(true), end - Date.now());
   }, [eventData?.endDate]);
 
   // 判断是否应该显示“Live Price Chart”选项 (只对包含了特定时间周期的事件开放)
@@ -234,13 +236,14 @@ export default function MarketDetailPage() {
   }, [selectedMarketInfo?.isResolved, selectedMarketObj]);
 
   // 已截止但未结算：展示"等待结算"中间态、禁止下单。
-  // 即时信号 isMarketEnded（到达 endDate）+ 后端权威信号 closed/停止接单，取或。
+  // 以后端权威信号为准（closed / 停止接单）。endDate 到点只触发轮询刷新 eventData（见下方
+  // 轮询 effect），拉到后端 closed=true 才翻"等待结算" —— 对齐 Polymarket：endDate 过了但
+  // 后端未 closed 时仍可下单，不再用客户端 endDate 直接禁单。
   const selectedTradingEnded = useMemo(() => {
     if (selectedIsResolved) return false;
-    if (isMarketEnded) return true;
     const m = selectedMarketObj as any;
     return m?.closed === true || m?.acceptingOrders === false;
-  }, [selectedIsResolved, isMarketEnded, selectedMarketObj]);
+  }, [selectedIsResolved, selectedMarketObj]);
 
   // 选中市场已结算时拉结算结果（YES 侧赔付比例），用于右侧面板五态展示（与 OutcomeList 共享缓存）
   const selectedSettlements = useSettlementResults(
@@ -290,8 +293,8 @@ export default function MarketDetailPage() {
 
     let stopped = false;
     let tries = 0;
-    const MAX_TRIES = 45; // ~15 分钟封顶（20s × 45）
-    const INTERVAL_MS = 20000;
+    const MAX_TRIES = 180; // ~15 分钟封顶（5s × 180）
+    const INTERVAL_MS = 5000;
     statusSigRef.current = sigOf(eventData?.markets);
 
     const refresh = async () => {
@@ -720,7 +723,8 @@ export default function MarketDetailPage() {
             </div>
           </div> */}
 
-          {/* Rules */}
+          {/* Rules - 无 description（规则数据）则整块隐藏，避免空"规则"框 */}
+          {eventData?.description && (
           <div className="mt-3 lg:mt-4 p-3 lg:p-4 rounded-xl border border-(--border) bg-(--bg-card)">
             <h3 className="text-sm lg:text-base font-medium text-(--text-primary) mb-1.5 lg:mb-2">
               {t.market.rules}
@@ -742,6 +746,7 @@ export default function MarketDetailPage() {
               </button>
             )}
           </div>
+          )}
 
           {/* 评论区 */}
           <MarketDetailTabs

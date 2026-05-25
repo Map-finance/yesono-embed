@@ -149,10 +149,10 @@ const OutcomeRow = memo(
       [option.isResolved, settlementValue, yesLabel, noLabel, t.market.settlement]
     );
 
-    // 已截止但未结算：展示"等待结算"中间态、隐藏 Buy 按钮以禁止下单。
-    // 逐市场 isEnded（后端 closed/停止接单）与事件级 eventEnded（到达 endDate）取或。
-    const tradingEnded =
-      !option.isResolved && (option.isEnded || !!eventEnded);
+    // 已截止但未结算：以后端权威信号为准（逐市场 isEnded = closed/停止接单）。
+    // endDate 到点（eventEnded）只在父组件触发轮询刷新 eventMarkets，拉到 closed 后这里随之
+    // 翻转 —— 对齐 Polymarket（endDate 过了未 closed 仍可下单），不用客户端 endDate 直接禁单。
+    const tradingEnded = !option.isResolved && option.isEnded;
 
     // 订单簿的 key 必须与 WS 推送的 asset_id 一致：这里是 tradingPair（如 `${marketId}-YES-USDT`）。
     // tokenId / clobTokenIds 是链上 tokenId，不用于索引 WS 订单簿，避免出现"看得到挂单但取不到深度"的问题。

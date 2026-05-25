@@ -457,12 +457,14 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       if (!series || points.length === 0) return;
       basePriceRef.current = points[0].value;
 
-      // 已结束：优先用 close-price 权威序列；没有则把 WS 数据截断+锚定作兜底。进行中：照常
+      // 已结束：只认 close-price（/market/close-price）权威序列。WS 对老市场返回的是
+      // "近端滚动数据"（时间窗随 now 漂移），渲染它会导致刷新后时间轴乱跳、与接口数据不符。
+      // close-price 尚未就绪时先不画（finalData=null），交给下方 close-price effect 渲染。
       const ended = !isLiveRef.current;
-      const finalData = ended
+      const finalData: Point[] | null = ended
         ? closeSeriesRef.current?.length
           ? closeSeriesRef.current
-          : buildFrozenSeries(points, endDateRef.current, closePriceRef.current)
+          : null
         : points;
 
       if (ended) {
@@ -470,7 +472,7 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
         const base = openPriceRef.current ?? basePriceRef.current;
         const last =
           closePriceRef.current ??
-          finalData[finalData.length - 1]?.value ??
+          finalData?.[finalData.length - 1]?.value ??
           base;
         setLivePrice(last);
         setLivePriceChange(last - base);
@@ -483,8 +485,12 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
         onPriceUpdateRef.current?.(last.value, change);
       }
 
-      series.setData(finalData);
-      chartRef.current?.timeScale().fitContent();
+      // finalData 为 null（已结束但 close-price 尚未就绪）时不渲染，避免画出 WS 近端
+      // 漂移数据；close-price effect 就绪后会补上权威序列
+      if (finalData) {
+        series.setData(finalData);
+        chartRef.current?.timeScale().fitContent();
+      }
       setLoading(false);
       updatePulseDotRef.current();
     },
@@ -518,7 +524,15 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
     getMarketClosePrice(eventId)
       .then((resp) => {
         if (cancelled) return;
-        const raw = Array.isArray(resp?.data) ? resp.data : [];
+        // 后端返回 data 是对象，价格序列在 data.prices；兼容老形态（data 直接是数组）
+        const d: any = resp?.data;
+        const raw: { timestamp: number; value: number }[] = Array.isArray(
+          d?.prices
+        )
+          ? d.prices
+          : Array.isArray(d)
+            ? d
+            : [];
         if (raw.length === 0) return;
         const pts: Point[] = raw
           .map((p) => {

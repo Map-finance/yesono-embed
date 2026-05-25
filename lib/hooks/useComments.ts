@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createComment,
   deleteComment as deleteCommentApi,
@@ -43,6 +43,30 @@ export type CommentWithChildren = CommentWithState & {
 
 // 临时评论用负 id（与后端正 id 不冲突），提交成功后替换成真实评论
 const generateTempId = () => -Date.now();
+
+const toNumId = (v: unknown): number => {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+// 后端返回的 id/parentId/rootParentId 是字符串（"105"/"0"），replyCount 可能是 null；
+// 而本地树操作全按 number 处理（=== 比较、findRootParent 里 `rootParentId || id` 兜底、
+// 临时 id 为负数）。不归一会出问题：根楼 rootParentId="0" 是真值字符串，会让 findRootParent
+// 取错根，导致回复插不进树（"回复不更新"）。统一在入口归一成 number。
+const normalizeComment = (raw: any): Comment => ({
+  ...raw,
+  id: toNumId(raw.id),
+  marketId: raw.marketId != null ? String(raw.marketId) : "",
+  userId: raw.userId != null ? String(raw.userId) : "",
+  rootParentId: raw.rootParentId == null ? 0 : toNumId(raw.rootParentId),
+  parentId: raw.parentId == null ? null : toNumId(raw.parentId),
+  replyToUserId: raw.replyToUserId == null ? null : String(raw.replyToUserId),
+  likeCount: toNumId(raw.likeCount),
+  replyCount: toNumId(raw.replyCount),
+  isLiked: !!raw.isLiked,
+  displayText: raw.displayText ?? raw.content,
+  replies: Array.isArray(raw.replies) ? raw.replies.map(normalizeComment) : null,
+});
 
 interface CurrentUser {
   userId: string;
@@ -108,6 +132,18 @@ const updateCommentInTree = (
   });
 };
 
+const findCommentInTree = (
+  comments: CommentWithChildren[],
+  id: number
+): CommentWithChildren | null => {
+  for (const c of comments) {
+    if (c.id === id) return c;
+    const found = findCommentInTree(c.children, id);
+    if (found) return found;
+  }
+  return null;
+};
+
 // 把新评论插入列表：顶层按排序插入；回复挂到根父节点的 children
 const addCommentToList = (
   comments: CommentWithChildren[],
@@ -134,7 +170,13 @@ const addCommentToList = (
   const rootId = findRootParent(comments, parentId);
   return comments.map((comment) =>
     comment.id === rootId
-      ? { ...comment, children: [newComment, ...comment.children], open: true }
+      ? {
+          ...comment,
+          children: [newComment, ...comment.children],
+          open: true,
+          // 乐观 +1，让"收起回复 (N)"计数即时更新
+          replyCount: comment.replyCount + 1,
+        }
       : comment
   );
 };
@@ -157,18 +199,26 @@ const replaceTempComment = (
   });
 };
 
-// 提交失败：移除临时评论
+// 提交失败：移除临时评论；若某楼直接子项里有这条临时回复，回滚乐观 +1 的 replyCount
 const removeTempComment = (
   comments: CommentWithChildren[],
   tempId: number
 ): CommentWithChildren[] => {
   return comments
     .filter((c) => c.id !== tempId)
-    .map((comment) =>
-      comment.children.length > 0
-        ? { ...comment, children: removeTempComment(comment.children, tempId) }
-        : comment
-    );
+    .map((comment) => {
+      const hadTemp = comment.children.some((c) => c.id === tempId);
+      if (comment.children.length > 0) {
+        return {
+          ...comment,
+          children: removeTempComment(comment.children, tempId),
+          replyCount: hadTemp
+            ? Math.max(0, comment.replyCount - 1)
+            : comment.replyCount,
+        };
+      }
+      return comment;
+    });
 };
 
 const removeCommentFromTree = (
@@ -201,6 +251,12 @@ function useComments(marketId: string) {
   const [loading, setLoading] = useState(true);
   const [orderBy, setOrderBy] = useState<"time" | "like">("time");
 
+  // 始终持有最新 comments 树，供 create 读取（避免 stale 闭包，且不必把 comments 设为 deps）
+  const commentsRef = useRef<CommentWithChildren[]>([]);
+  useEffect(() => {
+    commentsRef.current = comments;
+  }, [comments]);
+
   useEffect(() => {
     const flattenComments = (comms: Comment[]): Comment[] => {
       const res: Comment[] = [];
@@ -230,7 +286,7 @@ function useComments(marketId: string) {
       setLoading(true);
       try {
         const response = await getComments({ marketId, orderBy });
-        const rawComments: Comment[] = response.data || [];
+        const rawComments: Comment[] = (response.data || []).map(normalizeComment);
         let translatedTree: Comment[];
         try {
           const flat = flattenComments(rawComments);
@@ -270,7 +326,7 @@ function useComments(marketId: string) {
       );
       try {
         const response = await getSubComments(commentId);
-        const subs: Comment[] = (response.data || []).sort(
+        const subs: Comment[] = (response.data || []).map(normalizeComment).sort(
           (a: Comment, b: Comment) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
@@ -296,15 +352,20 @@ function useComments(marketId: string) {
             const loadedChildren = translatedSubs.map((item) =>
               createCommentWithState(item)
             );
-            // 保留正在提交中的临时回复，避免被刷掉
-            const creatingChildren = comment.children.filter(
-              (child) => child.creating
+            // 非破坏式合并：保留本地新增、但服务器快照里还没有的项 —— 既包括 creating
+            // 临时回复，也包括刚 POST 成功、服务器尚未返回的真实回复。原来只保留 creating，
+            // 会与 POST 替换（replaceTempComment）竞态，把刚发出的回复覆盖丢失。
+            const loadedIds = new Set(loadedChildren.map((c) => c.id));
+            const localExtras = comment.children.filter(
+              (child) => child.creating || !loadedIds.has(child.id)
             );
+            const mergedChildren = [...localExtras, ...loadedChildren];
             return {
               ...comment,
               open: true,
               opening: false,
-              children: [...creatingChildren, ...loadedChildren],
+              children: mergedChildren,
+              replyCount: Math.max(comment.replyCount, mergedChildren.length),
             };
           })
         );
@@ -361,12 +422,26 @@ function useComments(marketId: string) {
       );
       const tempWithState = createCommentWithState(tempComment, true);
 
-      if (parentId && parentId !== 0) {
-        toggleSubComments(parentId);
-      }
+      // 1) 乐观插入临时回复：addCommentToList 会把根楼 open:true 并 replyCount+1
       setComments((prev) =>
         addCommentToList(prev, tempWithState, orderBy, parentId)
       );
+
+      // 2) 回复场景：确保被回复楼"展开"（只开不关 —— 不再用会把已展开楼切换关闭的
+      //    toggleSubComments，那是"回复后收回"的根因）。历史子评论尚未加载时拉一次
+      //    （loadSubComments 已改为非破坏式合并，不会覆盖刚插入的回复）。
+      if (parentId && parentId !== 0) {
+        const target = findCommentInTree(commentsRef.current, parentId);
+        const hasLoadedChildren =
+          target?.children.some((c) => !c.creating) ?? false;
+        if (target && target.replyCount > 0 && !hasLoadedChildren) {
+          loadSubComments(parentId);
+        } else {
+          setComments((prev) =>
+            updateCommentInTree(prev, parentId, (c) => ({ ...c, open: true }))
+          );
+        }
+      }
 
       const submit = async () => {
         try {
@@ -377,7 +452,7 @@ function useComments(marketId: string) {
             replyToUserId: replyToUserId || null,
           });
           if (response.code === 200 && response.data) {
-            const realComment: Comment = response.data;
+            const realComment: Comment = normalizeComment(response.data);
             try {
               const [translated] = await translateTexts([realComment.content], {
                 target: locale,
@@ -406,7 +481,7 @@ function useComments(marketId: string) {
       locale,
       isAuthenticated,
       requestAuthRefresh,
-      toggleSubComments,
+      loadSubComments,
       // currentUser 由 profile 推导，登录态变化时引用会变，这里依赖 isAuthenticated 即可
        
       currentUser.userId,
@@ -473,7 +548,7 @@ function useComments(marketId: string) {
           const response = await getComments({ marketId, orderBy });
           setComments(
             (response.data || []).map((item: Comment) =>
-              createCommentWithState(item)
+              createCommentWithState(normalizeComment(item))
             )
           );
         } catch (err) {

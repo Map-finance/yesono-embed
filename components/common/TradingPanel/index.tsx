@@ -463,6 +463,15 @@ export default function TradingPanel({
       return;
     }
 
+    // 下单硬 gate 与"等待结算"展示同口径：以后端 closed/停止接单为准，不用客户端 endDate。
+    // endDate 过了但后端未 closed 时仍可下单（对齐面板逻辑 / Polymarket）；真正截止由后端
+    // closed/acceptingOrders 决定，面板也会随之翻成"等待结算"。
+    const m = market as any;
+    if (m?.closed === true || m?.acceptingOrders === false) {
+      toast.error((t.market as any)?.marketExpired || "Market has ended");
+      return;
+    }
+
     // Validation
     const newErrors: typeof errors = {};
     if (!selectOutcomeId) {

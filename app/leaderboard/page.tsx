@@ -150,11 +150,10 @@ const Leaderboard: React.FC = () => {
     return data;
   }, [paginatedData, selectColumnIndex, columns]);
 
+  // 前排三甲按「当前展示顺序」取前 3（不再按后端 rank 过滤）：切到交易量排序后
+  // 三甲与榜单口径一致；否则会把盈亏前三塞进交易量榜的前排，序号/人选都错乱。
   const podium = useMemo(
-    () =>
-      page === 1 && !search
-        ? sortedData.filter((u) => u.rank >= 1 && u.rank <= 3).slice(0, 3)
-        : [],
+    () => (page === 1 && !search ? sortedData.slice(0, 3) : []),
     [sortedData, page, search],
   );
 
@@ -165,6 +164,14 @@ const Leaderboard: React.FC = () => {
         : sortedData,
     [sortedData, podium],
   );
+
+  // 当前用户序号：只有默认「盈亏」指标（selectColumnIndex===0）下后端 rank 才与榜单口径
+  // 一致且全站准确。「交易量」是前端只对当前页排序、后端不提供该口径排名 → null（显示 —）。
+  const myRank = useMemo(() => {
+    if (!myOverview) return null;
+    if (selectColumnIndex !== 0) return null;
+    return myOverview.rank;
+  }, [myOverview, selectColumnIndex]);
 
   const generatePageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -293,11 +300,11 @@ const Leaderboard: React.FC = () => {
       {/* 颁奖台 - 仅第一页且未搜索 */}
       {podium.length === 3 && (
         <div className="grid grid-cols-3 items-end gap-3">
-          {podium.map((user) => (
+          {podium.map((user, idx) => (
             <PodiumCard
               key={user.userId || user.name}
               user={user}
-              rank={user.rank as 1 | 2 | 3}
+              rank={(idx + 1) as 1 | 2 | 3}
               onClick={() => goToUser(user)}
             />
           ))}
@@ -391,8 +398,10 @@ const Leaderboard: React.FC = () => {
             </div>
           )}
           {restRows.map((user: LeaderboardUser, index: number) => {
+            // 序号按「当前展示顺序」拍：page 偏移 + 三甲占位 + 当前下标。
+            // 不用接口 rank —— 它按盈亏排，切到交易量排序后会与展示顺序错乱。
             const actualRank =
-              user.rank || (page - 1) * ITEMS_PER_PAGE + index + 1;
+              (page - 1) * ITEMS_PER_PAGE + podium.length + index + 1;
             const medal = MEDAL_STYLES[actualRank];
 
             return (
@@ -510,7 +519,8 @@ const Leaderboard: React.FC = () => {
             <div className="group flex cursor-pointer items-center justify-between py-3 transition-colors hover:bg-(--bg-hover) md:rounded-2xl md:px-2">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="w-8 text-center text-sm font-bold text-(--accent)">
-                  {myOverview.rank}
+                  {/* 交易量排序下后端无对应口径排名，显示 — 而非误导性序号 */}
+                  {myRank ?? "—"}
                 </span>
                 <Avatar
                   src={myOverview.avatarUrl}

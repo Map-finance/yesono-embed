@@ -351,13 +351,13 @@ export default function OutcomeDetailPage() {
     );
   }, [isResolved, settlementResults, eventMarket, yesLabel, noLabel, t.market.settlement]);
 
-  // 已截止但未结算：展示"等待结算"中间态、禁止下单
+  // 已截止但未结算：以后端权威信号为准（closed / 停止接单）。endDate 到点只触发轮询刷新
+  // （见下方 effect），拉到后端 closed=true 才翻"等待结算" —— 对齐 Polymarket。
   const tradingEnded = useMemo(() => {
     if (isResolved) return false;
-    if (isMarketEnded) return true;
     const m = eventMarket as any;
     return m?.closed === true || m?.acceptingOrders === false;
-  }, [isResolved, isMarketEnded, eventMarket]);
+  }, [isResolved, eventMarket]);
 
   // 截止后有限轮询刷新结算状态（与主详情页同款）：到点触发，封顶 ~15min，
   // 仅当本 market 结算状态确有变化时才更新。
@@ -370,8 +370,8 @@ export default function OutcomeDetailPage() {
 
     let stopped = false;
     let tries = 0;
-    const MAX_TRIES = 45; // ~15 分钟封顶
-    const INTERVAL_MS = 20000;
+    const MAX_TRIES = 180; // ~15 分钟封顶（5s × 180）
+    const INTERVAL_MS = 5000;
     statusSigRef.current = sigOf(eventMarket);
 
     const refresh = async () => {

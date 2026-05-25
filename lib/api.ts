@@ -604,10 +604,20 @@ export interface MarketClosePricePoint {
   value: number;
 }
 
+/** 后端实际返回：data 是对象，价格序列在 data.prices（不是 data 本身） */
+export interface MarketClosePriceData {
+  eventId: string;
+  closeTime: string;
+  fromTime: string;
+  symbol: string;
+  priceType: string;
+  prices: MarketClosePricePoint[];
+}
+
 export interface MarketClosePriceResponse {
   code: number;
   success: boolean;
-  data: MarketClosePricePoint[] | null;
+  data: MarketClosePriceData | null;
   msg: string;
 }
 

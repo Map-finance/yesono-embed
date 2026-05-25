@@ -7,7 +7,10 @@ import { EventSummary, PolymarketEventResp } from "@/types/home";
 import { Market, MarketOption, CardType } from "@/types/types";
 import { getOutcomeLabel, sortOutcomesByOriginalIndex } from "@/lib/utils/outcomes";
 import { formatVolume } from "@/lib/services/homeService";
-import { clampOutcomeProbabilityPercent } from "@/utils/format";
+import {
+  clampOutcomeProbabilityPercent,
+  fillEvenSplitWhenAllZero,
+} from "@/utils/format";
 
 /**
  * 格式化百分比显示
@@ -73,24 +76,29 @@ export function eventToMarket(event: EventSummary): Market {
           ? JSON.parse(market.rowOutcomePrice)
           : null;
         if (rowPrices && rowPrices.length > 0) {
-          yesPrice = parseFloat(rowPrices[0]) || 0;
+          // 全 0 行情（无盘口）按 1/N 均分，避免卡片百分比显示成误导性的 1%/99%
+          const [yesFilled] = fillEvenSplitWhenAllZero(rowPrices);
+          yesPrice = yesFilled ?? (parseFloat(rowPrices[0]) || 0);
         } else {
-          // fallback 到 outcomes 中的 price
-          const yesOutcome = market.outcomes?.find(
-            (o) =>
-              o.name?.toLowerCase() === "yes" ||
-              o.outcomeKey?.toLowerCase() === "yes"
-          );
+          // fallback 到 outcomes 中的 price：按 "yes" 命名找；Up/Down 等非 yes/no 命名
+          // 找不到时回退到第一个 outcome（与 outcomePrices 顺序一致），避免恒取默认 0.5
+          const yesOutcome =
+            market.outcomes?.find(
+              (o) =>
+                o.name?.toLowerCase() === "yes" ||
+                o.outcomeKey?.toLowerCase() === "yes"
+            ) ?? market.outcomes?.[0];
           yesPrice = yesOutcome?.price ?? 0.5;
         }
       } catch {
         console.warn('[eventToMarket] Failed to parse market outcome prices, using fallback yesPrice');
-        // fallback 到 outcomes 中的 price
-        const yesOutcome = market.outcomes?.find(
-          (o) =>
-            o.name?.toLowerCase() === "yes" ||
-            o.outcomeKey?.toLowerCase() === "yes"
-        );
+        // fallback 到 outcomes 中的 price：同上，非 yes/no 命名回退到第一个 outcome
+        const yesOutcome =
+          market.outcomes?.find(
+            (o) =>
+              o.name?.toLowerCase() === "yes" ||
+              o.outcomeKey?.toLowerCase() === "yes"
+          ) ?? market.outcomes?.[0];
         yesPrice = yesOutcome?.price ?? 0.5;
       }
 
@@ -206,7 +214,9 @@ export function polymarketEventToMarket(event: PolymarketEventResp): Market {
           ? JSON.parse(market.rowOutcomePrice)
           : null;
         if (rowPrices && rowPrices.length > 0) {
-          yesPrice = parseFloat(rowPrices[0]) || 0;
+          // 全 0 行情（无盘口）按 1/N 均分，避免卡片百分比显示成误导性的 1%/99%
+          const [yesFilled] = fillEvenSplitWhenAllZero(rowPrices);
+          yesPrice = yesFilled ?? (parseFloat(rowPrices[0]) || 0);
         } else {
           // fallback 到 outcomePrices
           const prices = JSON.parse(market.outcomePrices || "[]");

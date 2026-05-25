@@ -8,6 +8,7 @@ import ProxyImage from "@/components/common/ProxyImage";
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
+import { useEmbed } from "@/lib/embed/EmbedContext";
 import useGetPositions, { type Position } from "@/app/pna/hooks/use-get-positions";
 import useGetClosedPositions, {
   type ClosedPosition,
@@ -48,6 +49,11 @@ export default function PositionsTable({ targetUserId }: PositionsTableProps) {
 function ActivePositions({ targetUserId }: { targetUserId?: string }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const { user: embedUser } = useEmbed();
+  // 仅查看本人持仓时才显示「领取」：无 targetUserId（默认本人页）或与当前用户一致。
+  // 查看他人持仓不应出现领取按钮（领取是本人操作）。
+  const isOwnView =
+    !targetUserId || targetUserId === embedUser?.profile?.userId;
   const { positions, isLoading, refresh } = useGetPositions({
     userId: targetUserId,
     limit: 100,
@@ -96,7 +102,7 @@ function ActivePositions({ targetUserId }: { targetUserId?: string }) {
                 <span className="text-xs text-(--text-secondary) tabular-nums">
                   {p.shares.toLocaleString()} {t.pna.activity.shares} at {fmtMoney(p.avgPrice)}
                 </span>
-                {p.canClaim ? (
+                {p.canClaim && isOwnView ? (
                   <button
                     type="button"
                     disabled={claimingId === p.id}

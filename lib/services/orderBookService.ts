@@ -148,6 +148,11 @@ export class OrderBookWebSocket {
   private subscriptionQueue: Array<() => void> = []; // 订阅队列
   // 缓存最近一次的 orderbook 快照，key = asset_id
   private lastSnapshots: Map<string, OrderBookSnapshot> = new Map();
+  // 服务器报"订阅被清理"(channel_inactive/上游断开)时的自动重订阅：防抖 + 次数上限，
+  // 收到正常快照后清零，避免上游持续不可用时无限重订阅风暴
+  private resubscribeTimer: NodeJS.Timeout | null = null;
+  private autoResubscribeCount = 0;
+  private maxAutoResubscribe = 5;
 
   // 连接 WebSocket
   connect(): Promise<void> {
@@ -222,11 +227,19 @@ export class OrderBookWebSocket {
         if (parsed.message?.includes('ping')) {
           return;
         }
+        // 服务器报错（上游断开 channel_inactive、订阅被清理"请重试"）：原来直接吞掉，
+        // 导致界面卡在空数据、刷新也无法自愈。这里自动重订阅一次（防抖 + 次数上限）。
+        if (parsed.status === 'error') {
+          console.warn('[OrderBookWS] subscription error from server:', parsed.message);
+          this.scheduleAutoResubscribe();
+        }
         return;
       }
 
       // 订单簿快照 (数组格式)
       if (Array.isArray(parsed) && parsed[0]?.event_type === 'orderbook') {
+        // 收到正常数据，重置自动重订阅计数
+        this.autoResubscribeCount = 0;
         // 更新缓存（按 asset_id 存储），然后通知处理器
         try {
           parsed.forEach((snap: OrderBookSnapshot) => {
@@ -481,16 +494,73 @@ export class OrderBookWebSocket {
     // 清除快照缓存，确保收到全新数据
     this.lastSnapshots.clear();
     this.reconnectAttempts = 0;
-
-    if (this.ws) {
-      // 使用非 1000 的 close code 触发 attemptReconnect
-      this.ws.close(4000, 'manual refresh');
+    this.autoResubscribeCount = 0;
+    if (this.resubscribeTimer) {
+      clearTimeout(this.resubscribeTimer);
+      this.resubscribeTimer = null;
     }
+
+    const savedMarketId = this.subscribedMarketId;
+    const savedEventSlug = this.subscribedEventSlug;
+
+    // 主动拆掉旧连接：置空 onclose/onerror，避免旧 socket 触发 attemptReconnect 抢跑。
+    // 不再依赖"close → onclose → attemptReconnect"链路 —— 旧 socket 若已 CLOSED 或为 null，
+    // 那条链路根本不触发，正是"刷新没反应"的根因。这里无论什么状态都统一重连+重订阅。
+    if (this.ws) {
+      try {
+        this.ws.onclose = null;
+        this.ws.onerror = null;
+        this.ws.close();
+      } catch {}
+      this.ws = null;
+    }
+    this.isConnecting = false;
+    this.subscribedMarketId = null;
+    this.subscribedEventSlug = null;
+    this.subscriptionRefs.clear();
+
+    void (async () => {
+      try {
+        await this.connect();
+        if (savedMarketId) await this.subscribeOrderBook(savedMarketId);
+        if (savedEventSlug) await this.subscribeTradeMessage(savedEventSlug);
+      } catch (err) {
+        console.error('[OrderBookWS] forceReconnect failed:', err);
+      }
+    })();
+  }
+
+  // 服务器清理订阅后的自动重订阅：防抖 + 次数上限（收到正常快照会清零计数）。
+  // subscribeOrderBook 对相同 marketId 会 early-return，故必须先清掉 subscribedMarketId。
+  private scheduleAutoResubscribe() {
+    if (this.resubscribeTimer) return; // 已排队
+    if (this.autoResubscribeCount >= this.maxAutoResubscribe) {
+      console.warn('[OrderBookWS] 达到自动重订阅上限，停止重试');
+      return;
+    }
+    const delay = this.reconnectDelay * Math.pow(2, this.autoResubscribeCount);
+    this.autoResubscribeCount++;
+    this.resubscribeTimer = setTimeout(() => {
+      this.resubscribeTimer = null;
+      const marketId = this.subscribedMarketId;
+      if (!marketId) return;
+      // 先清订阅标记，否则 subscribeOrderBook 认为"已订阅"直接返回，不会重发
+      this.subscribedMarketId = null;
+      this.subscriptionRefs.delete(marketId);
+      this.subscribeOrderBook(marketId).catch((e) =>
+        console.error('[OrderBookWS] auto resubscribe failed:', e)
+      );
+    }, delay);
   }
 
   // 断开连接
   disconnect() {
     this.stopPingInterval();
+    if (this.resubscribeTimer) {
+      clearTimeout(this.resubscribeTimer);
+      this.resubscribeTimer = null;
+    }
+    this.autoResubscribeCount = 0;
     if (this.ws) {
       this.ws.close(1000);
       this.ws = null;
