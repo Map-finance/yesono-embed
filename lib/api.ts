@@ -98,6 +98,18 @@ export async function getHoldRank(query: {
   );
 }
 
+/** 单个市场持仓排行榜(按持仓金额/balance);入参与响应同 getHoldRank */
+export async function getHoldRankBalance(query: {
+  marketId: string | number;
+  limit: number;
+}): Promise<Response<HoldRankGroup[]>> {
+  return request(
+    `${AUTH_BASE_URL}/holdings-rank/balance?marketId=${query.marketId}&limit=${query.limit}`,
+    {},
+    {}
+  );
+}
+
 export async function getHoldRankPnl(query: {
   marketId: string | number;
 }): Promise<Response<HoldRankGroup[]>> {

@@ -8,7 +8,8 @@
  * 数据源架构:
  * - WebSocket: 实时增量更新 (orderBook 频道) - 优先使用
  * - 增量更新: price 为唯一键，size=0 时删除
- * - 显示: price * 100, total = size * price
+ * - 显示: price * 100;total = 到该档为止的累计金额 Σ(size×price)(深度,对齐 Polymarket);
+ *   size 仍为当前档份额
  */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -466,9 +467,9 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
           {formatSize(entry.size)}
         </span>
         
-        {/* 总额 */}
+        {/* 总额:到该档为止的累计金额(深度),非当前档 size×price */}
         <span className="relative z-10 text-right pr-3 text-(--text-secondary)">
-          ${entry.total.toLocaleString()}
+          ${entry.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </span>
       </div>
     );

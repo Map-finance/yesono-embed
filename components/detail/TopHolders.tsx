@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from '@/lib/i18n';
 import { ChevronDown, Loader2 } from "lucide-react";
-import { getHoldRank } from "@/lib/api";
+import { getHoldRankBalance } from "@/lib/api";
 import { Holding, HoldRankGroup } from "@/types/types";
 import { Popover } from "../ui/Popover";
 import HoldersList from "../common/HoldersList";
@@ -14,7 +14,7 @@ interface TopHoldersProps {
 
 /**
  * 根据选中 market.id 获取两档 Holders。
- * GET /holdings-rank?marketId=xxx&limit=15，返回按 outcomeName 分组的数组。
+ * GET /holdings-rank/balance?marketId=xxx&limit=15(按持仓金额排),返回按 outcomeName 分组的数组。
  *
  * 注：分组的 outcomeName 是市场真实档位名（yes/no、up/down、甚至队名），不能写死
  * 按 "YES"/"NO" 匹配（否则 up/down 等市场会全空、页面不展示）。统一按 originalIndex
@@ -41,7 +41,7 @@ function useHolders(market: PolymarketMarketResp | undefined) {
     const asyncFn = async () => {
       setLoading(true);
       try {
-        const res = await getHoldRank({ marketId: market.id, limit: 15 });
+        const res = await getHoldRankBalance({ marketId: market.id, limit: 15 });
         if (res?.code === 200 && Array.isArray(res.data)) {
           const groups: HoldRankGroup[] = [...res.data].sort(
             (a, b) => (a.originalIndex ?? 0) - (b.originalIndex ?? 0)

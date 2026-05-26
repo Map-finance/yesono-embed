@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import {
   getActivityFilterOptions,
@@ -201,6 +202,14 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   markets = [],
 }) => {
   const { t } = useTranslation();
+  const router = useRouter();
+  const goToUserPna = useCallback(
+    (userId?: string) => {
+      if (!userId) return;
+      router.push(`/pna?userId=${encodeURIComponent(String(userId))}`);
+    },
+    [router]
+  );
   const activityFilterOptions = getActivityFilterOptions(t);
   const minAmountOptions = getMinAmountOptions(t);
 
@@ -371,19 +380,31 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     ref={isLast ? lastActivityRef : null}
                     className="flex items-center gap-3 py-3 hover:bg-(--bg-hover) rounded-lg px-2 -mx-2"
                   >
-                    {/* 头像 */}
-                    <Avatar
-                      src={trade.profileImage}
-                      name={trade.name}
-                      id={trade.userId}
-                      size="sm"
-                      className="w-10 h-10 text-sm"
-                    />
+                    {/* 头像（点击跳转 pna 页面） */}
+                    <button
+                      type="button"
+                      onClick={() => goToUserPna(trade.userId)}
+                      disabled={!trade.userId}
+                      className="shrink-0 rounded-full disabled:cursor-default"
+                    >
+                      <Avatar
+                        src={trade.profileImage}
+                        name={trade.name}
+                        id={trade.userId}
+                        size="sm"
+                        className="w-10 h-10 text-sm"
+                      />
+                    </button>
 
                     {/* 活动内容 */}
                     <div className="flex-1 min-w-0">
                       <span className="text-sm">
-                        <span className="font-medium text-(--text-primary)">
+                        <span
+                          onClick={() => goToUserPna(trade.userId)}
+                          className={`font-medium text-(--text-primary) ${
+                            trade.userId ? "cursor-pointer hover:underline" : ""
+                          }`}
+                        >
                           {trade.name ||
                             trade.userId?.slice(0, 12) ||
                             t.market.activityText.anonymous}

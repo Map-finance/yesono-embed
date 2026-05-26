@@ -5,7 +5,6 @@ import { Loader2, X } from "lucide-react";
 import { cancelOrder } from "@/lib/api";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/components/ui/Toast";
-import { useTobMutation } from "@/lib/hooks/tob/useTobMutation";
 import {
   Popover,
   PopoverContent,
@@ -23,16 +22,26 @@ export function CancelOrderButton({ betId, onSuccess }: Props) {
   const { t } = useTranslation();
   const toast = useToast();
   const [open, setOpen] = useState(false);
-  const { mutate, loading } = useTobMutation(cancelOrder);
+  const [loading, setLoading] = useState(false);
 
+  // 直接 try/catch 而非 useTobMutation:这里需要在 await 后立刻拿到后端 msg(如限流时
+  // unwrap 抛出的 "Too many requests"),useTobMutation 的 error state 要等下一帧才更新。
   const handleConfirm = async () => {
-    const r = await mutate(betId);
-    if (r?.ok) {
-      toast.success(t.pna.orders.cancelSuccess);
-      setOpen(false);
-      onSuccess?.();
-    } else {
-      toast.error(t.pna.orders.cancelFailed);
+    setLoading(true);
+    try {
+      const r = await cancelOrder(betId);
+      if (r?.ok) {
+        toast.success(t.pna.orders.cancelSuccess);
+        onSuccess?.();
+      } else {
+        toast.error(t.pna.orders.cancelFailed);
+      }
+    } catch (e: unknown) {
+      const msg =
+        (e instanceof Error && e.message) || t.pna.orders.cancelFailed;
+      toast.error(msg);
+    } finally {
+      setLoading(false);
       setOpen(false);
     }
   };

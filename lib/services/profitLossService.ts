@@ -192,32 +192,38 @@ export function transformToChartData(
  * 获取排行榜数据
  * @param params 查询参数
  */
-export async function getLeaderboard(params: {
+type LeaderboardQuery = {
   periodType?: LeaderboardPeriodType;
   searchName?: string;
   page?: number;
   size?: number;
-} = {}): Promise<ApiResponse<LeaderboardData>> {
-  console.log('📤 API: 获取排行榜数据...', params);
+};
 
-  const {
-    periodType = 'All',
-    searchName,
-    page = 1,
-    size = 20
-  } = params;
-
+function buildLeaderboardUrl(path: string, params: LeaderboardQuery): string {
+  const { periodType = 'All', searchName, page = 1, size = 20 } = params;
   const queryParams = new URLSearchParams();
   queryParams.append('periodType', periodType);
   queryParams.append('page', page.toString());
   queryParams.append('size', size.toString());
-
   if (searchName) {
     queryParams.append('searchName', searchName);
   }
+  return `${AUTH_BASE_URL}/${path}?${queryParams.toString()}`;
+}
 
-  const url = `${AUTH_BASE_URL}/profit-loss/leaderboard?${queryParams.toString()}`;
-  return request<LeaderboardData>(url);
+export async function getLeaderboard(
+  params: LeaderboardQuery = {}
+): Promise<ApiResponse<LeaderboardData>> {
+  console.log('📤 API: 获取排行榜数据...', params);
+  return request<LeaderboardData>(buildLeaderboardUrl('profit-loss/leaderboard', params));
+}
+
+/** 按交易量排行榜(参数/响应与 getLeaderboard 完全一致,仅 endpoint 不同) */
+export async function getVolumeLeaderboard(
+  params: LeaderboardQuery = {}
+): Promise<ApiResponse<LeaderboardData>> {
+  console.log('📤 API: 获取交易量排行榜...', params);
+  return request<LeaderboardData>(buildLeaderboardUrl('profit-loss/volume-leaderboard', params));
 }
 
 /**
@@ -229,6 +235,15 @@ export async function getMyOverview(
 ): Promise<ApiResponse<MyOverviewData>> {
   const queryParams = periodType ? `?periodType=${periodType}` : '';
   const url = `${AUTH_BASE_URL}/profit-loss/my-overview${queryParams}`;
+  return request<MyOverviewData>(url);
+}
+
+/** 当前用户的交易量排名(无参/响应与 getMyOverview 一致,仅 endpoint 不同) */
+export async function getMyVolumeOverview(
+  periodType?: LeaderboardPeriodType
+): Promise<ApiResponse<MyOverviewData>> {
+  const queryParams = periodType ? `?periodType=${periodType}` : '';
+  const url = `${AUTH_BASE_URL}/profit-loss/my-volume-overview${queryParams}`;
   return request<MyOverviewData>(url);
 }
 

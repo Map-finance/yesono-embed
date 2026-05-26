@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMyOverview } from '@/lib/services/profitLossService';
+import { getMyOverview, getMyVolumeOverview } from '@/lib/services/profitLossService';
 import { mapTimeRangeToLeaderboardPeriod } from '@/lib/services/profitLossService';
+import type { LeaderboardMetric } from './useLeaderboard';
 
 export interface MyOverviewData {
   rank: number;
@@ -14,7 +15,8 @@ export interface MyOverviewData {
 
 export default function useMyOverview(
   isAuthenticated: boolean,
-  timeRange: string
+  timeRange: string,
+  metric: LeaderboardMetric = 'profitLoss',
 ) {
   const [data, setData] = useState<MyOverviewData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +31,10 @@ export default function useMyOverview(
     setError(null);
     try {
       const periodType = mapTimeRangeToLeaderboardPeriod(timeRange);
-      const res = await getMyOverview(periodType);
+      // 按当前指标取对应排名(交易量 / 盈亏)
+      const res = await (metric === 'volume'
+        ? getMyVolumeOverview(periodType)
+        : getMyOverview(periodType));
       if (res.success && res.data) {
         const d = res.data;
         setData({
@@ -51,7 +56,7 @@ export default function useMyOverview(
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, timeRange]);
+  }, [isAuthenticated, timeRange, metric]);
 
   useEffect(() => {
     fetchData();

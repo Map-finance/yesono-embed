@@ -107,6 +107,14 @@ const Leaderboard: React.FC = () => {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
 
+  // 排序指标(列)放在 hook 之前:hook 按它选对应 endpoint(盈亏/交易量),服务端排序+分页
+  const [selectColumnIndex, setSelectColumnIndex] = useState(0);
+  const columns = [
+    { label: t.leaderboard.table.profitLoss, value: "profitLoss" },
+    { label: t.leaderboard.table.volume, value: "volume" },
+  ] as const;
+  const metric = columns[selectColumnIndex].value;
+
   const {
     data: paginatedData,
     page,
@@ -117,9 +125,9 @@ const Leaderboard: React.FC = () => {
     setSearch,
     timeRange,
     search,
-  } = useLeaderboard("Monthly");
+  } = useLeaderboard("Monthly", metric, isAuthenticated);
 
-  const { data: myOverview } = useMyOverview(isAuthenticated, timeRange);
+  const { data: myOverview } = useMyOverview(isAuthenticated, timeRange, metric);
 
   const timeRanges = [
     { key: "Today", label: t.leaderboard.timeRange.today },
@@ -127,11 +135,6 @@ const Leaderboard: React.FC = () => {
     { key: "Monthly", label: t.leaderboard.timeRange.monthly },
     { key: "All", label: t.leaderboard.timeRange.all },
   ];
-  const [selectColumnIndex, setSelectColumnIndex] = useState(0);
-  const columns = [
-    { label: t.leaderboard.table.profitLoss, value: "profitLoss" },
-    { label: t.leaderboard.table.volume, value: "volume" },
-  ] as const;
   const [mounted, setMounted] = useState(false);
 
   const ITEMS_PER_PAGE = 20;
@@ -140,15 +143,9 @@ const Leaderboard: React.FC = () => {
     setMounted(true);
   }, []);
 
-  const sortedData = useMemo(() => {
-    const data = [...paginatedData];
-    const sortKey = columns[selectColumnIndex].value as keyof LeaderboardUser;
-    data.sort(
-      (a: LeaderboardUser, b: LeaderboardUser) =>
-        (b[sortKey] as number) - (a[sortKey] as number),
-    );
-    return data;
-  }, [paginatedData, selectColumnIndex, columns]);
+  // 服务端已按当前指标(盈亏/交易量)排序+分页,前端不再二次排序;
+  // 列表序号仍按展示顺序生成((page-1)*size+index+1 = 全局排名)。
+  const sortedData = paginatedData;
 
   // 前排三甲按「当前展示顺序」取前 3（不再按后端 rank 过滤）：切到交易量排序后
   // 三甲与榜单口径一致；否则会把盈亏前三塞进交易量榜的前排，序号/人选都错乱。
@@ -165,13 +162,9 @@ const Leaderboard: React.FC = () => {
     [sortedData, podium],
   );
 
-  // 当前用户序号：只有默认「盈亏」指标（selectColumnIndex===0）下后端 rank 才与榜单口径
-  // 一致且全站准确。「交易量」是前端只对当前页排序、后端不提供该口径排名 → null（显示 —）。
-  const myRank = useMemo(() => {
-    if (!myOverview) return null;
-    if (selectColumnIndex !== 0) return null;
-    return myOverview.rank;
-  }, [myOverview, selectColumnIndex]);
+  // 当前用户序号:后端按当前指标返回(盈亏走 my-overview、交易量走 my-volume-overview),
+  // 两个指标下都准确,直接用。
+  const myRank = myOverview?.rank ?? null;
 
   const generatePageNumbers = () => {
     const pages: (number | string)[] = [];

@@ -36,6 +36,19 @@ export async function unwrap<T>(p: Promise<unknown>): Promise<T> {
   // axios http.get 返回 ApiResponse<T>；http 拦截器又给了一层 data
   // 兼容三层 unwrap
   const inner = (r?.data as unknown as TobApiResp<T>) ?? r;
+  // 失败可能是 { success:false, msg }(如被限流)信封,无 code 字段,响应拦截器不会 reject。
+  // 这里显式判定并抛出,避免上层把失败当成功处理(对应 h2-market 4885698)。
+  if (
+    inner &&
+    typeof inner === "object" &&
+    (inner as { success?: boolean }).success === false
+  ) {
+    const m =
+      (inner as { msg?: string }).msg ||
+      (inner as { message?: string }).message ||
+      "Request failed";
+    throw new Error(m);
+  }
   if (
     inner &&
     typeof inner === "object" &&

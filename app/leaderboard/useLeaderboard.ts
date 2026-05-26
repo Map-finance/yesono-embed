@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   getLeaderboard,
+  getVolumeLeaderboard,
   LeaderboardUser as ApiLeaderboardUser,
   mapTimeRangeToLeaderboardPeriod,
 } from '@/lib/services/profitLossService';
+
+export type LeaderboardMetric = 'profitLoss' | 'volume';
 
 export interface LeaderboardUser {
   rank: number;
@@ -53,7 +56,13 @@ export interface UseLeaderboardResult {
   refetch: () => void;
 }
 
-export default function useLeaderboard(initialTimeRange: string = 'All'): UseLeaderboardResult {
+export default function useLeaderboard(
+  initialTimeRange: string = 'All',
+  metric: LeaderboardMetric = 'profitLoss',
+  // 榜单走 authFetch(需 token)。首次进页面 token 可能还没水合 → 401 → 空列表。
+  // 传入登录态,token 就绪(false→true)后自动重拉,修"第一次打开没数据"。
+  isAuthenticated: boolean = false,
+): UseLeaderboardResult {
   const [data, setData] = useState<LeaderboardUser[]>([]);
   const [topWinners, setTopWinners] = useState<LeaderboardUser[]>([]);
   const [page, setPage] = useState(1);
@@ -68,9 +77,12 @@ export default function useLeaderboard(initialTimeRange: string = 'All'): UseLea
 
     try {
       const periodType = mapTimeRangeToLeaderboardPeriod(timeRange);
+      // 主表格按当前指标走对应 endpoint(盈亏 / 交易量),服务端排序+分页;
+      // Biggest Wins 始终用盈亏榜(它本身是"盈利最高")
+      const fetchMain = metric === 'volume' ? getVolumeLeaderboard : getLeaderboard;
 
       const [mainRes, topRes] = await Promise.all([
-        getLeaderboard({
+        fetchMain({
           periodType,
           searchName: search || undefined,
           page,
@@ -106,11 +118,11 @@ export default function useLeaderboard(initialTimeRange: string = 'All'): UseLea
     } finally {
       setIsLoading(false);
     }
-  }, [page, timeRange, search]);
+  }, [page, timeRange, search, metric, isAuthenticated]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, timeRange]);
+  }, [search, timeRange, metric]);
 
   useEffect(() => {
     fetchData();

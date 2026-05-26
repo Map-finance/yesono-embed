@@ -92,8 +92,8 @@ export interface ProcessedOrderBookEntry {
   price: number;       // 原始价格
   displayPrice: number; // 显示价格 (price * 100)
   size: number;
-  total: number;       // size * price
-  cumulative: number;
+  total: number;       // 累计金额 Σ(size×price),到该档为止(深度,对齐 Polymarket Total 列)
+  cumulative: number;  // 累计份额,到该档为止(深度条宽度用)
 }
 
 // 处理后的订单簿数据
@@ -637,7 +637,7 @@ export class OrderBookStore {
           price: p,
           displayPrice: p * 100, // price * 100
           size: s,
-          total: s * p, // size * price
+          total: 0, // 由下方累计循环填充为「累计金额」
           cumulative: 0,
         };
       })
@@ -652,23 +652,31 @@ export class OrderBookStore {
           price: p,
           displayPrice: p * 100, // price * 100
           size: s,
-          total: s * p, // size * price
+          total: 0, // 由下方累计循环填充为「累计金额」
           cumulative: 0,
         };
       })
       .sort((a, b) => a.price - b.price);
 
-    // 计算累计量
+    // 计算累计量:cumulative = 累计份额(深度条用);total = 累计金额 Σ(size×price)。
+    // 均从"最优档 → 最差档"方向累加(bids 高→低、asks 低→高),对齐 Polymarket 的 Total 列
+    // (Total 是到该档为止的累计成交额/深度,不是当前档的 size×price)。
     let bidCumulative = 0;
+    let bidTotal = 0;
     bids.forEach(entry => {
       bidCumulative += entry.size;
+      bidTotal += entry.size * entry.price;
       entry.cumulative = bidCumulative;
+      entry.total = bidTotal;
     });
 
     let askCumulative = 0;
+    let askTotal = 0;
     asks.forEach(entry => {
       askCumulative += entry.size;
+      askTotal += entry.size * entry.price;
       entry.cumulative = askCumulative;
+      entry.total = askTotal;
     });
 
     // 计算中间价和价差

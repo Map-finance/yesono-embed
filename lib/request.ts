@@ -172,7 +172,8 @@ request.interceptors.response.use(
     const hasCodeField =
       data && Object.prototype.hasOwnProperty.call(data, "code");
     if (hasCodeField && data.code !== 200 && data.code !== 0) {
-      const error = new Error(data.message || "Request failed");
+      // 业务码非 200 时优先 message,缺失则 msg(后端有的接口只填 msg,如限流响应)
+      const error = new Error(data.message || data.msg || "Request failed");
       (error as any).code = data.code;
       (error as any).response = response;
 
