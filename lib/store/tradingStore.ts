@@ -198,6 +198,7 @@ function connectWS(marketId: string, set: any, get: any) {
                 // after init above, pendingRaw is non-null
                 const nextRaw = pendingRaw!;
                 let hasUpdate = false;
+                let hasSnapshot = false;
 
                 // Handle Snapshot
                 if (Array.isArray(data) && data[0]?.event_type === 'orderbook') {
@@ -212,6 +213,7 @@ function connectWS(marketId: string, set: any, get: any) {
                         snap.asks.forEach(x => Number(x.size) > 0 && store.asks.set(x.price, x.size));
                     });
                     hasUpdate = true;
+                    hasSnapshot = true;
                 }
 
                 // Handle Update
@@ -231,8 +233,21 @@ function connectWS(marketId: string, set: any, get: any) {
                      hasUpdate = true;
                 }
 
-                // 节流刷新：500ms 内多条消息只触发一次 setState，大幅减少全量重渲染次数
-                if (hasUpdate && !throttleTimer) {
+                // snapshot 立即 flush(不走 500ms 节流):snapshot 是低频事件(切市场/订阅初始),
+                // 走节流会让按钮上的 best ask/bid 比订单簿组件(snapshot 立即 setState)晚最多
+                // 500ms,造成"切市场瞬间按钮价比订单簿慢半拍"。把攒着的 price_change 批一起带出去,
+                // 避免之后 trailing 定时器用 stale pendingRaw 覆盖回去。price_change 仍走节流。
+                if (hasSnapshot) {
+                    if (throttleTimer) {
+                        clearTimeout(throttleTimer);
+                        throttleTimer = null;
+                    }
+                    if (pendingRaw && activeMarketId === marketId) {
+                        set({ orderBookRaw: pendingRaw });
+                    }
+                    pendingRaw = null;
+                } else if (hasUpdate && !throttleTimer) {
+                    // 节流刷新：500ms 内多条 price_change 只触发一次 setState，减少全量重渲染
                     throttleTimer = setTimeout(() => {
                         throttleTimer = null;
                         if (pendingRaw && activeMarketId === marketId) {

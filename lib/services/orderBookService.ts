@@ -224,7 +224,8 @@ export class OrderBookWebSocket {
 
       // 处理订阅响应
       if (parsed.status === 'success' || parsed.status === 'error') {
-        // 忽略 ping 错误，服务器不支持
+        // 应用层 ping 保活:若服务端不识别 type:ping 会回错误,这里吞掉,
+        // 否则会被下面的 scheduleAutoResubscribe 误触发(ping 失败 ≠ 订阅失效)
         if (parsed.message?.includes('ping')) {
           return;
         }
@@ -458,14 +459,18 @@ export class OrderBookWebSocket {
     if (this.subscribedEventSlug === slugToUnsub) this.subscribedEventSlug = null;
   }
 
-  // 心跳 - 服务器不支持 ping type，暂时禁用
+  // 应用层心跳:20s 发一次 {type:'ping'} 保活。
+  // 协议层 ping/pong 由浏览器内核自动处理(服务器发 ping → 浏览器自动回 pong),
+  // JS 不可见、也无法主动发协议层 ping,所以这里走应用层 JSON 消息。
+  // 若服务端不识别该 type 会回 status:error,handleMessage 里有兜底过滤(message 含 ping),
+  // 不会触发自动重订阅。
   private startPingInterval() {
-    // 服务器返回 "未知的 type: ping" 错误，暂时不发送 ping
-    // this.pingInterval = setInterval(() => {
-    //   if (this.ws?.readyState === WebSocket.OPEN) {
-    //     this.ws.send(JSON.stringify({ type: 'ping' }));
-    //   }
-    // }, 25000);
+    this.stopPingInterval();
+    this.pingInterval = setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 20_000);
   }
 
   private stopPingInterval() {

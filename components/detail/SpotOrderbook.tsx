@@ -490,19 +490,31 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     );
   };
 
-  // 切换 yes/no 时重置滚动标记
-  const asksScrolledRef = useRef(false);
+  // asks 容器"贴底跟随":best ask 在最底部,只要用户没主动向上滚,新增更优档时自动跟随到底
+  // (旧实现只在首次滚一次,后来 WS 增量补的 55/56 等更优档会掉到滚动条下方看不见,
+  // 表现为"按钮显示 55¢ 而表格底部看到 57¢"的伪不一致)。
+  const isAtBottomRef = useRef(true);
+
+  // 切 yes/no 重置为贴底,让下一次 orderbook flush 把视口对齐到 best ask
   useEffect(() => {
-    asksScrolledRef.current = false;
+    isAtBottomRef.current = true;
   }, [activeSide]);
 
-  // asks 列表在首次数据载入或切换 yes/no 后滚到最底部
   useEffect(() => {
-    if (!asksScrolledRef.current && asksContainerRef.current && orderbook && orderbook.asks.length > 0) {
-      asksContainerRef.current.scrollTop = asksContainerRef.current.scrollHeight;
-      asksScrolledRef.current = true;
+    const el = asksContainerRef.current;
+    if (!el || !orderbook || orderbook.asks.length === 0) return;
+    if (isAtBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [orderbook]);
+
+  // 用户主动滚动时维护贴底状态:32px 容差(≈ 一行高度)允许小幅偏离仍跟随,
+  // 显式向上滚开后停止跟随,避免打断查看高价档
+  const handleAsksScroll = useCallback(() => {
+    const el = asksContainerRef.current;
+    if (!el) return;
+    isAtBottomRef.current = el.scrollHeight - el.clientHeight - el.scrollTop < 32;
+  }, []);
 
   // 最新价（使用 best bid 作为 last price 的近似）
   const lastPrice = orderbook ? orderbook.midPrice : basePrice;
@@ -633,7 +645,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
           <>
             {/* Asks - 固定占一半高度 */}
             {(displayMode === 'both' || displayMode === 'asks') && (
-              <div ref={asksContainerRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide border-b border-gray-200 dark:border-[#1a1a1a]">
+              <div ref={asksContainerRef} onScroll={handleAsksScroll} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide border-b border-gray-200 dark:border-[#1a1a1a]">
                 <div className="flex flex-col justify-end min-h-full">
                   {orderbook.asks.map((entry, index) => 
                     renderOrderRow(entry, 'ask', index, index === orderbook.asks.length - 1)

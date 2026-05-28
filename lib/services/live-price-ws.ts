@@ -76,6 +76,7 @@ abstract class Channel {
   private isConnecting = false;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private pingTimer: ReturnType<typeof setInterval> | null = null;
   private paused = false;
   /** 引用计数：同一 key 的多个订阅者共享同一条连接（仍是"一订阅一连接"语义） */
   refs = 0;
@@ -113,6 +114,10 @@ abstract class Channel {
         } catch {
           // ignore
         }
+        // 应用层心跳:20s 发一次 {type:'ping'} 保活长连接(协议层 ping/pong
+        // 浏览器自动处理、JS 不可见)。服务端不识别会回错误消息,onMessage 不会因此
+        // 中断订阅(各 Channel 的 onMessage 只认自己的 topic)。
+        this.startPing();
         this.onOpenExtra();
       };
 
@@ -132,6 +137,7 @@ abstract class Channel {
       ws.onclose = () => {
         this.isConnecting = false;
         this.ws = null;
+        this.stopPing();
         if (!this.paused) this.scheduleReconnect();
       };
 
@@ -147,6 +153,26 @@ abstract class Channel {
       this.isConnecting = false;
       console.error("[live-price-ws] connect failed", err);
       this.scheduleReconnect();
+    }
+  }
+
+  private startPing(): void {
+    this.stopPing();
+    this.pingTimer = setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        try {
+          this.ws.send(JSON.stringify({ type: "ping" }));
+        } catch {
+          // ignore
+        }
+      }
+    }, 20_000);
+  }
+
+  private stopPing(): void {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
     }
   }
 
@@ -172,6 +198,7 @@ abstract class Channel {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    this.stopPing();
     const ws = this.ws;
     if (ws) {
       ws.onclose = null;
