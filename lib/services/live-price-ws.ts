@@ -1,25 +1,34 @@
 /**
- * Live price + trade tape WebSocket manager.
+ * Live price WebSocket manager.
  *
  * 连接模型（与 h2-market 对齐、按后端要求）：
- *   **每个订阅一条专属 WebSocket 连接**，不多路复用、不跨订阅复用。
+ *   **每个 price 订阅一条专属 WebSocket 连接**，不多路复用、不跨订阅复用。
  *   原因：后端协议 (1) 无显式 unsubscribe —— 想停掉一个订阅只能关连接；
  *   (2) 推送响应不回显 eventId —— 连接本身就是路由标识，一条连接只能对应
  *   一个订阅。因此切市场 = 关旧连 + 开新连（即"每个都重连"）。
  *
- * 管理器只负责：按 key 复用/创建/销毁 Channel + 引用计数 + iframe 可见性暂停。
+ *   连接健壮性对齐 h2:共享握手/指数退避抖动重连(永不放弃)/30s 静默检测自愈/
+ *   safeClose/20s ping 保活,见 Channel 基类。
  *
- * 协议：
- *   - price 订阅：{ operation: "subscribe", type: "cryptoPrice" | "objectivePrice", eventId }
- *     收到：
- *       { type:"subscribe", topic:"crypto_prices"|"finance_prices", payload:{ data:[...] } } → snapshot
- *       { type:"update",    topic:"crypto_prices_chainlink",        payload:{ timestamp,value } } → crypto update
- *       { type:"update",    topic:"crypto_prices"|"finance_prices", payload:{ value,timestamp } } → finance update
- *   - trade 订阅：{ operation: "subscribe", type: "trade_message", event_slug }
- *     收到：{ type:"trade_message", side, price, size, ... }
+ * 管理器只负责 price：按 key 复用/创建/销毁 PriceChannel + 引用计数 + iframe 可见性暂停。
+ *
+ * 注:trade_message(成交流)不在这里 —— 已统一走 orderBookService 的 activityWS 单例
+ * (useActivity / useSessionTradeVolume / useTradeTapeFeed 共享一条持久连接,对齐 h2)。
+ *
+ * 协议（price）：{ operation: "subscribe", type: "cryptoPrice" | "objectivePrice", eventId }
+ *   收到：
+ *     { type:"subscribe", topic:"crypto_prices"|"finance_prices", payload:{ data:[...] } } → snapshot
+ *     { type:"update",    topic:"crypto_prices_chainlink",        payload:{ timestamp,value } } → crypto update
+ *     { type:"update",    topic:"crypto_prices"|"finance_prices", payload:{ value,timestamp } } → finance update
  */
 
 import type { Time } from "lightweight-charts";
+import {
+  safeCloseWebSocket,
+  jitterDelay,
+  nextWsId,
+  wsLog,
+} from "@/lib/utils/safeCloseWs";
 
 // §6.1 #6: WS URL 必须模块顶层校验，禁用非空断言
 const RAW_WS_URL = process.env.NEXT_PUBLIC_ORDERBOOK_WS_URL;
@@ -47,23 +56,18 @@ export type PriceMsg =
 
 export type PriceHandler = (msg: PriceMsg) => void;
 
-/** 交易频道事件 */
-export type TradeMsg = {
-  type: "trade";
-  eventSlug: string;
-  side: "BUY" | "SELL";
-  price: number;
-  size: number;
-};
-
-export type TradeHandler = (msg: TradeMsg) => void;
-
 // ============== 内部常量 ==============
 
 const UNSUPPORTED_TIMEOUT_MS = 3000;
 const RECONNECT_BASE_MS = 1500;
 const RECONNECT_MAX_MS = 30_000;
-const MAX_RECONNECT_ATTEMPTS = 10;
+// 退避指数封顶:2^6 = 64 → 1500×64 已超 30s 上限,再大无意义。不再"放弃",
+// 达到上限后按 RECONNECT_MAX_MS 持续重试(对齐 h2"永不放弃")。
+const RECONNECT_BACKOFF_CAP = 6;
+// 静默检测:连续 30s 没收到任何消息就视为连接哑掉,主动重连(LB idle 杀连接但
+// onclose 不一定及时触发时自愈;与 20s ping 协同 —— ping 有响应即刷新 lastMessageAt)
+const IDLE_TIMEOUT_MS = 30_000;
+const IDLE_CHECK_INTERVAL_MS = 15_000;
 
 // ============== Channel：一条订阅 = 一条连接 ==============
 
@@ -77,6 +81,11 @@ abstract class Channel {
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
+  // 静默检测:>30s 无消息 → 主动重连(防 LB 静默掐连接而 onclose 不触发)
+  private lastMessageAt = 0;
+  private idleCheckTimer: ReturnType<typeof setInterval> | null = null;
+  // wsDebug:为每条连接打一个递增 id,串起 CREATE→OPEN→CLOSE 全生命周期
+  private currentWsId: string | null = null;
   private paused = false;
   /** 引用计数：同一 key 的多个订阅者共享同一条连接（仍是"一订阅一连接"语义） */
   refs = 0;
@@ -103,12 +112,16 @@ abstract class Channel {
   private connect(): void {
     this.isConnecting = true;
     try {
+      const wsId = nextWsId("livePriceWS");
+      this.currentWsId = wsId;
+      wsLog(wsId, "CREATE", { url: WS_URL });
       const ws = new WebSocket(WS_URL);
       this.ws = ws;
 
       ws.onopen = () => {
         this.isConnecting = false;
         this.reconnectAttempts = 0;
+        wsLog(wsId, "OPEN");
         try {
           ws.send(JSON.stringify(this.subscribePayload()));
         } catch {
@@ -118,11 +131,14 @@ abstract class Channel {
         // 浏览器自动处理、JS 不可见)。服务端不识别会回错误消息,onMessage 不会因此
         // 中断订阅(各 Channel 的 onMessage 只认自己的 topic)。
         this.startPing();
+        this.startIdleCheck();
         this.onOpenExtra();
       };
 
       ws.onmessage = (event) => {
         if (!event.data || (event.data as string).length === 0) return;
+        // 任意消息(含 ping 错误响应)都刷新静默计时:真死连接才会触发 idle 重连
+        this.lastMessageAt = Date.now();
         let data: unknown;
         try {
           data = JSON.parse(event.data as string);
@@ -134,25 +150,50 @@ abstract class Channel {
         this.onMessage(data as Record<string, unknown>);
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         this.isConnecting = false;
         this.ws = null;
         this.stopPing();
+        this.stopIdleCheck();
+        wsLog(wsId, "CLOSE", { code: event.code, wasClean: event.wasClean });
         if (!this.paused) this.scheduleReconnect();
       };
 
       ws.onerror = () => {
-        // 让 onclose 兜底重连
-        try {
-          ws.close();
-        } catch {
-          // ignore
-        }
+        // 让 onclose 兜底重连;safeClose 防 CONNECTING 态裸 close 触发警告
+        wsLog(wsId, "ERROR", { readyState: this.ws?.readyState });
+        safeCloseWebSocket(ws);
       };
     } catch (err) {
       this.isConnecting = false;
       console.error("[live-price-ws] connect failed", err);
       this.scheduleReconnect();
+    }
+  }
+
+  // 静默检测:>30s 没收到任何消息 → 视为连接哑掉,主动重连
+  private startIdleCheck(): void {
+    this.stopIdleCheck();
+    this.lastMessageAt = Date.now();
+    this.idleCheckTimer = setInterval(() => {
+      if (this.paused) return;
+      if (Date.now() - this.lastMessageAt > IDLE_TIMEOUT_MS) {
+        wsLog(this.currentWsId ?? "livePriceWS:?", "IDLE_RECONNECT");
+        this.stopIdleCheck();
+        // 主动断开 → onclose 走 scheduleReconnect 重连+重订阅
+        const ws = this.ws;
+        this.ws = null;
+        this.stopPing();
+        safeCloseWebSocket(ws);
+        if (!this.paused) this.scheduleReconnect();
+      }
+    }, IDLE_CHECK_INTERVAL_MS);
+  }
+
+  private stopIdleCheck(): void {
+    if (this.idleCheckTimer) {
+      clearInterval(this.idleCheckTimer);
+      this.idleCheckTimer = null;
     }
   }
 
@@ -178,13 +219,11 @@ abstract class Channel {
 
   private scheduleReconnect(): void {
     if (this.reconnectTimer) return;
-    if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.error("[live-price-ws] max reconnect attempts reached, giving up");
-      return;
-    }
-    const delay = Math.min(
-      RECONNECT_BASE_MS * 2 ** this.reconnectAttempts,
-      RECONNECT_MAX_MS
+    // 指数退避 + 抖动,封顶后按上限持续重试(永不放弃,对齐 h2):
+    // 多个 Channel 同时断线时抖动可错开重连,避免同一刻齐刷刷打服务端。
+    const exp = Math.min(this.reconnectAttempts, RECONNECT_BACKOFF_CAP);
+    const delay = jitterDelay(
+      Math.min(RECONNECT_BASE_MS * 2 ** exp, RECONNECT_MAX_MS)
     );
     this.reconnectAttempts += 1;
     this.reconnectTimer = setTimeout(() => {
@@ -199,17 +238,15 @@ abstract class Channel {
       this.reconnectTimer = null;
     }
     this.stopPing();
+    this.stopIdleCheck();
     const ws = this.ws;
     if (ws) {
       ws.onclose = null;
       ws.onerror = null;
       ws.onmessage = null;
       ws.onopen = null;
-      try {
-        ws.close();
-      } catch {
-        // ignore
-      }
+      // safeClose:防 CONNECTING 态裸 close 触发 "closed before established" 警告
+      safeCloseWebSocket(ws);
     }
     this.ws = null;
     this.isConnecting = false;
@@ -344,41 +381,15 @@ class PriceChannel extends Channel {
   }
 }
 
-/** trade 专属连接：一条连接订阅一个 eventSlug */
-class TradeChannel extends Channel {
-  readonly handlers = new Set<TradeHandler>();
-
-  constructor(private readonly eventSlug: string) {
-    super();
-  }
-
-  protected subscribePayload(): object {
-    return {
-      operation: "subscribe",
-      type: "trade_message",
-      event_slug: this.eventSlug,
-    };
-  }
-
-  protected onMessage(msg: Record<string, unknown>): void {
-    if (msg.type !== "trade_message") return;
-    const side = msg.side;
-    if (side !== "BUY" && side !== "SELL") return;
-    const price = Number(msg.price);
-    const size = Number(msg.size);
-    if (!Number.isFinite(price) || !Number.isFinite(size)) return;
-    this.handlers.forEach((h) =>
-      h({ type: "trade", eventSlug: this.eventSlug, side, price, size })
-    );
-  }
-}
-
 // ============== 管理器：按 key 复用 Channel + 可见性暂停 ==============
+//
+// 注:trade_message(成交流)已统一走 orderBookService 的 activityWS 单例
+// (useActivity / useSessionTradeVolume / useTradeTapeFeed 共享一条,对齐 h2),
+// 本管理器只负责 price 订阅(每 eventId 一条专属连接)。
 
 class LivePriceWebSocket {
-  // price key: `${kind}:${eventId}`；trade key: eventSlug
+  // price key: `${kind}:${eventId}`
   private priceChannels = new Map<string, PriceChannel>();
-  private tradeChannels = new Map<string, TradeChannel>();
 
   constructor() {
     if (typeof document !== "undefined") {
@@ -415,35 +426,12 @@ class LivePriceWebSocket {
     };
   }
 
-  subscribeTrades(eventSlug: string, handler: TradeHandler): () => void {
-    let ch = this.tradeChannels.get(eventSlug);
-    if (!ch) {
-      ch = new TradeChannel(eventSlug);
-      this.tradeChannels.set(eventSlug, ch);
-    }
-    ch.handlers.add(handler);
-    ch.refs += 1;
-    ch.open();
-
-    return () => {
-      const cur = this.tradeChannels.get(eventSlug);
-      if (!cur) return;
-      cur.handlers.delete(handler);
-      cur.refs -= 1;
-      if (cur.refs <= 0) {
-        cur.close();
-        this.tradeChannels.delete(eventSlug);
-      }
-    };
-  }
-
   // ============== iframe visibility pause（§6.1 #7） ==============
 
   private handleVisibility = (): void => {
     if (typeof document === "undefined") return;
     const hidden = document.visibilityState === "hidden";
     this.priceChannels.forEach((ch) => (hidden ? ch.pause() : ch.resume()));
-    this.tradeChannels.forEach((ch) => (hidden ? ch.pause() : ch.resume()));
   };
 }
 
