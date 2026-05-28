@@ -120,6 +120,32 @@ export async function getHoldRankPnl(query: {
   );
 }
 
+// ─── Event Volume API ────────────────────────────────────────────────────────
+
+export interface EventVolumeMarket {
+  marketId: string;
+  volume: number;
+  volume24hr: number;
+}
+
+export interface EventVolumeData {
+  eventId: string;
+  volume: number;
+  volume24hr: number;
+  markets: EventVolumeMarket[];
+}
+
+/**
+ * 根据 eventId 查询事件总交易量(含 24h 增量)及各市场分解
+ * 后端:GET /api/events/{eventId}/volume
+ * 响应:{ code, success, msg, data: { eventId, volume, volume24hr, markets:[{marketId,volume,volume24hr}] } }
+ */
+export async function getEventVolume(
+  eventId: string | number
+): Promise<Response<EventVolumeData>> {
+  return request(`${AUTH_BASE_URL}/events/${eventId}/volume`, {}, {});
+}
+
 export async function getComments({
   marketId,
   orderBy = "time",

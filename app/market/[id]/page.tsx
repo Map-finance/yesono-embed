@@ -36,6 +36,7 @@ import { trackEvent } from "@/lib/sentryClient";
 import { getOutcomesByMarket, getBinaryOutcomeLabels } from "@/lib/utils/outcomes";
 import { useSettlementResults } from "@/lib/hooks/useSettlementResults";
 import { getSettlementDisplay } from "@/lib/utils/settlementResult";
+import { useEventVolume } from "@/lib/hooks/useEventVolume";
 import TradingPanel from "@/components/tob/TradingPanel";
 
 const MarketChart = dynamic(() => import("@/components/detail/MarketChart"), {
@@ -108,6 +109,10 @@ export default function MarketDetailPage() {
   const [activeChartState, setActiveChartState] = useState<
     "probability" | "price"
   >("price");
+
+  // 实时交易量(按 eventId 拉,SWR 轮询),用于头部"💰 xxx Volume"展示;
+  // 未就绪时回退到 event.volume 静态值,见下面 displayVolume。
+  const { data: eventVolumeData } = useEventVolume(eventData?.id);
 
   // 切换市场时重置用户选择，确保下一个市场默认仍然优先尝试展示 Price Chart
   // 同时重置 isPriceChartSupported，允许新市场重新向 WS 发起探测
@@ -495,6 +500,13 @@ export default function MarketDetailPage() {
     );
   }
 
+  // 头部"💰 xxx Volume"展示:优先使用 SWR 轮询拉到的实时交易量;
+  // 未就绪 / 失败时回退到 market.volume(由 event.volume 派生的静态值)。
+  const displayVolume =
+    eventVolumeData?.volume != null
+      ? `$${formatNumber(eventVolumeData.volume)}`
+      : market.volume;
+
   return (
     <div className="max-w-[1400px] mx-auto px-3 py-4 lg:px-4 lg:py-6">
       {/* 返回按钮 */}
@@ -523,7 +535,7 @@ export default function MarketDetailPage() {
               </h1>
               <div className="flex items-center gap-3 lg:gap-4 text-xs lg:text-sm text-(--text-secondary) flex-wrap">
                 <span className="flex items-center gap-1">
-                  💰 {market.volume} {t.common.volume}
+                  💰 {displayVolume} {t.common.volume}
                 </span>
                 {market.endDate && (
                   <span className="flex items-center gap-1">
@@ -707,6 +719,7 @@ export default function MarketDetailPage() {
             market={market}
             onMobileTrade={handleMobileTrade}
             eventMarkets={eventData?.markets}
+            eventSlug={eventData?.slug}
             eventEnded={isMarketEnded}
             onMarketSelect={setSelectedMarketInfo}
           />

@@ -22,6 +22,7 @@ import {
   fillEvenSplitWhenAllZero,
 } from "@/utils/format";
 import { useSettlementResults } from "@/lib/hooks/useSettlementResults";
+import { useEventVolume } from "@/lib/hooks/useEventVolume";
 import OutcomeRow from "./OutcomeRow";
 import type { DisplayOption } from "./OutcomeList.helpers";
 
@@ -30,6 +31,8 @@ interface OutcomeListProps {
   onMobileTrade?: (outcomeIndex: number, side: "yes" | "no") => void;
   /** Event markets from API - each market becomes an outcome row */
   eventMarkets?: PolymarketMarketResp[];
+  /** 事件 slug,用于订单簿头部"会话级交易量"展示(对齐 Polymarket) */
+  eventSlug?: string;
   /** 事件级"已截止"（客户端到达 endDate）；为真时各行禁止下单、显示"等待结算" */
   eventEnded?: boolean;
   /** Callback when market selection changes, passes market info */
@@ -49,6 +52,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
   market,
   onMobileTrade,
   eventMarkets,
+  eventSlug,
   eventEnded,
   onMarketSelect,
 }) => {
@@ -58,6 +62,20 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
   const setMarket = useTradingStore((s) => s.setMarket);
   // 记录已初始化过默认选中的 marketId，避免重复设置覆盖用户点击
   const defaultSelectedMarketIdRef = useRef<string | null>(null);
+
+  // 子市场实时交易量:按 eventId 拉一次(SWR 轮询,详情页 page 已同 key 调用,
+  // 两边共享同一份请求/数据,dedupe 10s)。按 marketId 构 Map,渲染时按 m.id override。
+  const eventIdForVolume = eventMarkets?.[0]?.eventId;
+  const { data: eventVolumeData } = useEventVolume(eventIdForVolume);
+  const volumeByMarketId = useMemo(() => {
+    const m = new Map<string, number>();
+    eventVolumeData?.markets?.forEach((mv) => {
+      if (mv?.marketId != null && typeof mv.volume === "number") {
+        m.set(String(mv.marketId), mv.volume);
+      }
+    });
+    return m;
+  }, [eventVolumeData]);
   // 如果有 eventMarkets，将其转换为 options 格式显示
   const displayOptions = useMemo(() => {
     if (eventMarkets && eventMarkets.length > 0) {
@@ -161,7 +179,8 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
           resolvedOutcome,
           icon: m.icon || m.image,
           eventId: m.eventId,
-          volume: m.volume || 0,
+          // 优先用 SWR 拉到的实时分市场交易量,缺失时回退 m.volume
+          volume: volumeByMarketId.get(String(m.id)) ?? m.volume ?? 0,
           marketData: m,
         };
       });
@@ -182,7 +201,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
       volume: 0,
       marketData: null,
     }));
-  }, [eventMarkets, market.options, market.icon]);
+  }, [eventMarkets, market.options, market.icon, volumeByMarketId]);
 
   const router = useRouter();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -336,6 +355,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
             marketId={market.id}
             settlementValue={settlementResults[String(option.marketId)]}
             eventEnded={eventEnded}
+            eventSlug={eventSlug}
             onToggleExpand={(idx, e) => handleToggleExpand(idx, e, option)}
             onSelectOutcomeId={setSelectOutcomeId}
             onSelectOutcome={handleSelectOutcome}
@@ -379,6 +399,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
                 marketId={market.id}
                 settlementValue={settlementResults[String(option.marketId)]}
                 eventEnded={eventEnded}
+                eventSlug={eventSlug}
                 onToggleExpand={(idx, e) => handleToggleExpand(idx, e, option)}
                 onSelectOutcomeId={setSelectOutcomeId}
                 onSelectOutcome={handleSelectOutcome}

@@ -36,6 +36,8 @@ interface OutcomeRowProps {
   settlementValue?: number | null;
   /** 事件级"已截止"（客户端到达 endDate）；与逐市场 isEnded 取或，作为禁止下单的即时信号 */
   eventEnded?: boolean;
+  /** 事件 slug,透传给 SpotOrderbook 显示会话级交易量(对齐 Polymarket) */
+  eventSlug?: string;
   onToggleExpand: (index: number, e: React.MouseEvent) => void;
   onSelectOutcomeId: (id: string) => void;
   onSelectOutcome: (option: DisplayOption, tokenId: string) => void;
@@ -51,6 +53,7 @@ const OutcomeRow = memo(
     marketId,
     settlementValue,
     eventEnded,
+    eventSlug,
     onToggleExpand,
     onSelectOutcomeId,
     onSelectOutcome,
@@ -381,6 +384,7 @@ const OutcomeRow = memo(
                 onSideChange={(side) =>
                   onSelectOutcomeId(side === "no" ? noTokenId : yesTokenId)
                 }
+                eventSlug={eventSlug}
               />
             )}
 

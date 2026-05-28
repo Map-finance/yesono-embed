@@ -143,7 +143,8 @@ export class OrderBookWebSocket {
   private subscribedMarketId: string | null = null;
   private subscribedEventSlug: string | null = null;
   private isConnecting = false;
-  private subscriptionRefs: Map<string, number> = new Map(); // 订阅引用计数
+  private subscriptionRefs: Map<string, number> = new Map(); // 订阅引用计数(orderBook)
+  private tradeSubscriptionRefs: Map<string, number> = new Map(); // 订阅引用计数(trade_message)
   private isSubscribing = false; // 订阅锁
   private subscriptionQueue: Array<() => void> = []; // 订阅队列
   // 缓存最近一次的 orderbook 快照，key = asset_id
@@ -362,8 +363,17 @@ export class OrderBookWebSocket {
     }
   }
 
-  // 订阅交易消息（使用 event_slug）
+  // 订阅交易消息(使用 event_slug)。引用计数:同一 eventSlug 第一次订阅才真正发请求,
+  // 后续重复订阅只递增计数。这样多个消费者(useActivity + useSessionTradeVolume 等)
+  // 共存时,只要还有人在用,服务端订阅就保持。
   async subscribeTradeMessage(eventSlug: string): Promise<void> {
+    const currentRefs = this.tradeSubscriptionRefs.get(eventSlug) || 0;
+    this.tradeSubscriptionRefs.set(eventSlug, currentRefs + 1);
+    if (currentRefs > 0) {
+      // 已有人订阅过,只递增 refCount,不重复发请求
+      return;
+    }
+
     await this.connect();
 
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -420,14 +430,23 @@ export class OrderBookWebSocket {
     }
   }
 
-  // 取消订阅交易消息
+  // 取消订阅交易消息。引用计数:仅当最后一个消费者退订时,才真正发 unsubscribe 给服务端。
   async unsubscribeTradeMessage(eventSlug?: string): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
     const slugToUnsub = eventSlug || this.subscribedEventSlug;
     if (!slugToUnsub) return;
+
+    const currentRefs = this.tradeSubscriptionRefs.get(slugToUnsub) || 0;
+    if (currentRefs > 1) {
+      this.tradeSubscriptionRefs.set(slugToUnsub, currentRefs - 1);
+      return;
+    }
+    this.tradeSubscriptionRefs.delete(slugToUnsub);
+
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      // WS 已不可用,本地状态已清,直接返回
+      if (this.subscribedEventSlug === slugToUnsub) this.subscribedEventSlug = null;
+      return;
+    }
 
     const message = {
       type: 'trade_message',
@@ -436,7 +455,7 @@ export class OrderBookWebSocket {
     };
 
     this.ws.send(JSON.stringify(message));
-    this.subscribedEventSlug = null;
+    if (this.subscribedEventSlug === slugToUnsub) this.subscribedEventSlug = null;
   }
 
   // 心跳 - 服务器不支持 ping type，暂时禁用

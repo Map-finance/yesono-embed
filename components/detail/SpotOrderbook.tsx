@@ -15,6 +15,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { RefreshCw, ArrowUpDown, Info } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { useSessionTradeVolume } from '@/lib/hooks/useSessionTradeVolume';
 import {
   OrderBookWebSocket,
   OrderBookStore,
@@ -69,6 +70,16 @@ interface SpotOrderbookProps {
   marketOutcomes?: MarketOutcomeData[];
   selectedSide?: 'yes' | 'no';
   onSideChange?: (side: 'yes' | 'no') => void;
+  /** Event slug, for session-scoped trade-volume display (对齐 Polymarket) */
+  eventSlug?: string;
+}
+
+/** 格式化金额为 K/M 缩写,$8000 → "$8.0K"; $0 → "$0" */
+function formatKMB(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "$0";
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
 }
 
 // 使用种子生成伪随机数
@@ -142,10 +153,14 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
   marketOutcomes,
   selectedSide = 'yes',
   onSideChange,
+  eventSlug,
 }) => {
   const { t } = useTranslation();
   const [displayMode, setDisplayMode] = useState<DisplayMode>('both');
   const [precision, setPrecision] = useState(4);
+  // 会话级累计交易量(对齐 Polymarket):页面打开后通过 WS 看到的所有成交累加,
+  // 刷新归零。仅在 eventSlug 提供时启用。
+  const sessionVolume = useSessionTradeVolume(eventSlug);
   // 内部 Trade Yes / Trade No 切换状态，和 PC 端 selectedSide 逻辑一致
   const [activeSide, setActiveSide] = useState<'yes' | 'no'>(selectedSide);
 
@@ -494,6 +509,15 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
 
   return (
     <div className="rounded-lg">
+      {/* 会话级累计交易量(对齐 Polymarket;刷新归零) */}
+      {eventSlug && (
+        <div className="flex items-center justify-end px-3 pt-2 pb-1 text-xs text-(--text-secondary)">
+          <span className="font-medium tabular-nums">
+            {formatKMB(sessionVolume)}
+          </span>
+          <span className="ml-1">{t.common.volume}</span>
+        </div>
+      )}
       {/* Trade Yes / Trade No 切换 + 工具栏 */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-[#1a1a1a]">
         <div className="flex items-center gap-4">
