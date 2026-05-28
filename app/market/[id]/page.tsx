@@ -37,11 +37,19 @@ import { getOutcomesByMarket, getBinaryOutcomeLabels } from "@/lib/utils/outcome
 import { useSettlementResults } from "@/lib/hooks/useSettlementResults";
 import { getSettlementDisplay } from "@/lib/utils/settlementResult";
 import { useEventVolume } from "@/lib/hooks/useEventVolume";
+import {
+  getShortTermFrequencySlug,
+  isShortTermFrequencySlug,
+} from "@/lib/utils/eventFrequency";
 import TradingPanel from "@/components/tob/TradingPanel";
 
 const MarketChart = dynamic(() => import("@/components/detail/MarketChart"), {
   ssr: false,
 });
+const ShortTermOutcomeGraph = dynamic(
+  () => import("@/components/detail/ShortTermOutcomeGraph"),
+  { ssr: false }
+);
 const ChartToggleSwitch = dynamic(
   () => import("@/components/detail/ChartToggleSwitch"),
   { ssr: false }
@@ -162,6 +170,40 @@ export default function MarketDetailPage() {
     return eventData?.tags?.find((tag) => needTimeTagTags.includes(tag.slug))
       ?.slug;
   }, [eventData?.tags, needTimeTagTags]);
+  // 短期市场识别:优先用 frequencySlug(已命中 needTimeTagTags 的 slug);
+  // 若 frequencySlug 不是 \d+[mh] 或为空,兜底独立扫 tags(防后端 needTimeTagTags
+  // 列表未收录新增的 "3m" 等导致漏判)
+  const shortTermFrequencySlug = useMemo(() => {
+    if (isShortTermFrequencySlug(frequencySlug)) return frequencySlug;
+    return getShortTermFrequencySlug(eventData?.tags);
+  }, [frequencySlug, eventData?.tags]);
+  const isShortTermEvent = !!shortTermFrequencySlug;
+  // 短期市场图取 eventMarkets[0] 的 YES outcome。同时收两类匹配候选:
+  // - assetCandidates: tokenId / tradingPair(WS 推送的 trade.assetId 可能是其一)
+  // - outcomeNames: outcome / outcomeKey / name(后端 /trades1/all 当前 assetId 多为 null,
+  //   需要靠 trade.outcome 字符串匹配,如 "up" / "yes")
+  const shortTermYesAssetCandidates = useMemo(() => {
+    const first = eventData?.markets?.[0];
+    const mos = (first as any)?.marketOutcomes as any[] | undefined;
+    if (!Array.isArray(mos) || mos.length === 0) return [] as string[];
+    const yes = mos.find((o) => Number(o?.originalIndex) === 0);
+    return [yes?.tokenId, yes?.tradingPair].filter(Boolean).map((v) => String(v));
+  }, [eventData?.markets]);
+  const shortTermYesOutcomeNames = useMemo(() => {
+    const first = eventData?.markets?.[0];
+    const mos = (first as any)?.marketOutcomes as any[] | undefined;
+    if (!Array.isArray(mos) || mos.length === 0) return [] as string[];
+    const yes = mos.find((o) => Number(o?.originalIndex) === 0);
+    return [yes?.outcome, yes?.outcomeKey, yes?.name]
+      .filter(Boolean)
+      .map((v) => String(v));
+  }, [eventData?.markets]);
+  // 标题/ tooltip 用 YES outcome 短名(如 "Up"),不是整段市场问题
+  const shortTermLabel = useMemo(() => {
+    const raw = shortTermYesOutcomeNames[0];
+    if (!raw) return undefined;
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  }, [shortTermYesOutcomeNames]);
   const showMobileLiveCountdown = Boolean(eventData?.endDate) && !isMarketEnded;
 
   useEffect(() => {
@@ -665,14 +707,29 @@ export default function MarketDetailPage() {
           )} */}
 
           {/* 图表区域：两种图表均按需条件渲染，避免 display:none 导致 Recharts ResizeObserver 循环 */}
-          {activeChart === "probability" && (
-            <MarketChart
-              market={market}
-              eventMarkets={eventData?.markets}
-              tags={eventData?.tags}
-              eventEndDate={eventData?.endDate}
-            />
-          )}
+          {activeChart === "probability" &&
+            (isShortTermEvent ? (
+              <ShortTermOutcomeGraph
+                eventId={eventData?.id}
+                eventSlug={eventData?.slug}
+                yesAssetCandidates={shortTermYesAssetCandidates}
+                yesOutcomeNames={shortTermYesOutcomeNames}
+                frequencySlug={shortTermFrequencySlug}
+                endDateMs={eventData?.endDate}
+                label={shortTermLabel}
+                isVisible={true}
+                isLive={!isMarketEnded}
+              />
+            ) : (
+              <MarketChart
+                market={market}
+                eventMarkets={eventData?.markets}
+                tags={eventData?.tags}
+                eventEndDate={eventData?.endDate}
+                liveMarketSlug={liveMarketSlug}
+                isLive={!isMarketEnded}
+              />
+            ))}
           {activeChart === "price" && (
             <div className="mb-2">
               <LivePriceChart
@@ -721,6 +778,7 @@ export default function MarketDetailPage() {
             eventMarkets={eventData?.markets}
             eventSlug={eventData?.slug}
             eventEnded={isMarketEnded}
+            frequencySlug={shortTermFrequencySlug ?? frequencySlug}
             onMarketSelect={setSelectedMarketInfo}
           />
 

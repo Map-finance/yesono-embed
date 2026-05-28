@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import NumberFlow from "@number-flow/react";
 import { getAssetColor } from "@/utils/format";
 import { useTranslation } from "@/lib/i18n";
+import GoToLiveMarketButton from "./GoToLiveMarketButton";
 
 interface LivePriceHeaderProps {
   isLive: boolean; // Computed by parent, true if we haven't reached endDate
@@ -36,11 +35,6 @@ const DEFAULT_LIVE_PRICE_HEADER_TEXT = {
   },
 };
 
-function getMarketRouteSuffix(pathname: string) {
-  const match = pathname.match(/^\/market\/[^/]+(\/.*)?$/);
-  return match?.[1] ?? "";
-}
-
 export default function LivePriceHeader({
   isLive,
   currentPrice,
@@ -51,7 +45,6 @@ export default function LivePriceHeader({
   symbol,
   liveMarketSlug,
 }: LivePriceHeaderProps) {
-  const pathname = usePathname();
   const { t, locale } = useTranslation();
   // 价差用「头部实际展示的两个价格（都按 2 位小数四舍五入）」相减，保证
   // 价差 === 目标价 − 最终价（显示值）。openPrice/closePrice 是后端全精度数，
@@ -69,7 +62,6 @@ export default function LivePriceHeader({
   const changeSymbol = isPositive ? "▲" : "▼";
   const livePriceHeaderText =
     (t.market as any).livePriceHeader ?? DEFAULT_LIVE_PRICE_HEADER_TEXT;
-  const routeSuffix = getMarketRouteSuffix(pathname);
   const countdownText =
     livePriceHeaderText.countdown ?? DEFAULT_LIVE_PRICE_HEADER_TEXT.countdown;
   const formatChange = `$${Math.abs(displayChange).toLocaleString(locale, {
@@ -262,52 +254,8 @@ export default function LivePriceHeader({
               </span>
             </div>
           </div>
-        ) : liveMarketSlug ? (
-          <Link
-            href={`/market/${liveMarketSlug}${routeSuffix}`}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1f2937]/50 hover:bg-[#374151]/50 rounded-full transition-colors border border-[rgba(255,255,255,0.1)]"
-          >
-            <div className="relative flex items-center justify-center w-3 h-3">
-              <div className="absolute inset-0 rounded-full bg-[#FF453A]/40"></div>
-              <div className="absolute inset-0 rounded-full bg-[#FF453A] animate-ping opacity-75"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-[#FF453A] relative z-10"></div>
-            </div>
-            <span className="text-sm font-semibold text-white sm:hidden">
-              {livePriceHeaderText.liveButton}
-            </span>
-            <span className="hidden sm:inline text-sm font-semibold text-white">
-              {livePriceHeaderText.goToLiveMarket}
-            </span>
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-gray-400"
-            >
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </Link>
         ) : (
-          <button
-            disabled
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1f2937]/30 rounded-full border border-[rgba(255,255,255,0.1)] opacity-50 cursor-not-allowed"
-          >
-            <div className="relative flex items-center justify-center w-3 h-3">
-              <div className="absolute inset-0 rounded-full bg-[#FF453A]/40"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-[#FF453A] relative z-10"></div>
-            </div>
-            <span className="text-sm font-semibold text-white sm:hidden">
-              {livePriceHeaderText.liveButton}
-            </span>
-            <span className="hidden sm:inline text-sm font-semibold text-white">
-              {livePriceHeaderText.goToLiveMarket}
-            </span>
-          </button>
+          <GoToLiveMarketButton liveMarketSlug={liveMarketSlug} />
         )}
       </div>
     </div>

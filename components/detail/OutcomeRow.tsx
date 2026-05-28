@@ -23,6 +23,8 @@ import {
 import SpotOrderbook from "./SpotOrderbook";
 import BuyButton from "./BuyButton";
 import OutcomeGraph from "./OutcomeGraph";
+import ShortTermOutcomeGraph from "./ShortTermOutcomeGraph";
+import { isShortTermFrequencySlug } from "@/lib/utils/eventFrequency";
 import { formatButtonPrice, type DisplayOption } from "./OutcomeList.helpers";
 import { getSettlementDisplay } from "@/lib/utils/settlementResult";
 
@@ -38,6 +40,8 @@ interface OutcomeRowProps {
   eventEnded?: boolean;
   /** 事件 slug,透传给 SpotOrderbook 显示会话级交易量(对齐 Polymarket) */
   eventSlug?: string;
+  /** 频率 slug(短期 \d+m/\d+h 时切到 trade-by-trade 概率图) */
+  frequencySlug?: string;
   onToggleExpand: (index: number, e: React.MouseEvent) => void;
   onSelectOutcomeId: (id: string) => void;
   onSelectOutcome: (option: DisplayOption, tokenId: string) => void;
@@ -54,6 +58,7 @@ const OutcomeRow = memo(
     settlementValue,
     eventEnded,
     eventSlug,
+    frequencySlug,
     onToggleExpand,
     onSelectOutcomeId,
     onSelectOutcome,
@@ -110,6 +115,28 @@ const OutcomeRow = memo(
         String(no?.tradingPair || no?.tokenId || ""),
       ];
     }, [sortedOutcomes]);
+
+    // 短期市场概率图过滤候选(YES 侧 = sortedOutcomes[0],即 originalIndex 0):
+    // - assetCandidates 走 trade.assetId(WS 推送时可能用 tokenId 或 tradingPair)
+    // - outcomeNames 走 trade.outcome 字符串(后端 /trades1/all 当前 assetId 多为 null,实际靠这个匹配)
+    const yesAssetCandidates = useMemo(() => {
+      const yes = sortedOutcomes[0] as any;
+      if (!yes) return [] as string[];
+      return [yes?.tokenId, yes?.tradingPair].filter(Boolean).map((v) => String(v));
+    }, [sortedOutcomes]);
+    const yesOutcomeNames = useMemo(() => {
+      const yes = sortedOutcomes[0] as any;
+      if (!yes) return [] as string[];
+      return [yes?.outcome, yes?.outcomeKey, yes?.name]
+        .filter(Boolean)
+        .map((v) => String(v));
+    }, [sortedOutcomes]);
+    // 短期概率图标题用 YES outcome 短名(如 "Up"),不是整段市场问题(option.label)
+    const shortTermGraphLabel = useMemo(() => {
+      const raw = yesOutcomeNames[0];
+      if (!raw) return option.label;
+      return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    }, [yesOutcomeNames, option.label]);
 
     const [yesLabel, noLabel] = useMemo(() => {
       if (sortedOutcomes.length >= 2) {
@@ -388,15 +415,28 @@ const OutcomeRow = memo(
               />
             )}
 
-            {activeTab === "graph" && (
-              <OutcomeGraph
-                percentage={option.percentage}
-                change={option.change}
-                label={option.label}
-                marketId={String(option.marketId)}
-                isVisible={isExpanded && activeTab === "graph"}
-              />
-            )}
+            {activeTab === "graph" &&
+              (isShortTermFrequencySlug(frequencySlug) ? (
+                <ShortTermOutcomeGraph
+                  eventId={option.eventId}
+                  eventSlug={eventSlug}
+                  yesAssetCandidates={yesAssetCandidates}
+                  yesOutcomeNames={yesOutcomeNames}
+                  frequencySlug={frequencySlug}
+                  endDateMs={option.marketData?.endDate}
+                  label={shortTermGraphLabel}
+                  isVisible={isExpanded && activeTab === "graph"}
+                  isLive={!(option.isResolved || tradingEnded || eventEnded)}
+                />
+              ) : (
+                <OutcomeGraph
+                  percentage={option.percentage}
+                  change={option.change}
+                  label={option.label}
+                  marketId={String(option.marketId)}
+                  isVisible={isExpanded && activeTab === "graph"}
+                />
+              ))}
 
             {activeTab === "resolution" && (
               <div className="py-4 text-sm text-(--text-secondary)">
@@ -417,6 +457,8 @@ const OutcomeRow = memo(
     if (prev.eventEnded !== next.eventEnded) return false;
     if (prev.isExpanded !== next.isExpanded) return false;
     if (prev.marketId !== next.marketId) return false;
+    // 频率变化(切事件 / 加载完成)要重渲染,以便短期/普通概率图正确切换
+    if (prev.frequencySlug !== next.frequencySlug) return false;
 
     // If only selectOutcomeId changed
     if (prev.selectOutcomeId !== next.selectOutcomeId) {

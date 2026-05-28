@@ -33,6 +33,8 @@ interface OutcomeListProps {
   eventMarkets?: PolymarketMarketResp[];
   /** 事件 slug,用于订单簿头部"会话级交易量"展示(对齐 Polymarket) */
   eventSlug?: string;
+  /** 事件频率 slug(5m/15m/1h/4h),用于短期市场切换 trade-by-trade 概率图 */
+  frequencySlug?: string;
   /** 事件级"已截止"（客户端到达 endDate）；为真时各行禁止下单、显示"等待结算" */
   eventEnded?: boolean;
   /** Callback when market selection changes, passes market info */
@@ -53,6 +55,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
   onMobileTrade,
   eventMarkets,
   eventSlug,
+  frequencySlug,
   eventEnded,
   onMarketSelect,
 }) => {
@@ -356,6 +359,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
             settlementValue={settlementResults[String(option.marketId)]}
             eventEnded={eventEnded}
             eventSlug={eventSlug}
+            frequencySlug={frequencySlug}
             onToggleExpand={(idx, e) => handleToggleExpand(idx, e, option)}
             onSelectOutcomeId={setSelectOutcomeId}
             onSelectOutcome={handleSelectOutcome}
@@ -400,6 +404,7 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
                 settlementValue={settlementResults[String(option.marketId)]}
                 eventEnded={eventEnded}
                 eventSlug={eventSlug}
+                frequencySlug={frequencySlug}
                 onToggleExpand={(idx, e) => handleToggleExpand(idx, e, option)}
                 onSelectOutcomeId={setSelectOutcomeId}
                 onSelectOutcome={handleSelectOutcome}

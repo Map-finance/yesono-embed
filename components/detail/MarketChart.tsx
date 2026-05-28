@@ -37,12 +37,19 @@ interface MarketChartProps {
   eventEndDate?: number;
   /** 区分是否是体育赛事视图（M2），影响 Embed 模块样式 */
   isSports?: boolean;
+  /** 当前 event 仍处于 LIVE 的市场 slug;用户浏览历史/结算市场时,在概率图头部
+   *  显示"前往实时盘口"按钮,跳回该 slug。和 LivePriceChart 的同名按钮共用同一组件。 */
+  liveMarketSlug?: string;
+  /** 当前市场是否还在进行中(未结算)。结算后才显示"前往实时盘口"按钮。 */
+  isLive?: boolean;
 }
 
 const MarketChart: React.FC<MarketChartProps> = ({
   market,
   eventMarkets,
   isSports,
+  liveMarketSlug,
+  isLive,
 }) => {
   const { t } = useTranslation();
   const [selectedRange, setSelectedRange] = useState<UITimeRange>("1D");
@@ -149,6 +156,8 @@ const MarketChart: React.FC<MarketChartProps> = ({
         selectedRange={selectedRange}
         onRangeChange={setSelectedRange}
         settings={settings}
+        liveMarketSlug={liveMarketSlug}
+        isLive={isLive}
       />
 
       {/* 底部工具栏 */}

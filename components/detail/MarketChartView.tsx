@@ -34,6 +34,7 @@ import {
   type UITimeRange,
 } from "./MarketChart.helpers";
 import type { MarketChartSettings } from "./MarketChartSettingsModal";
+import GoToLiveMarketButton from "./GoToLiveMarketButton";
 
 interface DisplayOption {
   label: string;
@@ -52,6 +53,10 @@ interface MarketChartViewProps {
   selectedRange: UITimeRange;
   onRangeChange: (range: UITimeRange) => void;
   settings: MarketChartSettings;
+  /** 当前 event 仍处于 LIVE 的市场 slug;已结算时图例右侧显示"前往实时盘口"按钮 */
+  liveMarketSlug?: string;
+  /** 当前市场是否还在进行中(未结算)。结算后(false)才显示"前往实时盘口"按钮 */
+  isLive?: boolean;
 }
 
 const MarketChartView: React.FC<MarketChartViewProps> = ({
@@ -64,6 +69,8 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
   selectedRange,
   onRangeChange,
   settings,
+  liveMarketSlug,
+  isLive,
 }) => {
   const { t } = useTranslation();
 
@@ -485,24 +492,29 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
 
   return (
     <>
-      {/* 图例 */}
-      <div className="flex flex-wrap items-center gap-4 mb-4">
-        {displayOptions.map(
-          (option, index) =>
-            selectedOptions.includes(index) && (
-              <div key={index} className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: colors[index % colors.length] }}
-                />
-                <span className="text-sm text-(--text-primary)">
-                  {option.label}
-                </span>
-                <span className="text-(--text-tertiary) text-sm">
-                  {currentPercentages[index] || "0"}%
-                </span>
-              </div>
-            )
+      {/* 图例 + 跳转到实时盘口(仅在已结算/非 LIVE 时显示,与 LivePriceChart 头部口径一致) */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div className="flex flex-wrap items-center gap-4">
+          {displayOptions.map(
+            (option, index) =>
+              selectedOptions.includes(index) && (
+                <div key={index} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: colors[index % colors.length] }}
+                  />
+                  <span className="text-sm text-(--text-primary)">
+                    {option.label}
+                  </span>
+                  <span className="text-(--text-tertiary) text-sm">
+                    {currentPercentages[index] || "0"}%
+                  </span>
+                </div>
+              )
+          )}
+        </div>
+        {isLive === false && (
+          <GoToLiveMarketButton liveMarketSlug={liveMarketSlug} />
         )}
       </div>
 
