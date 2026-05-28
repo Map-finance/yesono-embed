@@ -5,6 +5,7 @@
 
 // ============== 常量定义 ==============
 import { getAuthApiUrl } from '@/lib/config/authApiUrl';
+import { LRUMap } from '@/lib/utils/lruMap';
 
 // §6.1 #6: WS URL 顶层校验，缺值直接 throw（启动期暴露），禁用 process.env.XXX! 非空断言
 const RAW_WS_URL = process.env.NEXT_PUBLIC_ORDERBOOK_WS_URL;
@@ -148,7 +149,7 @@ export class OrderBookWebSocket {
   private isSubscribing = false; // 订阅锁
   private subscriptionQueue: Array<() => void> = []; // 订阅队列
   // 缓存最近一次的 orderbook 快照，key = asset_id
-  private lastSnapshots: Map<string, OrderBookSnapshot> = new Map();
+  private lastSnapshots: LRUMap<string, OrderBookSnapshot> = new LRUMap(100);
   // 服务器报"订阅被清理"(channel_inactive/上游断开)时的自动重订阅：防抖 + 次数上限，
   // 收到正常快照后清零，避免上游持续不可用时无限重订阅风暴
   private resubscribeTimer: NodeJS.Timeout | null = null;

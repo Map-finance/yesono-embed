@@ -11,7 +11,9 @@ const nextConfig = {
   reactStrictMode: true,
   compiler: {
     removeConsole:
-      process.env.NODE_ENV === "production" ? { exclude: ["error"] } : false,
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
   },
   typescript: {
     // TODO: 暂时关掉以推进依赖升级；存量 ts 错误见 git diff 后另开 PR 修
