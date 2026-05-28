@@ -24,6 +24,8 @@ import {
   ProcessedOrderBook,
   formatDisplayPrice,
   formatSize,
+  acquireOrderbookWS,
+  releaseOrderbookWS,
 } from '@/lib/services/orderBookService';
 import {
   getOutcomeLabel,
@@ -207,14 +209,9 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
   const [noOrderBook, setNoOrderBook] = useState<ProcessedOrderBook | null>(null);
   const yesStoreRef = useRef<OrderBookStore>(new OrderBookStore());
   const noStoreRef = useRef<OrderBookStore>(new OrderBookStore());
-  // 每个 SpotOrderbook 实例独立的 WS 连接
+  // 当前市场的订单簿 WS 实例:经 registry 按 marketId 去重共享(与 tradingStore 同市场共用
+  // 一条连接,refCount 自管),满足后端"切市场断开新开"约束。wsRef 只为刷新按钮拿当前实例。
   const wsRef = useRef<OrderBookWebSocket | null>(null);
-  const getWS = useCallback(() => {
-    if (!wsRef.current) {
-      wsRef.current = new OrderBookWebSocket();
-    }
-    return wsRef.current;
-  }, []);
 
   // Resolve yes/no asset id candidates (support multiple formats)
   // 用 ref 存储，避免数组引用变化导致 handler 函数重建，进而触发 WS 重订阅
@@ -327,8 +324,9 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     setIsLoading(true);
     setError(null);
 
-    // 获取/创建独立 WS 实例
-    const ws = getWS();
+    // 经 registry 申请该 marketId 的 WS 实例(同市场与 tradingStore 共享同一条)
+    const ws = acquireOrderbookWS(marketId);
+    wsRef.current = ws;
 
     // 添加消息处理器
     ws.addHandler('orderbook_snapshot', handleSnapshot);
@@ -362,11 +360,12 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
         clearTimeout(priceChangeThrottleRef.current);
         priceChangeThrottleRef.current = null;
       }
-      // 组件卸载时断开独立 WS 连接
-      ws.disconnect();
+      // 经 registry 释放:refCount 到 0 时实例自动 disconnect;
+      // 若同市场 tradingStore 仍持有,则连接保留(不会被这里断掉)
+      releaseOrderbookWS(marketId);
       wsRef.current = null;
     };
-  }, [marketId, handleSnapshot, handlePriceChange, getWS]); // handleSnapshot/handlePriceChange 现在永久稳定
+  }, [marketId, handleSnapshot, handlePriceChange]); // handleSnapshot/handlePriceChange 现在永久稳定
 
   // 根据 activeSide 选择显示 yes 或 no 的数据
   const activeOrderBook = activeSide === 'yes' ? yesOrderBook : noOrderBook;
@@ -598,8 +597,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
               setError(null);
 
               // 断开 WS 并重新连接+订阅，服务器会推送完整快照
-              const ws = getWS();
-              ws.forceReconnect();
+              wsRef.current?.forceReconnect();
 
               // 保底：5s 后取消加载状态（正常情况 handleSnapshot 会更早设置）
               setTimeout(() => setIsLoading(false), 5000);

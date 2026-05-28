@@ -607,10 +607,54 @@ export class OrderBookWebSocket {
   }
 }
 
-// 单例实例：订单簿专用
+// 单例实例：订单簿专用（保留兼容，无活跃消费者；订单簿现走下方 registry）
 export const orderBookWS = new OrderBookWebSocket();
-// 单例实例：Activity 交易消息专用（独立连接，不和订单簿共用）
+// 单例实例：Activity 交易消息专用（独立连接，不和订单簿共用）。
+// trade_message 按 eventSlug 订阅、跨市场不需要断,可共享一条持久 WS
+// （useActivity / useSessionTradeVolume 复用,refCount 由类内部管理）。
 export const activityWS = new OrderBookWebSocket();
+
+// =============================================================================
+// 订单簿 WS:按 marketId 独立实例,满足"切市场断开新开"的后端约束
+//
+// orderbookRegistry: Map<marketId, { ws, refCount }>
+//   - 同一个 marketId 第一次 acquire → new OrderBookWebSocket(),refCount=1
+//   - 同一个 marketId 第二次 acquire(如 tradingStore + SpotOrderbook 都订)
+//     → refCount++,复用同一实例(避免一个市场开两条 WS)
+//   - release → refCount--,到 0 时 disconnect() 并从注册表删除
+//
+// 这样:
+//   - 同一市场被多个消费者订阅:共享 1 条 WS(去重)
+//   - 切市场:旧市场最后一个消费者 release → disconnect;
+//             新市场首个 acquire → new WebSocket()(满足后端约束)
+// =============================================================================
+interface OrderbookEntry {
+  ws: OrderBookWebSocket;
+  refCount: number;
+}
+const orderbookRegistry: Map<string, OrderbookEntry> = new Map();
+
+export function acquireOrderbookWS(marketId: string): OrderBookWebSocket {
+  let entry = orderbookRegistry.get(marketId);
+  if (entry) {
+    entry.refCount++;
+    return entry.ws;
+  }
+  const ws = new OrderBookWebSocket();
+  entry = { ws, refCount: 1 };
+  orderbookRegistry.set(marketId, entry);
+  return ws;
+}
+
+export function releaseOrderbookWS(marketId: string): void {
+  const entry = orderbookRegistry.get(marketId);
+  if (!entry) return;
+  entry.refCount--;
+  if (entry.refCount <= 0) {
+    entry.ws.disconnect();
+    orderbookRegistry.delete(marketId);
+  }
+}
 
 // ============== 订单簿数据处理 ==============
 

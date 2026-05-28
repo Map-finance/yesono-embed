@@ -1,4 +1,10 @@
-import { WS_URL } from "@/lib/services/orderBookService";
+import {
+    acquireOrderbookWS,
+    releaseOrderbookWS,
+    type OrderBookWebSocket,
+    type OrderBookSnapshot as ServiceSnapshot,
+    type PriceChangeMessage as ServicePriceChange,
+} from "@/lib/services/orderBookService";
 import { PolymarketEventResp, PolymarketMarketResp } from "@/types/home";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
@@ -22,25 +28,8 @@ export interface ProcessedOrderBook {
   bestAsk: number;
 }
 
-interface OrderBookEntry {
-  price: string;
-  size: string;
-}
-
-interface OrderBookSnapshot {
-  asset_id: string;
-  event_type: 'orderbook';
-  bids: OrderBookEntry[];
-  asks: OrderBookEntry[];
-}
-
-interface PriceChange {
-  asset_id: string;
-  price: string;
-  size: string;
-  side: 'BUY' | 'SELL';
-}
-
+// 内部存储格式:price → size 字符串,Map 便于 O(1) 增删改
+// orderbook_snapshot / price_change 都解析进这个结构,再由 processStoreData 计算累计
 interface AssetStore {
   bids: Map<string, string>;
   asks: Map<string, string>;
@@ -53,7 +42,7 @@ export interface TradingStore {
     market: PolymarketMarketResp | null;
     selectOutcomeId: string | null;
     direction: "BUY" | "SELL";
-    
+
     // OrderBook State
     orderBookRaw: Record<string, AssetStore>; // Internal raw storage
     isConnected: boolean;
@@ -68,223 +57,222 @@ interface TradingStoreActions {
     cleanup: () => void; // Manually close connection
 }
 
-// Global WebSocket State (Module Level)
-let ws: WebSocket | null = null;
+// =========================================================================
+// 按市场独立的 OrderBookWebSocket(满足后端"切市场断 WS 新开 WS"约束)
+//
+// tradingStore 通过 acquireOrderbookWS(marketId) 拿到当前市场的 WS 实例:
+//   - 同一 marketId 被多个消费者(tradingStore + SpotOrderbook)acquire → 共享同一实例(refCount 自管)
+//   - 切到新市场:release(老) + acquire(新);老市场最后一个消费者 release 时实例 disconnect
+//
+// handler 必须挂在"具体实例"上而不是单例(因为每个市场是不同实例),
+// 切市场时 removeHandler from 老实例 → 老实例进 release 后被 disconnect。
+//
+// activeMarketId:仅用于 throttleTimer flush 时再校验一次,
+// 防止"切市场后旧批次落到新市场上"。不再按 asset_id 过滤 WS 消息 ——
+// 因为 WS 推送的 asset_id 用 tradingPair(如 `${marketId}-YES-USDT`),
+// 而非 clobTokenIds 中的链上 tokenId,二者不可互查;一过滤就把全部 WS 数据丢了。
+// 每个市场独立 WS 实例,本来也不存在跨市场污染需要过滤。
+// =========================================================================
 let activeMarketId: string | null = null;
-let reconnectTimer: NodeJS.Timeout | null = null;
+let currentOrderbookWS: OrderBookWebSocket | null = null;
 
 // 节流：将高频 WS 消息批量合并，最多 500ms 刷新一次 Zustand store
 // 避免每条 price_change 消息都触发全量组件重渲染
 let throttleTimer: NodeJS.Timeout | null = null;
 let pendingRaw: Record<string, AssetStore> | null = null;
 
-export const useTradingStore = create<TradingStore & TradingStoreActions>((set, get) => ({
-    event: null,  
-    market: null,
-    selectOutcomeId: null,
-    direction: "BUY",
-    orderBookRaw: {},
-    isConnected: false,
+// set/get 在闭包里捕获:Zustand store 创建时塞进来
+type SetFn = (partial: Partial<TradingStore>) => void;
+type GetFn = () => TradingStore & TradingStoreActions;
+let storeSet: SetFn | null = null;
+let storeGet: GetFn | null = null;
 
-    setEvent: (event: PolymarketEventResp | null) => {
-        set({ event });
-    },
-    setMarket: (market: PolymarketMarketResp | null) => {
-        const currentMarketId = get().market?.id;
-        const newMarketId = market?.id;
+export const useTradingStore = create<TradingStore & TradingStoreActions>((set, get) => {
+    // 把 set/get 暂存到模块级,供 OrderBookWebSocket handler 回写 store 用
+    storeSet = set as SetFn;
+    storeGet = get as GetFn;
 
-        // If market changed or is explicitly null
-        if (currentMarketId !== newMarketId) {
-             // 1. Cleanup old connection
-             // 先清除 activeMarketId，再关闭 ws，防止 onclose 在 activeMarketId
-             // 清空前触发，导致为旧市场创建幽灵重连定时器
-             activeMarketId = null;
-             if (reconnectTimer) {
-                 clearTimeout(reconnectTimer);
-                 reconnectTimer = null;
-             }
-             // 切换 market 时丢弃未提交的批次，防止旧数据污染新 market
-             if (throttleTimer) {
-                 clearTimeout(throttleTimer);
-                 throttleTimer = null;
-             }
-             pendingRaw = null;
-             if (ws) {
-                 ws.close();
-                 ws = null;
-             }
+    return ({
+        event: null,
+        market: null,
+        selectOutcomeId: null,
+        direction: "BUY",
+        orderBookRaw: {},
+        isConnected: false,
 
-             // 2. Clear data and Update State
-             set({ 
-                 market, 
-                 // If clearing market, clear outcome. If setting new, default to first clobToken
-                 selectOutcomeId: market ? (JSON.parse(market.clobTokenIds || '[]') as string[])[0] || null : null,
-                 direction: "BUY",
-                 orderBookRaw: {},
-                 isConnected: false
-             });
+        setEvent: (event: PolymarketEventResp | null) => {
+            set({ event });
+        },
+        setMarket: (market: PolymarketMarketResp | null) => {
+            const currentMarketId = get().market?.id;
+            const newMarketId = market?.id;
+            if (currentMarketId === newMarketId) return;
 
-             // 3. Connect new
-             if (newMarketId) {
-                activeMarketId = newMarketId;
-                connectWS(newMarketId, set, get);
-             }
-        }
-    },
-
-
-    setSelectOutcomeId: (outcomeId: string) => {
-        set({ selectOutcomeId: outcomeId });
-    },
-    setDirection: (direction: "BUY" | "SELL") => {
-        set({ direction });
-    },
-
-    getOrderBook: (assetId: string | string[]) => {
-        if (Array.isArray(assetId)) {
-          const key = Object.keys(get().orderBookRaw).find(key => {
-              return assetId.includes(key);
-          });
-          if (!key) return { bids: [], asks: [], midPrice: 0, spread: 0, spreadPercent: 0, bestBid: 0, bestAsk: 0 };
-          const rawStore = get().orderBookRaw[key];
-          return processStoreData(rawStore);
-        } else {
-            const rawStore = get().orderBookRaw[assetId];
-            return processStoreData(rawStore);
-        }
-    },
-
-    cleanup: () => {
-         if (ws) {
-             ws.close();
-             ws = null;
-         }
-         if (reconnectTimer) clearTimeout(reconnectTimer);
-         if (throttleTimer) { clearTimeout(throttleTimer); throttleTimer = null; }
-         pendingRaw = null;
-         activeMarketId = null;
-         set({ isConnected: false, market: null, orderBookRaw: {} });
-    }
-}));
-
-// ============== Helper Functions ==============
-
-function connectWS(marketId: string, set: any, get: any) {
-    if (ws) return; // Already connecting or connected
-    try {
-        ws = new WebSocket(WS_URL);
-        
-        ws.onopen = () => {
-            if (ws?.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    marketId,
-                    type: 'orderBook',
-                    operation: 'subscribe',
-                }));
-                set({ isConnected: true });
+            // 1) 拆掉旧市场:从老 WS 实例摘 handler,unsubscribe,然后 release
+            //    (release 内部:refCount 到 0 时该实例自动 disconnect)
+            if (currentMarketId && currentOrderbookWS) {
+                currentOrderbookWS.removeHandler('orderbook_snapshot', handleSnapshot as any);
+                currentOrderbookWS.removeHandler('price_change', handlePriceChange as any);
+                currentOrderbookWS.unsubscribeOrderBook(currentMarketId).catch(() => {});
+                releaseOrderbookWS(currentMarketId);
+                currentOrderbookWS = null;
             }
-        };
+            // 切换市场时丢弃挂起的批次,防止旧数据混入新市场
+            if (throttleTimer) {
+                clearTimeout(throttleTimer);
+                throttleTimer = null;
+            }
+            pendingRaw = null;
 
-        ws.onmessage = (event) => {
-            // Check if this socket is still the active one
-            if (activeMarketId !== marketId) return;
+            // 2) 切"当前市场"(handler 不再按 asset_id 过滤,详见模块顶部注释)
+            activeMarketId = newMarketId ?? null;
 
-            try {
-                const data = JSON.parse(event.data);
-                // 始终写入 pendingRaw（而非直接读取 store），确保批量合并所有挂起的变更
-                if (!pendingRaw) {
-                    pendingRaw = { ...get().orderBookRaw };
-                }
-                // after init above, pendingRaw is non-null
-                const nextRaw = pendingRaw!;
-                let hasUpdate = false;
-                let hasSnapshot = false;
+            // 3) 清状态(同步)
+            set({
+                market,
+                selectOutcomeId: market ? (JSON.parse(market.clobTokenIds || '[]') as string[])[0] || null : null,
+                direction: "BUY",
+                orderBookRaw: {},
+                isConnected: false,
+            });
 
-                // Handle Snapshot
-                if (Array.isArray(data) && data[0]?.event_type === 'orderbook') {
-                    data.forEach((snap: OrderBookSnapshot) => {
-                        if (!nextRaw[snap.asset_id]) {
-                            nextRaw[snap.asset_id] = { bids: new Map(), asks: new Map() };
-                        }
-                        const store = nextRaw[snap.asset_id];
-                        store.bids.clear();
-                        store.asks.clear();
-                        snap.bids.forEach(x => Number(x.size) > 0 && store.bids.set(x.price, x.size));
-                        snap.asks.forEach(x => Number(x.size) > 0 && store.asks.set(x.price, x.size));
+            // 4) 申请新市场专属 WS 实例 + 挂 handler + 订阅
+            if (newMarketId) {
+                currentOrderbookWS = acquireOrderbookWS(newMarketId);
+                currentOrderbookWS.addHandler('orderbook_snapshot', handleSnapshot as any);
+                currentOrderbookWS.addHandler('price_change', handlePriceChange as any);
+                currentOrderbookWS.subscribeOrderBook(newMarketId)
+                    .then(() => set({ isConnected: currentOrderbookWS?.isConnected() ?? false }))
+                    .catch((err: any) => {
+                        // subscribe 失败(连接未起来等)—— handler 已挂,attemptReconnect 链路
+                        // 救回连接后会自动重订阅;此处仅记录,不阻断 UI
+                        console.warn('[tradingStore] subscribe deferred:', err?.message);
                     });
-                    hasUpdate = true;
-                    hasSnapshot = true;
-                }
-
-                // Handle Update
-                if (data.event_type === 'price_change' && Array.isArray(data.price_changes)) {
-                     data.price_changes.forEach((change: PriceChange) => {
-                        if (!nextRaw[change.asset_id]) {
-                            nextRaw[change.asset_id] = { bids: new Map(), asks: new Map() };
-                        }
-                        const store = nextRaw[change.asset_id];
-                        const map = change.side === 'BUY' ? store.bids : store.asks;
-                        if (parseFloat(change.size) === 0) {
-                            map.delete(change.price);
-                        } else {
-                            map.set(change.price, change.size);
-                        }
-                     });
-                     hasUpdate = true;
-                }
-
-                // snapshot 立即 flush(不走 500ms 节流):snapshot 是低频事件(切市场/订阅初始),
-                // 走节流会让按钮上的 best ask/bid 比订单簿组件(snapshot 立即 setState)晚最多
-                // 500ms,造成"切市场瞬间按钮价比订单簿慢半拍"。把攒着的 price_change 批一起带出去,
-                // 避免之后 trailing 定时器用 stale pendingRaw 覆盖回去。price_change 仍走节流。
-                if (hasSnapshot) {
-                    if (throttleTimer) {
-                        clearTimeout(throttleTimer);
-                        throttleTimer = null;
-                    }
-                    if (pendingRaw && activeMarketId === marketId) {
-                        set({ orderBookRaw: pendingRaw });
-                    }
-                    pendingRaw = null;
-                } else if (hasUpdate && !throttleTimer) {
-                    // 节流刷新：500ms 内多条 price_change 只触发一次 setState，减少全量重渲染
-                    throttleTimer = setTimeout(() => {
-                        throttleTimer = null;
-                        if (pendingRaw && activeMarketId === marketId) {
-                            set({ orderBookRaw: pendingRaw });
-                        }
-                        pendingRaw = null;
-                    }, 500);
-                }
-
-            } catch(e) {
-                console.error("WS Parse Error", e);
             }
-        };
+        },
 
-        ws.onclose = (e) => {
-            // Only update disjointed state if this was the active market
-            if (activeMarketId === marketId) {
-                set({ isConnected: false });
-                ws = null; 
-                if (e.code !== 1000) {
-                    reconnectTimer = setTimeout(() => {
-                        connectWS(marketId, set, get);
-                    }, 3000);
-                }
+
+        setSelectOutcomeId: (outcomeId: string) => {
+            set({ selectOutcomeId: outcomeId });
+        },
+        setDirection: (direction: "BUY" | "SELL") => {
+            set({ direction });
+        },
+
+        getOrderBook: (assetId: string | string[]) => {
+            if (Array.isArray(assetId)) {
+              const key = Object.keys(get().orderBookRaw).find(key => {
+                  return assetId.includes(key);
+              });
+              if (!key) return { bids: [], asks: [], midPrice: 0, spread: 0, spreadPercent: 0, bestBid: 0, bestAsk: 0 };
+              const rawStore = get().orderBookRaw[key];
+              return processStoreData(rawStore);
+            } else {
+                const rawStore = get().orderBookRaw[assetId];
+                return processStoreData(rawStore);
             }
-        };
+        },
 
-        ws.onerror = (e) => {
-             console.error("WS Error", e);
-        };
+        cleanup: () => {
+             // 完整释放当前市场:摘 handler、unsubscribe、release(refCount=0 时实例 disconnect)
+             if (currentOrderbookWS && activeMarketId) {
+                 currentOrderbookWS.removeHandler('orderbook_snapshot', handleSnapshot as any);
+                 currentOrderbookWS.removeHandler('price_change', handlePriceChange as any);
+                 currentOrderbookWS.unsubscribeOrderBook(activeMarketId).catch(() => {});
+                 releaseOrderbookWS(activeMarketId);
+                 currentOrderbookWS = null;
+             }
+             if (throttleTimer) { clearTimeout(throttleTimer); throttleTimer = null; }
+             pendingRaw = null;
+             activeMarketId = null;
+             set({ isConnected: false, market: null, orderBookRaw: {} });
+        }
+    });
+});
 
-    } catch (e) {
-        console.error("WS Connect Error", e);
-        reconnectTimer = setTimeout(() => {
-             connectWS(marketId, set, get);
-         }, 3000);
+// ============== OrderBookWebSocket handlers(挂在当前市场专属 WS 实例上) ==============
+
+// 写入 pendingRaw + 节流 setState(500ms),从原 connectWS.onmessage 抽出来
+function applyAndScheduleFlush(mutate: (next: Record<string, AssetStore>) => void) {
+    if (!storeGet || !storeSet) return;
+    if (!pendingRaw) {
+        pendingRaw = { ...storeGet().orderBookRaw };
     }
+    mutate(pendingRaw!);
+
+    if (!throttleTimer) {
+        throttleTimer = setTimeout(() => {
+            throttleTimer = null;
+            // flush 时再校验一次 activeMarketId,防止切市场后旧批次落到新市场上
+            if (pendingRaw && activeMarketId && storeSet) {
+                storeSet({ orderBookRaw: pendingRaw });
+            }
+            pendingRaw = null;
+        }, 500);
+    }
+}
+
+// orderbook_snapshot:数组形式,每个 asset_id 一个完整快照
+// 不过滤 asset_id:WS 推送的 asset_id 是 tradingPair(类似 `${marketId}-YES-USDT`),
+// 不是 clobTokenIds 的链上 tokenId,无法按 clobTokenIds 过滤。
+// 每个市场独立 WS 实例本来也没有跨市场污染问题,信任 WS 推送的就是当前市场的数据。
+//
+// snapshot 不走 500ms 节流:它是低频事件(切市场/订阅初始时),走节流会让按钮上的
+// best ask/bid 比订单簿组件(snapshot 立即 setState)晚最多 500ms 显示,造成
+// "切市场瞬间按钮价比订单簿慢半拍"。这里把累积中的 pendingRaw(price_change 批)
+// 也一起 flush,否则 trailing 定时器之后会用 stale pendingRaw 覆盖回去。
+function handleSnapshot(snapshots: ServiceSnapshot[]) {
+    const relevant = snapshots.filter(s => !!s?.asset_id);
+    if (relevant.length === 0) return;
+    if (!storeGet || !storeSet) return;
+
+    if (!pendingRaw) {
+        pendingRaw = { ...storeGet().orderBookRaw };
+    }
+    relevant.forEach((snap) => {
+        if (!pendingRaw![snap.asset_id]) {
+            pendingRaw![snap.asset_id] = { bids: new Map(), asks: new Map() };
+        }
+        const store = pendingRaw![snap.asset_id];
+        // snapshot 是全量替换:先 clear 掉可能在 pendingRaw 里攒着的 price_change 增量,
+        // 再写入快照数据(防止旧增量混入新快照)
+        store.bids.clear();
+        store.asks.clear();
+        snap.bids.forEach(x => Number(x.size) > 0 && store.bids.set(x.price, x.size));
+        snap.asks.forEach(x => Number(x.size) > 0 && store.asks.set(x.price, x.size));
+    });
+
+    if (throttleTimer) {
+        clearTimeout(throttleTimer);
+        throttleTimer = null;
+    }
+    // activeMarketId 校验对齐 applyAndScheduleFlush:切市场瞬间老消息不要落到新市场上
+    if (activeMarketId) {
+        storeSet({ orderBookRaw: pendingRaw, isConnected: true });
+    }
+    pendingRaw = null;
+}
+
+// price_change:增量更新,按 side 写 bids/asks,size=0 删除该档
+function handlePriceChange(message: ServicePriceChange) {
+    if (!Array.isArray(message?.price_changes)) return;
+    const relevant = message.price_changes.filter(c => !!c?.asset_id);
+    if (relevant.length === 0) return;
+
+    applyAndScheduleFlush((nextRaw) => {
+        relevant.forEach((change) => {
+            if (!nextRaw[change.asset_id]) {
+                nextRaw[change.asset_id] = { bids: new Map(), asks: new Map() };
+            }
+            const store = nextRaw[change.asset_id];
+            const map = change.side === 'BUY' ? store.bids : store.asks;
+            if (parseFloat(change.size) === 0) {
+                map.delete(change.price);
+            } else {
+                map.set(change.price, change.size);
+            }
+        });
+    });
 }
 
 function processStoreData(store?: AssetStore): ProcessedOrderBook {
