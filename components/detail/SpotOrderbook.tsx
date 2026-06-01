@@ -12,7 +12,7 @@
  *   size 仍为当前档份额
  */
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { RefreshCw, ArrowUpDown, Info } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { useSessionTradeVolume } from '@/lib/hooks/useSessionTradeVolume';
@@ -199,7 +199,6 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
   useEffect(() => {
     setActiveSide(selectedSide);
   }, [selectedSide]);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const asksContainerRef = useRef<HTMLDivElement>(null);
@@ -242,8 +241,8 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     noCandidatesRef.current = dedupe(candidatesForNo);
   }, [marketOutcomes]);
 
-  // 节流：价格变化只应用到 store，定时刷新 UI（最多 500ms 一次）
-  const priceChangeThrottleRef = useRef<NodeJS.Timeout | null>(null);
+  // 不节流,每条 price_change 立即刷 UI(完全实时)。pendingUpdateRef 仅标记本批更新了哪侧,
+  // flush 时只 setState 有变化的那一侧,避免无谓重渲染。key=price 保证行 DOM 稳定,数字变只改文本不闪。
   const pendingUpdateRef = useRef<{ yes: boolean; no: boolean }>({ yes: false, no: false });
 
   // 稳定的 flushOrderBookUI，不依赖任何 state/props
@@ -254,10 +253,6 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     }
     if (pending.no) {
       setNoOrderBook(noStoreRef.current.getProcessedOrderBook());
-    }
-    if (pending.yes || pending.no) {
-      setIsAnimating(true);
-      setTimeout(() => setIsAnimating(false), 300);
     }
     pendingUpdateRef.current = { yes: false, no: false };
   }, []);
@@ -278,8 +273,6 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
       setNoOrderBook(noStoreRef.current.getProcessedOrderBook());
     }
     if (yesSnapshot || noSnapshot) {
-      setIsAnimating(true);
-      setTimeout(() => setIsAnimating(false), 300);
       setIsLoading(false);
     }
   }, []); // 无外部依赖，永久稳定
@@ -298,13 +291,9 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
         pendingUpdateRef.current.no = true;
       }
     });
-    // 节流：500ms 内最多刷新一次 UI
-    if (!priceChangeThrottleRef.current) {
-      priceChangeThrottleRef.current = setTimeout(() => {
-        priceChangeThrottleRef.current = null;
-        flushOrderBookUI();
-      }, 500);
-    }
+    // 不节流:每条 price_change 立即刷新 UI(完全实时)。
+    // key=price 保证行 DOM 稳定,高频更新只改数字文本不闪。
+    flushOrderBookUI();
   }, [flushOrderBookUI]); // flushOrderBookUI 本身已经稳定
 
   // ============== WebSocket: 实时订单簿更新 ==============
@@ -332,18 +321,28 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     ws.addHandler('orderbook_snapshot', handleSnapshot);
     ws.addHandler('price_change', handlePriceChange);
 
-    // 订阅新的 market
-    const subscribeToNewMarket = async () => {
-      try {
-        await ws.subscribeOrderBook(marketId);
-      } catch (err: any) {
-        console.error('[SpotOrderbook] Failed to subscribe:', err);
-        setError(err.message);
-        setIsLoading(false);
-      }
-    };
-
-    subscribeToNewMarket();
+    // 复用实例检测:若 WS 实例已有 lastSnapshots 缓存,说明之前有别的消费者
+    // (典型是 tradingStore 选中市场时)订阅过。缓存只被 snapshot 更新、不被 price_change 更新,
+    // 长时间持有后缓存严重陈旧;mount 时回放陈旧 base + 后续增量在错的 base 上 apply,
+    // 会导致"离开页面再回来后,订单簿显示陈旧/漂移"。
+    // 这里主动 forceReconnect:close 旧 WS → 重连 → 重订阅 → 后端推全新全量,
+    // 覆盖陈旧缓存,所有消费者拿到一致最新状态。新实例(无缓存)走正常 subscribe,无开销。
+    const candidates = [
+      ...yesCandidatesRef.current,
+      ...noCandidatesRef.current,
+    ];
+    const isReusedInstance =
+      candidates.length > 0 &&
+      ws.getCachedSnapshots(candidates).length > 0;
+    if (isReusedInstance) {
+      ws.forceReconnect();
+    } else {
+      // 订阅失败(连接未就绪等)静默处理 —— handler 已挂,该实例自身的重连链路
+      // (attemptReconnect / idle check)恢复后会自动重订阅,数据会流回来
+      ws.subscribeOrderBook(marketId).catch((err) => {
+        console.warn('[SpotOrderbook] subscribe deferred (will retry via reconnect):', err?.message);
+      });
+    }
 
     // 保底：5s 后如果仍在 loading，取消 loading 状态（避免永远显示 connecting）
     const loadingTimeout = setTimeout(() => {
@@ -355,11 +354,8 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
       ws.removeHandler('orderbook_snapshot', handleSnapshot);
       ws.removeHandler('price_change', handlePriceChange);
       ws.unsubscribeOrderBook(marketId);
-      // 清理节流定时器
-      if (priceChangeThrottleRef.current) {
-        clearTimeout(priceChangeThrottleRef.current);
-        priceChangeThrottleRef.current = null;
-      }
+      // 重置 pending,防切 market 后旧标记落到新 store 上
+      pendingUpdateRef.current = { yes: false, no: false };
       // 经 registry 释放:refCount 到 0 时实例自动 disconnect;
       // 若同市场 tradingStore 仍持有,则连接保留(不会被这里断掉)
       releaseOrderbookWS(marketId);
@@ -437,15 +433,13 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     const depthPercent = (entry.cumulative / maxCumulative) * 100;
     
     return (
-      <div 
-        key={`${type}-${index}`}
-        className={`relative grid grid-cols-[56px_1fr_1fr_1fr] py-2 text-xs font-mono hover:bg-(--bg-hover) transition-colors cursor-pointer ${
-          isAnimating ? 'animate-pulse' : ''
-        }`}
+      <div
+        key={`${type}-${entry.price}`}
+        className="relative grid grid-cols-[56px_1fr_1fr_1fr] py-2 text-xs font-mono hover:bg-(--bg-hover) transition-colors cursor-pointer"
       >
         {/* 深度背景条 */}
-        <div 
-          className="absolute top-0 bottom-0 transition-all duration-300"
+        <div
+          className="absolute top-0 bottom-0 transition-all duration-100"
           style={{ 
             left: 0,
             width: `${depthPercent}%`,
@@ -499,7 +493,9 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     isAtBottomRef.current = true;
   }, [activeSide]);
 
-  useEffect(() => {
+  // 贴底滚动用 useLayoutEffect(paint 前同步执行),否则会出现:
+  // ① 先 paint「未滚到底」一帧再滚 → 闪;② scroll 事件先于 useEffect 把 isAtBottom 误设 false → 没贴底
+  useLayoutEffect(() => {
     const el = asksContainerRef.current;
     if (!el || !orderbook || orderbook.asks.length === 0) return;
     if (isAtBottomRef.current) {

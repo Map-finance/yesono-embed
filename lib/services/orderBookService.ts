@@ -175,12 +175,18 @@ export class OrderBookWebSocket {
   private resubscribeTimer: NodeJS.Timeout | null = null;
   private autoResubscribeCount = 0;
   private maxAutoResubscribe = 5;
+  // attemptReconnect 排队中的 setTimeout:forceReconnect/disconnect 时必须 clear,
+  // 否则旧 timer 醒来会重复 connect + subscribe,导致 subscriptionRefs 累计泄漏
+  private attemptReconnectTimer: NodeJS.Timeout | null = null;
   // 静默检测:云上 LB idle 杀连接但 onclose 不一定及时触发,前端按"30s 无消息"主动重连
   private lastMessageAt = 0;
   private idleCheckTimer: NodeJS.Timeout | null = null;
   // wsDebug:为每条 ws 实例打一个递增 id,串起 CREATE→OPEN→MSG→CLOSE 全生命周期
   private currentWsId: string | null = null;
   private wsConnectedAt = 0;
+  // 页面可见性监听:后台 tab 的定时器被浏览器冻结,attemptReconnect/idleCheck 不跑,
+  // WS 被 LB idle 断掉后无法自愈。回前台时立即自检,断了就 forceReconnect(不等被节流的定时器)。
+  private visibilityHandler: (() => void) | null = null;
 
   // 连接 WebSocket。多个 caller 并发调用时共享同一个 Promise:
   //   - OPEN:立即 resolve
@@ -212,8 +218,14 @@ export class OrderBookWebSocket {
         }
         fn();
       };
-      // 10s 兜底:握手卡死时让 awaiter 知道失败而不是无限挂起
+      // 10s 兜底:握手卡死时让 awaiter 知道失败而不是无限挂起。
+      // 同时主动 close 卡住的 ws,避免它停留在 CONNECTING 占资源(孤儿连接,等浏览器自然超时可能很久)
       const timeoutId = setTimeout(() => {
+        if (this.ws) {
+          try { this.ws.onclose = null; this.ws.onerror = null; } catch { /* ignore */ }
+          safeCloseWebSocket(this.ws);
+          this.ws = null;
+        }
         settle(() => reject(new Error('WebSocket connection timeout')));
       }, 10_000);
 
@@ -229,6 +241,7 @@ export class OrderBookWebSocket {
           wsLog(wsId, 'OPEN', { elapsedMs: Date.now() - this.wsConnectedAt });
           this.startPingInterval();
           this.startIdleCheck();
+          this.startVisibilityWatch();
           settle(resolve);
         };
 
@@ -328,6 +341,14 @@ export class OrderBookWebSocket {
 
       // 价格变化
       if (parsed.event_type === 'price_change') {
+        // 把增量同步合并到 lastSnapshots,让回放的缓存保持「实时合并态」,
+        // 根治"晚加入消费者(SpotOrderbook re-mount)回放陈旧快照"的问题。
+        // 注意:hash/timestamp 不更新(保留上次全量推送时刻的值),不能用作一致性校验。
+        if (Array.isArray(parsed.price_changes)) {
+          for (const change of parsed.price_changes) {
+            if (change?.asset_id) this.mergeChangeIntoCachedSnapshot(change);
+          }
+        }
         this.notifyHandlers('price_change', parsed);
         return;
       }
@@ -348,12 +369,47 @@ export class OrderBookWebSocket {
     }
   }
 
-  // 通知处理器
+  /**
+   * 把一条 price_change 增量合并到 lastSnapshots 里对应 asset_id 的快照。
+   * 让缓存保持「最新合并态」,addHandler 回放时新消费者拿到的是最新数据而非陈旧 base。
+   *
+   * 约定 & 风险:
+   * - 缓存空(无 base)时跳过:正常协议是订阅时先推全量 snapshot 再推增量,空 base 收到增量
+   *   只在异常(snapshot 帧丢)时发生,跳过以避免合成"残缺快照",下一条 snapshot 会重建。
+   * - price 用字符串比对(同 OrderBookStore 的 Map<string,string> 一致),依赖后端格式稳定。
+   * - 不更新 snapshot.hash / timestamp(保留上次全量值),所以这俩字段不能用作一致性校验
+   *   ——本来当前消费者也只读 bids/asks。
+   */
+  private mergeChangeIntoCachedSnapshot(change: PriceChange) {
+    const snap = this.lastSnapshots.get(change.asset_id);
+    if (!snap) return; // 没 base,跳过
+    const list = change.side === 'BUY' ? snap.bids : snap.asks;
+    const sizeNum = parseFloat(change.size);
+    const idx = list.findIndex((e) => e.price === change.price);
+    if (!Number.isFinite(sizeNum) || sizeNum === 0) {
+      // 该档清零 → 删档
+      if (idx >= 0) list.splice(idx, 1);
+    } else if (idx >= 0) {
+      // 改量
+      list[idx] = { price: change.price, size: change.size };
+    } else {
+      // 新档(顺序不维护:消费者 applySnapshot 会重新放进 Map,本就不依赖数组顺序)
+      list.push({ price: change.price, size: change.size });
+    }
+  }
+
+  // 通知处理器:每个 handler 单独 try/catch 隔离,任一抛错不影响其他消费者
+  // (SpotOrderbook / tradingStore / useActivity 等共享同一类型事件,缺隔离会出现状态分裂)
   private notifyHandlers(type: string, data: any) {
     const handlers = this.messageHandlers.get(type);
-    if (handlers) {
-      handlers.forEach(handler => handler(data));
-    }
+    if (!handlers) return;
+    handlers.forEach((handler) => {
+      try {
+        handler(data);
+      } catch (e) {
+        console.error('[OrderBookWS] handler threw, isolated to prevent blocking others', { type, error: e });
+      }
+    });
   }
 
   // 添加消息处理器
@@ -436,11 +492,15 @@ export class OrderBookWebSocket {
       this.subscriptionRefs.set(marketId, 1);
     } finally {
       this.isSubscribing = false;
-      
-      // 处理队列中的下一个订阅
+
+      // 处理队列中的下一个订阅:try/catch 隔离,防某一次失败阻塞后续 queue
       const next = this.subscriptionQueue.shift();
       if (next) {
-        next();
+        try {
+          next();
+        } catch (e) {
+          console.error('[OrderBookWS] subscription queue handler threw', e);
+        }
       }
     }
   }
@@ -589,14 +649,20 @@ export class OrderBookWebSocket {
       mode: this.reconnectAttempts <= this.maxReconnectAttempts ? 'exp-backoff' : 'slow-retry',
     });
 
-    // 保存当前所有订阅,重置状态,确保 re-subscribe 时不会被 early-return 跳过
+    // 保存当前所有订阅,重置状态,确保 re-subscribe 时不会被 early-return 跳过。
+    // trade 订阅用 tradeSubscriptionRefs.keys() 取**全部** eventSlug(activityWS 同时订阅多个 event 时,
+    // subscribedEventSlug 是单值只记最后一个,直接用它会丢前面的订阅 → 重连后只恢复 1 个)
     const savedMarketIds = Array.from(this.subscribedMarketIds);
-    const savedEventSlug = this.subscribedEventSlug;
+    const savedEventSlugs = Array.from(this.tradeSubscriptionRefs.keys());
     this.subscribedMarketIds.clear();
     this.subscribedEventSlug = null;
     this.subscriptionRefs.clear();
+    this.tradeSubscriptionRefs.clear();
 
-    setTimeout(async () => {
+    // 存 timer ref:forceReconnect/disconnect 时清掉,
+    // 防止旧 timer 醒来后重复 connect+subscribe 造成 subscriptionRefs 累计泄漏
+    this.attemptReconnectTimer = setTimeout(async () => {
+      this.attemptReconnectTimer = null;
       if (this.disposed) return;
       try {
         await this.connect();
@@ -604,8 +670,9 @@ export class OrderBookWebSocket {
         for (const marketId of savedMarketIds) {
           await this.subscribeOrderBook(marketId);
         }
-        if (savedEventSlug) {
-          await this.subscribeTradeMessage(savedEventSlug);
+        // 恢复所有 trade 订阅(不只一个)
+        for (const eventSlug of savedEventSlugs) {
+          await this.subscribeTradeMessage(eventSlug);
         }
       } catch (error) {
         console.error('[OrderBookWS] Reconnect failed:', error);
@@ -633,9 +700,16 @@ export class OrderBookWebSocket {
       clearTimeout(this.resubscribeTimer);
       this.resubscribeTimer = null;
     }
+    // 关键:清掉 attemptReconnect 已排队的 setTimeout,否则旧 timer 醒来后会再走一遍
+    // connect+subscribe,导致 subscriptionRefs 在已订阅状态上累计 ++(refCount 泄漏)
+    if (this.attemptReconnectTimer) {
+      clearTimeout(this.attemptReconnectTimer);
+      this.attemptReconnectTimer = null;
+    }
 
     const savedMarketIds = Array.from(this.subscribedMarketIds);
-    const savedEventSlug = this.subscribedEventSlug;
+    // 同 attemptReconnect:用 keys() 取全部 trade 订阅,而非单值 subscribedEventSlug
+    const savedEventSlugs = Array.from(this.tradeSubscriptionRefs.keys());
 
     // 主动拆掉旧连接:置空 onclose/onerror,避免旧 socket 触发 attemptReconnect 抢跑。
     // 不再依赖"close → onclose → attemptReconnect"链路 —— 旧 socket 若已 CLOSED 或为 null,
@@ -662,7 +736,9 @@ export class OrderBookWebSocket {
         for (const marketId of savedMarketIds) {
           await this.subscribeOrderBook(marketId);
         }
-        if (savedEventSlug) await this.subscribeTradeMessage(savedEventSlug);
+        for (const eventSlug of savedEventSlugs) {
+          await this.subscribeTradeMessage(eventSlug);
+        }
       } catch (err) {
         console.error('[OrderBookWS] forceReconnect failed:', err);
       } finally {
@@ -703,9 +779,14 @@ export class OrderBookWebSocket {
     this.disposed = true;
     this.stopPingInterval();
     this.stopIdleCheck();
+    this.stopVisibilityWatch();
     if (this.resubscribeTimer) {
       clearTimeout(this.resubscribeTimer);
       this.resubscribeTimer = null;
+    }
+    if (this.attemptReconnectTimer) {
+      clearTimeout(this.attemptReconnectTimer);
+      this.attemptReconnectTimer = null;
     }
     this.autoResubscribeCount = 0;
     // 作废任何挂起的握手,后续(被错误调用的)connect() 会直接 reject
@@ -743,6 +824,36 @@ export class OrderBookWebSocket {
       clearInterval(this.idleCheckTimer);
       this.idleCheckTimer = null;
     }
+  }
+
+  // 页面回前台时立即自检:WS 不是 OPEN 就 forceReconnect。
+  // 后台 tab 定时器被冻结,attemptReconnect / idleCheck 排队不执行,WS 被 LB idle 断后无法自愈;
+  // 这里在 visibilitychange→visible 的瞬间主动救,不依赖被节流的定时器。
+  private startVisibilityWatch() {
+    if (typeof document === 'undefined' || this.visibilityHandler) return;
+    this.visibilityHandler = () => {
+      if (this.disposed) return;
+      if (document.visibilityState !== 'visible') return;
+      // notOpen:连接已断;stale:readyState 仍 OPEN 但 >30s 无消息(后台被断成僵尸连接,
+      // 前端没收到 close)。两者都 forceReconnect 拿新 snapshot,无害。
+      const notOpen = this.ws?.readyState !== WebSocket.OPEN;
+      const stale = Date.now() - this.lastMessageAt > IDLE_TIMEOUT_MS;
+      if (notOpen || stale) {
+        wsLog(this.currentWsId ?? 'orderBookWS:?', 'VISIBILITY_RECONNECT', {
+          readyState: this.ws?.readyState,
+          stale,
+        });
+        this.forceReconnect();
+      }
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+
+  private stopVisibilityWatch() {
+    if (this.visibilityHandler && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+    }
+    this.visibilityHandler = null;
   }
 
   // 获取连接状态
