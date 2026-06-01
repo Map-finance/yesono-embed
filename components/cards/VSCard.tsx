@@ -158,4 +158,4 @@ const VSCard: React.FC<VSCardProps> = ({
   );
 };
 
-export default VSCard;
+export default React.memo(VSCard);

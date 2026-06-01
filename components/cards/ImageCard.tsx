@@ -365,4 +365,4 @@ const ImageCard: React.FC<ImageCardProps> = ({
   );
 };
 
-export default ImageCard;
+export default React.memo(ImageCard);

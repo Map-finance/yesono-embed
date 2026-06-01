@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { TagTreeNode } from "@/types/home";
 import { getTagTree } from "@/lib/services/homeService";
 
-import { CRYPTO_SIDEBAR_ICONS } from "./CryptoSideBarIcons";
+import { getCryptoSidebarIcon } from "./CryptoSideBarIcons";
 
 interface CryptoSideBarProps {
   selectedId?: string;
@@ -87,9 +87,7 @@ const CryptoSideBar: React.FC<CryptoSideBarProps> = ({
     const assets: FilterItem[] = [];
 
     assetTags.forEach((tag) => {
-      const lowerSlug = tag.slug ? tag.slug.toLowerCase() : "";
-      const icon =
-        CRYPTO_SIDEBAR_ICONS[lowerSlug] || CRYPTO_SIDEBAR_ICONS[tag.slug];
+      const icon = getCryptoSidebarIcon(tag.slug);
 
       const item: FilterItem = {
         id: tag.slug,

@@ -306,4 +306,4 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
   );
 };
 
-export default MultiOptionCard;
+export default React.memo(MultiOptionCard);

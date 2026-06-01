@@ -11,6 +11,8 @@ import {
   getFinanceEndDates,
   CryptoEndDateItem,
 } from "@/lib/services/homeService";
+// 频率图标(5M/15M/1H/4h/daily… + 任意 N分钟/N小时 兜底)是 crypto / finance 通用的,直接复用
+import { getCryptoSidebarIcon } from "@/components/crypto/CryptoSideBarIcons";
 
 interface FinanceSideBarProps {
   selectedId?: string;
@@ -95,6 +97,7 @@ const FinanceSideBar: React.FC<FinanceSideBarProps> = ({
       id: tag.slug,
       label: tag.name,
       count: tag.count ? Number(tag.count) : undefined,
+      icon: getCryptoSidebarIcon(tag.slug),
     }));
 
     const dItems: FilterItem[] = endDateItems.map((item) => ({

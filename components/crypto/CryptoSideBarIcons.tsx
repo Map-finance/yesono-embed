@@ -435,6 +435,8 @@ export const CRYPTO_SIDEBAR_ICONS: Record<
 > = {
   // SVG Icons
   crypto: AllIcon,
+  finance: AllIcon, // 金融分类的"全部/金融"总项,用同一个网格图标
+  all: AllIcon, // 兜底:总项 slug 万一是 "all"
   "5M": FiveMinIcon,
   "15M": FifteenMinIcon,
   "1H": OneHourIcon,
@@ -459,3 +461,25 @@ export const CRYPTO_SIDEBAR_ICONS: Record<
   microstrategy:
     "https://polymarket.com/_next/image?url=%2Fimages%2Flogos%2Fmicrostrategy.jpg&w=96&q=75",
 };
+
+/**
+ * 取分类项图标:
+ * 1) 先精确匹配(频率 / 资产 slug,大小写都试)
+ * 2) 再对"任意 N分钟 / N小时"做 pattern 兜底 —— 后端新增 3M / 10M / 7M 等频率时也有图标,
+ *    不用每个都往表里硬编码(频率是开放集合)
+ * 分钟统一用 15分钟那个计时图标,小时统一用时钟图标(对齐 Polymarket 频率图标风格)。
+ */
+export function getCryptoSidebarIcon(
+  rawSlug?: string | null
+): React.ComponentType<{ className?: string }> | string | undefined {
+  if (!rawSlug) return undefined;
+  const exact =
+    CRYPTO_SIDEBAR_ICONS[rawSlug] ??
+    CRYPTO_SIDEBAR_ICONS[rawSlug.toLowerCase()] ??
+    CRYPTO_SIDEBAR_ICONS[rawSlug.toUpperCase()];
+  if (exact) return exact;
+  const s = rawSlug.trim();
+  if (/^\d+\s*m$/i.test(s)) return FifteenMinIcon; // 任意 N 分钟
+  if (/^\d+\s*h$/i.test(s)) return OneHourIcon; // 任意 N 小时
+  return undefined;
+}

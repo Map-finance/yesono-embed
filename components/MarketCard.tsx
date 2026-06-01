@@ -45,4 +45,4 @@ const MarketCard: React.FC<MarketCardProps> = ({
   }
 };
 
-export default MarketCard;
+export default React.memo(MarketCard);
