@@ -412,6 +412,7 @@ const OutcomeRow = memo(
                   onSelectOutcomeId(side === "no" ? noTokenId : yesTokenId)
                 }
                 eventSlug={eventSlug}
+                endDateMs={option.marketData?.endDate}
               />
             )}
 

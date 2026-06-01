@@ -407,11 +407,6 @@ export async function getUserTransactions(page: number, size: number) {
     // true
   ); // 添加语言头和认证
 
-  // 处理返回结果
-  if (response.success) {
-    console.log("✅ 用户交易记录获取成功");
-  }
-
   return response;
 }
 
@@ -436,7 +431,6 @@ export async function getUserOrders(
   page: number,
   size: number
 ): Promise<ApiResponse<ApiUserOrdersResponse>> {
-  console.log("📤 API: 获取用户订单簿...", { page, size });
   const response = await request(
     `${BASE_URL}/user/order?page=${page}&size=${size}`,
     {
@@ -445,11 +439,6 @@ export async function getUserOrders(
     getLanguageHeaders(),
     // true
   ); // 添加语言头和认证
-
-  // 处理返回结果
-  if (response.success) {
-    console.log("✅ 用户订单簿获取成功");
-  }
 
   return response;
 }
@@ -476,8 +465,6 @@ export async function getUserMarketRecords(
   size: number,
   catalog: string = "football"
 ) {
-  console.log("📤 API: 获取用户开盘记录...", { page, size, catalog });
-
   const response = await request(
     `${BASE_URL}/market/user/record/${catalog}?page=${page}&size=${size}`,
     {
@@ -486,11 +473,6 @@ export async function getUserMarketRecords(
     getLanguageHeaders(),
     // true
   ); // 添加语言头和认证
-
-  // 处理返回结果
-  if (response.success) {
-    console.log("✅ 用户开盘记录获取成功");
-  }
 
   return response;
 }

@@ -18,9 +18,9 @@ export const metadata: Metadata = {
   title: 'YesONo',
   description: 'A YesONo prediction market platform with configuration-driven architecture',
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
-    apple: '/icon.png',
+    icon: '/brand-icon.png',
+    shortcut: '/brand-icon.png',
+    apple: '/brand-icon.png',
   },
 };
 

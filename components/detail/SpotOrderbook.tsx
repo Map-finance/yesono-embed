@@ -16,6 +16,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { RefreshCw, ArrowUpDown, Info } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { useSessionTradeVolume } from '@/lib/hooks/useSessionTradeVolume';
+import { setLongTimeout } from '@/utils/timers';
 import {
   OrderBookWebSocket,
   OrderBookStore,
@@ -74,6 +75,8 @@ interface SpotOrderbookProps {
   onSideChange?: (side: 'yes' | 'no') => void;
   /** Event slug, for session-scoped trade-volume display (对齐 Polymarket) */
   eventSlug?: string;
+  /** 市场截止时间(ms);提供时在截止瞬间打印一次该市场所有 WS 推送(调试用,排查推送/漂移) */
+  endDateMs?: number;
 }
 
 /** 格式化金额为 K/M 缩写,$8000 → "$8.0K"; $0 → "$0" */
@@ -156,6 +159,7 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
   selectedSide = 'yes',
   onSideChange,
   eventSlug,
+  endDateMs,
 }) => {
   const { t } = useTranslation();
   const [displayMode, setDisplayMode] = useState<DisplayMode>('both');
@@ -362,6 +366,49 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
       wsRef.current = null;
     };
   }, [marketId, handleSnapshot, handlePriceChange]); // handleSnapshot/handlePriceChange 现在永久稳定
+
+  // 调试:截止时间到时打印该市场所有 WS 推送(用于排查推送/漂移/陈旧)。
+  // 只在 endDateMs 提供、有效、未过期时启用,截止瞬间打印一次。
+  useEffect(() => {
+    if (endDateMs == null) return;
+    // 后端 endDate 可能是字符串(如 "1796054399999"),强制转 number + 有效性校验,
+    // 否则 new Date(字符串) 当 ISO 解析失败 → Invalid Date → toISOString 抛 RangeError
+    const ms = Number(endDateMs);
+    if (!Number.isFinite(ms) || ms <= 0) return;
+    const delay = ms - Date.now();
+    if (delay <= 0) return; // 已过期,不挂 timer(也不立即打印,避免历史市场刷出脏日志)
+
+    const ws = wsRef.current;
+    if (!ws) return;
+    const buffer: Array<{ t: number; type: string; data: any }> = [];
+    const snapHandler = (d: any) =>
+      buffer.push({ t: Date.now(), type: 'orderbook_snapshot', data: d });
+    const pcHandler = (d: any) =>
+      buffer.push({ t: Date.now(), type: 'price_change', data: d });
+    ws.addHandler('orderbook_snapshot', snapHandler);
+    ws.addHandler('price_change', pcHandler);
+
+    let dumped = false;
+    const cancelTimer = setLongTimeout(() => {
+      if (dumped) return;
+      dumped = true;
+      // 一次性打印:整段完整 buffer + 元数据。
+      // 完整复制:在 console 里右键 messages 数组 → Store as global variable → copy(JSON.stringify(temp1))
+      console.log('[WS DUMP] 市场截止前所有推送', {
+        marketId,
+        endDate: new Date(ms).toISOString(),
+        durationMs: delay,
+        count: buffer.length,
+        messages: buffer,
+      });
+    }, delay);
+
+    return () => {
+      cancelTimer();
+      ws.removeHandler('orderbook_snapshot', snapHandler);
+      ws.removeHandler('price_change', pcHandler);
+    };
+  }, [marketId, endDateMs]);
 
   // 根据 activeSide 选择显示 yes 或 no 的数据
   const activeOrderBook = activeSide === 'yes' ? yesOrderBook : noOrderBook;
