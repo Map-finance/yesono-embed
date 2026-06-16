@@ -17,6 +17,7 @@ import ProxyImage from "@/components/common/ProxyImage";
 import MarketSection from "./MarketSection";
 import MarketChart from "@/components/detail/MarketChart";
 import { trackEvent } from "@/lib/sentryClient";
+import { resolveEventDate } from "@/lib/utils/sportsNav";
 import { toChartData, toPolymarketMarkets } from "./SportsEventDetailView.helpers";
 import ExactScorePanel from "./ExactScorePanel";
 import HalftimeResultPanel from "./HalftimeResultPanel";
@@ -98,10 +99,10 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
   const homeAbbr = getAbbr(teams.home);
   const awayAbbr = getAbbr(teams.away);
 
-  // 时间（使用 endDate）
+  // 开赛时间（优先 startDate，endDate 后端常返 null；见 resolveEventDate）
   const endInfo = useMemo(() => {
-    if (!eventData) return { time: "", date: "" };
-    const d = new Date(Number(eventData.endDate));
+    const d = resolveEventDate(eventData);
+    if (!d) return { time: "", date: "" };
     return {
       time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
       date: d.toLocaleDateString("en-US", { month: "long", day: "numeric" }),

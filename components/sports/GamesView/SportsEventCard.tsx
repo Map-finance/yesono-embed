@@ -22,7 +22,7 @@ import Tabs from "@/components/ui/Tabs";
 import IconButton from "@/components/ui/IconButton";
 import SpotOrderbook from "@/components/detail/SpotOrderbook";
 import SportsOutcomeGraph from "./SportsOutcomeGraph";
-import { buildSportsEventUrl } from "@/lib/utils/sportsNav";
+import { buildSportsEventUrl, resolveEventDate } from "@/lib/utils/sportsNav";
 import { sortOutcomesByOriginalIndex } from "@/lib/utils/outcomes";
 import LineValueSwitcher from "./LineValueSwitcher";
 import {
@@ -86,15 +86,16 @@ const SportsEventCard: React.FC<SportsEventCardProps> = ({
     }
   }, [selectedMarketId, event.market]);
 
-  // 解析时间（使用 endDate）
+  // 解析开赛时间（优先 startDate，endDate 常为 null；见 resolveEventDate）
   const endTime = useMemo(() => {
-    const date = new Date(Number(event.endDate));
+    const date = resolveEventDate(event);
+    if (!date) return "";
     return date.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
     });
-  }, [event.endDate]);
+  }, [event.startDate, event.endDate]);
 
   // 从 market map 获取数据
   const moneylineMarkets = event.market?.moneyline || [];

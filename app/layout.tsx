@@ -4,7 +4,7 @@
  */
 
 import type { Metadata } from 'next';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import '@/styles/index.css';
 import ClientWrapper from './ClientWrapper';
 import { Geist } from "next/font/google";
@@ -29,10 +29,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const headerStore = await headers();
-  const nonce = headerStore.get('x-nonce') || undefined;
-
   // 读取服务器端 cookie 中的 locale（如果存在）
+  // 注:CSP nonce 不在这里读 —— `nonce` 属性只对 <script>/<style> 标签有效,
+  // 浏览器解析完 HTML 后会把 <head>/<body> 上的 nonce 属性值置空(防 XSS 复用),
+  // 导致 React hydration 必报 mismatch。Next.js 框架已通过 middleware 设的 x-nonce
+  // 自动给注入脚本加 nonce,这里无需手动处理。
   const cookieStore = await cookies();
   const locale = (cookieStore.get('locale')?.value as string) || 'en';
   const theme = (cookieStore.get('theme')?.value as string) || 'dark';
@@ -65,10 +66,10 @@ export default async function RootLayout({
         colorScheme: isLight ? 'light' : 'dark',
       }} className={cn("font-sans", geist.variable)}
     >
-      <head nonce={nonce}>
+      <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
       </head>
-      <body nonce={nonce}>
+      <body>
         <ClientWrapper initialLocale={locale} initialNavigation={/*navData*/undefined}>
           {children}
         </ClientWrapper>

@@ -22,6 +22,7 @@ import MarketGrid from "@/components/MarketGrid";
 import { Market } from "@/types/types";
 import { useTradingStore } from "@/lib/store/tradingStore";
 import ProxyImage from "@/components/common/ProxyImage";
+import { resolveEventDate } from "@/lib/utils/sportsNav";
 import SharedTradingPanel from "@/components/common/TradingPanel";
 import {
   getMoneylineSettlementLabel,
@@ -317,8 +318,9 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
     });
 
     gamesEvents.forEach((ev) => {
-      const d = new Date(Number(ev.endDate));
-      const dateKey = formatter.format(d);
+      // 优先 startDate（endDate 后端常返 null，误用会全部落到 1970-01-01）
+      const d = resolveEventDate(ev);
+      const dateKey = d ? formatter.format(d) : "TBD";
       if (!dateMap.has(dateKey)) {
         dateMap.set(dateKey, []);
       }

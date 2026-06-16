@@ -1,0 +1,11 @@
+# Cloudflare Workers Assets / Pages 头规则。
+# 由 OpenNext 从 public/ 拷到 .open-next/assets/_headers 后生效。
+#
+# Next.js 的 /_next/static/* 文件名都带内容 hash(内容变则名变),可安全永久缓存。
+# 默认部署丢了这个头(变成 max-age=0, must-revalidate),导致每次访问都回源校验。
+# 恢复为 immutable 一年缓存:二次访问 / 换路由 / 重启浏览器后直接命中磁盘,0 往返。
+#
+# 注意:只针对 hash 资源。public/ 下的非 hash 文件(brand-icon 等)不在此规则内,
+# 沿用默认缓存,避免"同名替换后卡旧文件"。
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -13,6 +13,28 @@ export function isSportsEvent(tags?: { slug: string }[]): boolean {
 }
 
 /**
+ * 解析赛事开赛时间 → Date（毫秒时间戳)。
+ *
+ * 背景:后端把比赛时间放在 startDate(毫秒时间戳字符串,如 "1776938400000"),endDate 常返 null。
+ * 早前各处误用 endDate → new Date(Number(null)) = new Date(0) = 1970-01-01,
+ * 在 UTC+8 下显示成「1月1日 上午8:00」,所有赛事时间日期全错。
+ *
+ * 这里统一:优先 startDate,回退 endDate,两者都非法(null/空/NaN/<=0)时返回 null ——
+ * 调用方据此显示「待定」而不是回落到 epoch。
+ */
+export function resolveEventDate(
+  event: { startDate?: string | number | null; endDate?: string | number | null } | null | undefined
+): Date | null {
+  if (!event) return null;
+  for (const raw of [event.startDate, event.endDate]) {
+    if (raw == null || raw === "") continue;
+    const ms = Number(raw);
+    if (Number.isFinite(ms) && ms > 0) return new Date(ms);
+  }
+  return null;
+}
+
+/**
  * 构建体育市场比赛视图 URL
  * 格式: /sports?tag={leafTag}&tags={tagsChain}&event={eventSlug}
  */

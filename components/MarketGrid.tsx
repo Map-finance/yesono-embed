@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import MarketCard from "./MarketCard";
 import { Market } from "@/types/types";
@@ -29,6 +30,7 @@ export default function MarketGrid({
   onFavoriteChange,
 }: MarketGridProps) {
   const { t } = useTranslation();
+  const router = useRouter();
   const effectiveEmptyMessage = emptyMessage ?? t.market.noMarkets;
   const [columnCount, setColumnCount] = useState(columns);
 
@@ -137,7 +139,15 @@ export default function MarketGrid({
                 : `/market/${slug}`;
               return (
               <div key={market.id} className="mb-4">
-                <Link href={targetUrl} onClick={() => trackEvent('market_card_click', {  event_id: market.id, event_title: market.title, source: 'list' })}>
+                {/* 关掉视口预取(长列表滚动时一屏几十张全预取会挤爆连接池),
+                    改为「意向预取」:鼠标移入 / 触摸按下时才预取该卡,只命中用户真要点的那张。
+                    router.prefetch 内部自带去重缓存,重复触发无额外开销。 */}
+                <Link
+                  href={targetUrl}
+                  prefetch={false}
+                  onMouseEnter={() => router.prefetch(targetUrl)}
+                  onTouchStart={() => router.prefetch(targetUrl)}
+                  onClick={() => trackEvent('market_card_click', {  event_id: market.id, event_title: market.title, source: 'list' })}>
                   <MarketCard
                     market={market}
                     onFavoriteChange={onFavoriteChange}
