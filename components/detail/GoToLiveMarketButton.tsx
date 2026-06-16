@@ -34,47 +34,19 @@ export default function GoToLiveMarketButton({
   const text = (t.market as any).livePriceHeader ?? DEFAULT_TEXT;
   const routeSuffix = getMarketRouteSuffix(pathname);
 
-  if (liveMarketSlug) {
-    return (
-      <Link
-        href={`/market/${liveMarketSlug}${routeSuffix}`}
-        className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1f2937]/50 hover:bg-[#374151]/50 rounded-full transition-colors border border-[rgba(255,255,255,0.1)]"
-      >
-        <div className="relative flex items-center justify-center w-3 h-3">
-          <div className="absolute inset-0 rounded-full bg-[#FF453A]/40"></div>
-          <div className="absolute inset-0 rounded-full bg-[#FF453A] animate-ping opacity-75"></div>
-          <div className="w-1.5 h-1.5 rounded-full bg-[#FF453A] relative z-10"></div>
-        </div>
-        <span className="text-sm font-semibold text-white sm:hidden">
-          {text.liveButton}
-        </span>
-        <span className="hidden sm:inline text-sm font-semibold text-white">
-          {text.goToLiveMarket}
-        </span>
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-gray-400"
-        >
-          <path d="M9 18l6-6-6-6" />
-        </svg>
-      </Link>
-    );
-  }
+  // 无 LIVE 同胞档(普通一次性市场)→ 不渲染。
+  // 之前这里 return 一个禁用灰按钮,导致普通市场 endDate 过后冒出一个点不动的"前往实时盘口";
+  // 该按钮只对快市场/循环市场(有 liveMarketSlug 可跳)有意义。
+  if (!liveMarketSlug) return null;
 
   return (
-    <button
-      disabled
-      className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1f2937]/30 rounded-full border border-[rgba(255,255,255,0.1)] opacity-50 cursor-not-allowed"
+    <Link
+      href={`/market/${liveMarketSlug}${routeSuffix}`}
+      className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1f2937]/50 hover:bg-[#374151]/50 rounded-full transition-colors border border-[rgba(255,255,255,0.1)]"
     >
       <div className="relative flex items-center justify-center w-3 h-3">
         <div className="absolute inset-0 rounded-full bg-[#FF453A]/40"></div>
+        <div className="absolute inset-0 rounded-full bg-[#FF453A] animate-ping opacity-75"></div>
         <div className="w-1.5 h-1.5 rounded-full bg-[#FF453A] relative z-10"></div>
       </div>
       <span className="text-sm font-semibold text-white sm:hidden">
@@ -83,6 +55,19 @@ export default function GoToLiveMarketButton({
       <span className="hidden sm:inline text-sm font-semibold text-white">
         {text.goToLiveMarket}
       </span>
-    </button>
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-gray-400"
+      >
+        <path d="M9 18l6-6-6-6" />
+      </svg>
+    </Link>
   );
 }

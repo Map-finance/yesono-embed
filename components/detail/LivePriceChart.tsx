@@ -7,6 +7,7 @@ import {
   Time,
   CrosshairMode,
   AreaSeries,
+  LineSeries,
   LineType,
 } from "lightweight-charts";
 import { Loader2 } from "lucide-react";
@@ -16,6 +17,7 @@ import { useTradeTapeFeed } from "@/lib/hooks/use-trade-tape-feed";
 import type { PricePoint } from "@/lib/services/live-price-ws";
 import { useEventSettlementPrices } from "@/lib/hooks/useEventSettlementPrices";
 import { getMarketClosePrice } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import LivePriceHeader from "./LivePriceHeader";
 
 type Point = PricePoint;
@@ -154,6 +156,34 @@ function getEtTimeParts(date: Date) {
   };
 }
 
+/**
+ * 获取当前主题下的 text-secondary 颜色
+ * 深色模式: #b0b0b0, 浅色模式: #4a4a4a
+ */
+function getTextSecondaryColor(): string {
+  if (typeof document === "undefined") return "#b0b0b0";
+  const theme = document.documentElement.dataset.theme;
+  return theme === "light" ? "#4a4a4a" : "#b0b0b0";
+}
+
+/**
+ * 获取十字线颜色——浅色模式下用深色半透明，深色模式下用白色半透明
+ */
+function getCrosshairColor(): string {
+  if (typeof document === "undefined") return "rgba(255, 255, 255, 0.2)";
+  const theme = document.documentElement.dataset.theme;
+  return theme === "light" ? "rgba(0, 0, 0, 0.25)" : "rgba(255, 255, 255, 0.2)";
+}
+
+/**
+ * 获取十字线标签背景色——浅色模式下用浅色，深色模式下用深色
+ */
+function getCrosshairLabelBackgroundColor(): string {
+  if (typeof document === "undefined") return "#2b2b43";
+  const theme = document.documentElement.dataset.theme;
+  return theme === "light" ? "#f5f5f5" : "#2b2b43";
+}
+
 export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   symbol = "eth/usd",
   eventSlug,
@@ -171,6 +201,7 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   const pulseDotRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Area", Time> | null>(null);
+  const openPriceLineSeriesRef = useRef<ISeriesApi<"Line", Time> | null>(null);
   const updatePulseDotRef = useRef<() => void>(() => {});
   const tradeFlushTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mockTradeTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -195,6 +226,15 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   // 结算价（开盘/收盘）：结束后用于折线图末点锚定 + 头部冻结涨跌幅，与 LivePriceHeader 同源
   const { openPrice, closePrice } = useEventSettlementPrices(eventId, !isLive);
 
+  const { t } = useTranslation();
+
+  // 主题状态(用于在主题切换时重画十字线 + 开盘价线颜色)
+  const [chartTheme, setChartTheme] = useState<string | undefined>(
+    typeof document !== "undefined"
+      ? document.documentElement.dataset.theme
+      : undefined
+  );
+
   useEffect(() => {
     isLiveRef.current = isLive;
   }, [isLive]);
@@ -207,6 +247,76 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
   useEffect(() => {
     endDateRef.current = endDate;
   }, [endDate]);
+
+  // —— openPrice 就绪后使用 LineSeries + createPriceLine 绘制水平线 ——
+  useEffect(() => {
+    if (openPrice === null) return;
+    const chart = chartRef.current;
+    const lineSeries = openPriceLineSeriesRef.current;
+    const mainSeries = seriesRef.current;
+    if (!chart || !lineSeries) return;
+
+    // 移除旧的价格线（如果存在）
+    const oldPriceLine = (lineSeries as any)._openPriceLine;
+    if (oldPriceLine) {
+      lineSeries.removePriceLine(oldPriceLine);
+    }
+
+    // 创建新的价格线（带 OPEN 文字标签）
+    const openPriceLineColor = getTextSecondaryColor();
+    const priceLine = lineSeries.createPriceLine({
+      price: openPrice,
+      color: openPriceLineColor,
+      lineWidth: 1,
+      lineStyle: 1, // 0=实线, 1=虚线, 2=点线, 3=虚点线
+      axisLabelVisible: true,
+      title: t.market.chart.open,
+    });
+    (lineSeries as any)._openPriceLine = priceLine;
+
+    // 更新水平线数据
+    const updateLine = () => {
+      if (!lineSeries) return;
+      const visibleRange = chart.timeScale().getVisibleRange();
+      if (!visibleRange) return;
+      lineSeries.setData([
+        { time: visibleRange.from as Time, value: openPrice },
+        { time: visibleRange.to as Time, value: openPrice },
+      ]);
+    };
+
+    // 立即绘制一次
+    updateLine();
+
+    // 监听时间范围变化
+    chart.timeScale().subscribeVisibleTimeRangeChange(updateLine);
+
+    // 监听主 series 数据变化（当 Y 轴因新数据而缩放时）
+    if (mainSeries) {
+      mainSeries.subscribeDataChanged(updateLine);
+      return () => {
+        mainSeries.unsubscribeDataChanged(updateLine);
+      };
+    }
+  }, [openPrice, t.market.chart.open]);
+
+  // 主题切换时更新十字线颜色
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.applyOptions({
+      crosshair: {
+        vertLine: {
+          color: getCrosshairColor(),
+          labelBackgroundColor: getCrosshairLabelBackgroundColor(),
+        },
+        horzLine: {
+          color: getCrosshairColor(),
+          labelBackgroundColor: getCrosshairLabelBackgroundColor(),
+        },
+      },
+    });
+  }, [chartTheme]);
 
   const themeColor = getAssetColor(symbol);
 
@@ -359,16 +469,16 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: {
-          color: "rgba(255, 255, 255, 0.2)",
+          color: getCrosshairColor(),
           width: 1,
           style: 3,
-          labelBackgroundColor: "#2b2b43",
+          labelBackgroundColor: getCrosshairLabelBackgroundColor(),
         },
         horzLine: {
-          color: "rgba(255, 255, 255, 0.2)",
+          color: getCrosshairColor(),
           width: 1,
           style: 3,
-          labelBackgroundColor: "#2b2b43",
+          labelBackgroundColor: getCrosshairLabelBackgroundColor(),
         },
       },
       width: chartContainerRef.current.clientWidth,
@@ -402,6 +512,30 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
     });
 
     seriesRef.current = newSeries;
+
+    // —— 使用 LineSeries 绘制水平线（开盘价），跟随图表右边缘自动延伸 ——
+    const openPriceLineColor = getTextSecondaryColor();
+    openPriceLineSeriesRef.current = chart.addSeries(LineSeries, {
+      lineWidth: 1,
+      color: "transparent",
+      lineStyle: 1, // 0=实线, 1=虚线, 2=点线
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false, // 禁用 hover dot 突出效果
+    });
+
+    // 如果 openPriceRef 已有值，立即使用 createPriceLine 添加价格标签
+    if (openPriceRef.current !== null) {
+      const priceLine = openPriceLineSeriesRef.current.createPriceLine({
+        price: openPriceRef.current,
+        color: openPriceLineColor,
+        lineWidth: 1,
+        lineStyle: 1,
+        axisLabelVisible: true,
+        title: t.market.chart.open,
+      });
+      (openPriceLineSeriesRef.current as any)._openPriceLine = priceLine;
+    }
 
     // Custom CSS Pulse Dot logic
     const updatePulseDot = () => {
@@ -439,9 +573,20 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
     };
     window.addEventListener("resize", handleResize);
 
+    // 监听主题变化,动态更新十字线颜色
+    const themeObserver = new MutationObserver(() => {
+      const newTheme = document.documentElement.dataset.theme;
+      setChartTheme(newTheme);
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
     // 3. Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
+      themeObserver.disconnect();
       updatePulseDotRef.current = () => {};
       seriesRef.current = null;
       chartRef.current = null;

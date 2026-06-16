@@ -61,6 +61,7 @@ export default {
     iframe: 'iframe',
     preview: 'Preview',
     viewMarket: 'View market →',
+    open: 'Open',
     currentOption: 'Current Option',
     chartSingleOptionDesc: 'This chart shows data for a single outcome option.',
     autoscale: 'Autoscale',

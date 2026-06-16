@@ -631,19 +631,17 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
           <button
             onClick={() => {
               if (!marketId || isLoading) return;
-              // 清空本地订单簿数据
-              setYesOrderBook(null);
-              setNoOrderBook(null);
-              yesStoreRef.current = new OrderBookStore();
-              noStoreRef.current = new OrderBookStore();
-              setIsLoading(true);
+              // 不清空旧簿:保留现有数据继续显示,等后端推来的全量 snapshot 经
+              // handleSnapshot.applySnapshot(内部 clear 后全量重建)原地覆盖。
+              // 用户无感、不会闪 "Connecting..." 空态;若先清空,而 price_change 早于
+              // snapshot 到达,增量会落在近空 store 上 flush 出近空簿造成闪烁。
               setError(null);
-
-              // 断开 WS 并重新连接+订阅，服务器会推送完整快照
-              wsRef.current?.forceReconnect();
-
-              // 保底：5s 后取消加载状态（正常情况 handleSnapshot 会更早设置）
+              // 短暂翻 isLoading 让刷新图标转一下作 feedback;snapshot 到达时
+              // handleSnapshot 会把 isLoading 置 false;此处兜底防快照迟迟不来导致图标永转
+              setIsLoading(true);
               setTimeout(() => setIsLoading(false), 5000);
+              // forceReconnect 内部带 single-flight 锁,狂触发不会堆 pending 连接
+              wsRef.current?.forceReconnect();
             }}
             className="p-1 rounded hover:bg-(--bg-hover) text-(--text-secondary)"
           >

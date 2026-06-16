@@ -60,6 +60,7 @@ export default {
     iframe: 'iframe',
     preview: '预览',
     viewMarket: '查看市场 →',
+    open: '開盤',
     currentOption: '当前选项',
     chartSingleOptionDesc: '此图表显示单个结果选项的数据。',
     autoscale: '自动缩放',
