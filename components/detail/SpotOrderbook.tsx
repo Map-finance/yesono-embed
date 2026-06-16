@@ -245,9 +245,11 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     noCandidatesRef.current = dedupe(candidatesForNo);
   }, [marketOutcomes]);
 
-  // 不节流,每条 price_change 立即刷 UI(完全实时)。pendingUpdateRef 仅标记本批更新了哪侧,
-  // flush 时只 setState 有变化的那一侧,避免无谓重渲染。key=price 保证行 DOM 稳定,数字变只改文本不闪。
+  // rAF 合并:增量永远即时落进内部 store(数据实时),仅把 setState 攒到下一帧统一刷。
+  // pendingUpdateRef 标记本帧更新了哪侧,flush 时只 setState 有变化的那一侧,避免无谓重渲染。
+  // key=price 保证行 DOM 稳定,数字变只改文本不闪。
   const pendingUpdateRef = useRef<{ yes: boolean; no: boolean }>({ yes: false, no: false });
+  const rafIdRef = useRef<number | null>(null);
 
   // 稳定的 flushOrderBookUI，不依赖任何 state/props
   const flushOrderBookUI = useCallback(() => {
@@ -260,6 +262,20 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     }
     pendingUpdateRef.current = { yes: false, no: false };
   }, []);
+
+  // rAF 调度:一帧内的多条 price_change 只触发一次 flush。对齐浏览器绘制周期(~16ms),
+  // 延迟比固定 100ms 定时器更低;标签页隐藏时 rAF 自动降频。环境无 rAF 时回退到立即 flush。
+  const scheduleFlushOrderBookUI = useCallback(() => {
+    if (rafIdRef.current != null) return; // 本帧已排,合并进同一次 flush
+    if (typeof requestAnimationFrame !== 'function') {
+      flushOrderBookUI();
+      return;
+    }
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      flushOrderBookUI();
+    });
+  }, [flushOrderBookUI]);
 
   // 稳定的 handleSnapshot —— 通过 ref 读取 candidates，不把 candidates 列入依赖
   const handleSnapshot = useCallback((snapshots: OrderBookSnapshot[]) => {
@@ -279,6 +295,12 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
     if (yesSnapshot || noSnapshot) {
       setIsLoading(false);
     }
+    // snapshot 立即 setState(上面已刷),取消已排的 rAF 并清标记,避免下一帧用陈旧增量重复 flush
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    pendingUpdateRef.current = { yes: false, no: false };
   }, []); // 无外部依赖，永久稳定
 
   // 稳定的 handlePriceChange —— 同样通过 ref 读取 candidates
@@ -295,10 +317,10 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
         pendingUpdateRef.current.no = true;
       }
     });
-    // 不节流:每条 price_change 立即刷新 UI(完全实时)。
+    // rAF 合并刷新:一帧内多条 price_change 只触发一次 setState。
     // key=price 保证行 DOM 稳定,高频更新只改数字文本不闪。
-    flushOrderBookUI();
-  }, [flushOrderBookUI]); // flushOrderBookUI 本身已经稳定
+    scheduleFlushOrderBookUI();
+  }, [scheduleFlushOrderBookUI]); // scheduleFlushOrderBookUI 本身已经稳定
 
   // ============== WebSocket: 实时订单簿更新 ==============
   // 依赖只有 marketId —— candidates/handler 变化不会触发重订阅
@@ -358,7 +380,11 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
       ws.removeHandler('orderbook_snapshot', handleSnapshot);
       ws.removeHandler('price_change', handlePriceChange);
       ws.unsubscribeOrderBook(marketId);
-      // 重置 pending,防切 market 后旧标记落到新 store 上
+      // 取消挂起的 rAF + 重置 pending,防切 market 后旧帧/旧标记落到新 store 上
+      if (rafIdRef.current != null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
       pendingUpdateRef.current = { yes: false, no: false };
       // 经 registry 释放:refCount 到 0 时实例自动 disconnect;
       // 若同市场 tradingStore 仍持有,则连接保留(不会被这里断掉)

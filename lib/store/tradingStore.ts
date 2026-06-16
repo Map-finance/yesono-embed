@@ -67,7 +67,7 @@ interface TradingStoreActions {
 // handler 必须挂在"具体实例"上而不是单例(因为每个市场是不同实例),
 // 切市场时 removeHandler from 老实例 → 老实例进 release 后被 disconnect。
 //
-// activeMarketId:仅用于 throttleTimer flush 时再校验一次,
+// activeMarketId:仅用于 rAF flush 时再校验一次,
 // 防止"切市场后旧批次落到新市场上"。不再按 asset_id 过滤 WS 消息 ——
 // 因为 WS 推送的 asset_id 用 tradingPair(如 `${marketId}-YES-USDT`),
 // 而非 clobTokenIds 中的链上 tokenId,二者不可互查;一过滤就把全部 WS 数据丢了。
@@ -76,10 +76,39 @@ interface TradingStoreActions {
 let activeMarketId: string | null = null;
 let currentOrderbookWS: OrderBookWebSocket | null = null;
 
-// 节流：将高频 WS 消息批量合并，最多 500ms 刷新一次 Zustand store
-// 避免每条 price_change 消息都触发全量组件重渲染
-let throttleTimer: NodeJS.Timeout | null = null;
+// rAF 合并：把高频 WS 消息攒到下一帧统一刷一次 Zustand store。
+// 对齐浏览器绘制节奏(~16ms):既避免每条 price_change 都触发全量重渲染,
+// 延迟又远低于旧的 500ms 定时器(按钮价不再比订单簿慢半拍);标签页隐藏时 rAF 自动降频,
+// 后台不做无谓渲染。环境无 rAF(SSR/测试)时回退到 16ms setTimeout。
+let rafId: number | null = null;
+let rafIsTimeout = false;
 let pendingRaw: Record<string, AssetStore> | null = null;
+
+function scheduleFlush() {
+    if (rafId != null) return; // 本帧已排,合并进同一次 flush
+    const run = () => {
+        rafId = null;
+        // flush 时再校验 activeMarketId,防止切市场后旧批次落到新市场上
+        if (pendingRaw && activeMarketId && storeSet) {
+            storeSet({ orderBookRaw: pendingRaw });
+        }
+        pendingRaw = null;
+    };
+    if (typeof requestAnimationFrame === 'function') {
+        rafIsTimeout = false;
+        rafId = requestAnimationFrame(run);
+    } else {
+        rafIsTimeout = true;
+        rafId = setTimeout(run, 16) as unknown as number;
+    }
+}
+
+function cancelFlush() {
+    if (rafId == null) return;
+    if (rafIsTimeout) clearTimeout(rafId as unknown as NodeJS.Timeout);
+    else cancelAnimationFrame(rafId);
+    rafId = null;
+}
 
 // set/get 在闭包里捕获:Zustand store 创建时塞进来
 type SetFn = (partial: Partial<TradingStore>) => void;
@@ -106,7 +135,32 @@ export const useTradingStore = create<TradingStore & TradingStoreActions>((set, 
         setMarket: (market: PolymarketMarketResp | null) => {
             const currentMarketId = get().market?.id;
             const newMarketId = market?.id;
-            if (currentMarketId === newMarketId) return;
+            if (currentMarketId === newMarketId) {
+                // 同一市场:不重订阅 WS(避免盘口闪断),但仍要允许"精简 → 完整"升级。
+                // 列表 / 事件壳可能先写进一个缺 marketOutcomes / outcomePrices / clobTokenIds
+                // 的精简对象;若这里直接 return,后到的完整对象永远进不来,交易面板就会
+                // 一直退回 Yes/No 文案 + 50/50 价格(右侧数据源是 store.market,被锁死)。
+                if (market && newMarketId) {
+                    const prev = get().market as any;
+                    const incoming = market as any;
+                    const incomingHasOutcomes =
+                        Array.isArray(incoming.marketOutcomes) && incoming.marketOutcomes.length >= 2;
+                    const prevHasOutcomes =
+                        Array.isArray(prev?.marketOutcomes) && prev.marketOutcomes.length >= 2;
+                    // 仅当 incoming 更完整(有 marketOutcomes),或 prev 本就缺时才覆盖 —— 防止
+                    // 后到的精简对象把已完整的数据反向冲掉。只更新 market 字段,保留
+                    // orderBookRaw / selectOutcomeId / direction / isConnected,WS 不动。
+                    if (incomingHasOutcomes || !prevHasOutcomes) {
+                        // 精简对象先前把 selectOutcomeId 置成 null(无 clobTokenIds);升级后若仍为空,
+                        // 用完整对象的 clobTokenIds[0] 补默认选中(YES/UP),避免按钮悬空未选中。
+                        const seededOutcomeId =
+                            get().selectOutcomeId ??
+                            ((JSON.parse(incoming.clobTokenIds || '[]') as string[])[0] || null);
+                        set({ market, selectOutcomeId: seededOutcomeId });
+                    }
+                }
+                return;
+            }
 
             // 1) 拆掉旧市场:从老 WS 实例摘 handler,unsubscribe,然后 release
             //    (release 内部:refCount 到 0 时该实例自动 disconnect)
@@ -118,10 +172,7 @@ export const useTradingStore = create<TradingStore & TradingStoreActions>((set, 
                 currentOrderbookWS = null;
             }
             // 切换市场时丢弃挂起的批次,防止旧数据混入新市场
-            if (throttleTimer) {
-                clearTimeout(throttleTimer);
-                throttleTimer = null;
-            }
+            cancelFlush();
             pendingRaw = null;
 
             // 2) 切"当前市场"(handler 不再按 asset_id 过滤,详见模块顶部注释)
@@ -182,7 +233,7 @@ export const useTradingStore = create<TradingStore & TradingStoreActions>((set, 
                  releaseOrderbookWS(activeMarketId);
                  currentOrderbookWS = null;
              }
-             if (throttleTimer) { clearTimeout(throttleTimer); throttleTimer = null; }
+             cancelFlush();
              pendingRaw = null;
              activeMarketId = null;
              set({ isConnected: false, market: null, orderBookRaw: {} });
@@ -199,17 +250,7 @@ function applyAndScheduleFlush(mutate: (next: Record<string, AssetStore>) => voi
         pendingRaw = { ...storeGet().orderBookRaw };
     }
     mutate(pendingRaw!);
-
-    if (!throttleTimer) {
-        throttleTimer = setTimeout(() => {
-            throttleTimer = null;
-            // flush 时再校验一次 activeMarketId,防止切市场后旧批次落到新市场上
-            if (pendingRaw && activeMarketId && storeSet) {
-                storeSet({ orderBookRaw: pendingRaw });
-            }
-            pendingRaw = null;
-        }, 500);
-    }
+    scheduleFlush();
 }
 
 // orderbook_snapshot:数组形式,每个 asset_id 一个完整快照
@@ -217,10 +258,10 @@ function applyAndScheduleFlush(mutate: (next: Record<string, AssetStore>) => voi
 // 不是 clobTokenIds 的链上 tokenId,无法按 clobTokenIds 过滤。
 // 每个市场独立 WS 实例本来也没有跨市场污染问题,信任 WS 推送的就是当前市场的数据。
 //
-// snapshot 不走 500ms 节流:它是低频事件(切市场/订阅初始时),走节流会让按钮上的
-// best ask/bid 比订单簿组件(snapshot 立即 setState)晚最多 500ms 显示,造成
-// "切市场瞬间按钮价比订单簿慢半拍"。这里把累积中的 pendingRaw(price_change 批)
-// 也一起 flush,否则 trailing 定时器之后会用 stale pendingRaw 覆盖回去。
+// snapshot 不走 rAF 合并:它是低频事件(切市场/订阅初始时),延后到下一帧会让按钮上的
+// best ask/bid 比订单簿组件(snapshot 立即 setState)晚一帧显示。这里把累积中的
+// pendingRaw(price_change 批)也一起 flush,并取消已排的 rAF,否则下一帧会用
+// stale pendingRaw 覆盖回去。
 function handleSnapshot(snapshots: ServiceSnapshot[]) {
     const relevant = snapshots.filter(s => !!s?.asset_id);
     if (relevant.length === 0) return;
@@ -242,10 +283,7 @@ function handleSnapshot(snapshots: ServiceSnapshot[]) {
         snap.asks.forEach(x => Number(x.size) > 0 && store.asks.set(x.price, x.size));
     });
 
-    if (throttleTimer) {
-        clearTimeout(throttleTimer);
-        throttleTimer = null;
-    }
+    cancelFlush();
     // activeMarketId 校验对齐 applyAndScheduleFlush:切市场瞬间老消息不要落到新市场上
     if (activeMarketId) {
         storeSet({ orderBookRaw: pendingRaw, isConnected: true });

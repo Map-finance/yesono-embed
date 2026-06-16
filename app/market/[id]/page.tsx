@@ -15,6 +15,7 @@ import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Market } from "@/types/types";
 import { PolymarketEventResp, PolymarketMarketResp } from "@/types/home";
+import LiveCountdown from "@/components/detail/LiveCountdown";
 import {
   getEventBySlug,
   formatEndTime,
@@ -134,12 +135,7 @@ export default function MarketDetailPage() {
   const [isMarketEnded, setIsMarketEnded] = useState(false);
   // TimeCapsule 中计算出的当前 LIVE 市场 slug，用于 LivePriceHeader 的"Go to live market"跳转
   const [liveMarketSlug, setLiveMarketSlug] = useState("");
-  const [mobileLiveCountdown, setMobileLiveCountdown] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
+  // 倒计时的每秒刷新已抽到 <LiveCountdown/> 自持 state,避免每秒重渲染整页。
   useEffect(() => {
     // endDate 后端可能是字符串（"1796054399999"），显式 Number() 兜住
     const end = eventData?.endDate != null ? Number(eventData.endDate) : NaN;
@@ -204,34 +200,9 @@ export default function MarketDetailPage() {
     if (!raw) return undefined;
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
   }, [shortTermYesOutcomeNames]);
+  // 仅派生「是否显示倒计时」(低频:仅 endDate / isMarketEnded 变化时变);
+  // 每秒刷新交给 <LiveCountdown/> 内部,不在本页重渲染。
   const showMobileLiveCountdown = Boolean(eventData?.endDate) && !isMarketEnded;
-
-  useEffect(() => {
-    const end = eventData?.endDate;
-    if (!showMobileLiveCountdown || !end) {
-      setMobileLiveCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      return;
-    }
-
-    const updateCountdown = () => {
-      const diff = end - Date.now();
-      if (diff <= 0) {
-        setMobileLiveCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-
-      setMobileLiveCountdown({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((diff % (1000 * 60)) / 1000),
-      });
-    };
-
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 1000);
-    return () => clearInterval(timer);
-  }, [eventData?.endDate, showMobileLiveCountdown]);
 
   // 派生状态：如果用户（或默认）选择了 price，但不具备显示条件，则强制使用 probability
   const activeChart =
@@ -358,8 +329,10 @@ export default function MarketDetailPage() {
       }
     };
 
-    refresh();
+    refresh(); // 到点先立刻补拉一次
     const timer = setInterval(() => {
+      // 隐藏标签页:不发请求、不计数(可见时再轮询),省无效网络。
+      if (typeof document !== "undefined" && document.hidden) return;
       tries += 1;
       if (tries >= MAX_TRIES) {
         clearInterval(timer);
@@ -368,9 +341,20 @@ export default function MarketDetailPage() {
       refresh();
     }, INTERVAL_MS);
 
+    // 切回可见:立即补拉一次,不必等下一个 5s 周期。
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) refresh();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
+
     return () => {
       stopped = true;
       clearInterval(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMarketEnded, selectedIsResolved, params.id]);
@@ -588,45 +572,11 @@ export default function MarketDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {showMobileLiveCountdown && (
-                <div className="sm:hidden flex items-center gap-2">
-                  {mobileLiveCountdown.days > 0 && (
-                    <div className="flex flex-col items-center">
-                      <span className="text-3xl font-bold text-[#FF453A] leading-none mb-1 tabular-nums">
-                        {String(mobileLiveCountdown.days).padStart(2, "0")}
-                      </span>
-                      <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
-                        {mobileCountdownLabels.days}
-                      </span>
-                    </div>
-                  )}
-                  {mobileLiveCountdown.hours > 0 && (
-                    <div className="flex flex-col items-center">
-                      <span className="text-3xl font-bold text-[#FF453A] leading-none mb-1 tabular-nums">
-                        {String(mobileLiveCountdown.hours).padStart(2, "0")}
-                      </span>
-                      <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
-                        {mobileCountdownLabels.hours}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl font-bold text-[#FF453A] leading-none mb-1 tabular-nums">
-                      {String(mobileLiveCountdown.minutes).padStart(2, "0")}
-                    </span>
-                    <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
-                      {mobileCountdownLabels.minutes}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-3xl font-bold text-[#FF453A] leading-none mb-1 tabular-nums">
-                      {String(mobileLiveCountdown.seconds).padStart(2, "0")}
-                    </span>
-                    <span className="text-[10px] text-(--text-secondary) uppercase font-bold tracking-wider">
-                      {mobileCountdownLabels.seconds}
-                    </span>
-                  </div>
-                </div>
+              {showMobileLiveCountdown && eventData?.endDate != null && (
+                <LiveCountdown
+                  endDate={Number(eventData.endDate)}
+                  labels={mobileCountdownLabels}
+                />
               )}
               <button
                 aria-label={t.common.share}

@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { getEventSettlementPrices } from "@/lib/api";
 
 const CLOSE_PRICE_POLL_INTERVAL_MS = 5000;
+// 最大轮询次数(仅计实际发出的请求):~180 次 ≈ 15 分钟可见轮询。
+// 防止后端长期返回 null 时无限轮询;隐藏标签页不计数、不发请求。
+const MAX_POLLS = 180;
 
 export interface EventSettlementPricesState {
   /** 开盘价(Price to beat) */
@@ -57,7 +60,21 @@ export function useEventSettlementPrices(
   useEffect(() => {
     if (!pollUntilClose || !eventId || state.closePrice !== null) return;
     let cancelled = false;
+    let count = 0;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const stop = () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
     const poll = () => {
+      // 隐藏标签页:不发请求、不计数(可见时再轮询),省无效网络与电量。
+      if (typeof document !== "undefined" && document.hidden) return;
+      count += 1;
+      if (count >= MAX_POLLS) stop(); // 达上限后本次仍发一次,随后停止
       getEventSettlementPrices(eventId)
         .then((resp) => {
           if (cancelled) return;
@@ -74,10 +91,22 @@ export function useEventSettlementPrices(
           console.warn("[useEventSettlementPrices] 轮询 settlement-prices 失败", e)
         );
     };
-    const timer = setInterval(poll, CLOSE_PRICE_POLL_INTERVAL_MS);
+
+    // 标签页从隐藏切回可见:立即补一次(否则要等下一个 5s 周期)。
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) poll();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
+
+    timer = setInterval(poll, CLOSE_PRICE_POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      stop();
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
     };
   }, [eventId, pollUntilClose, state.closePrice]);
 
