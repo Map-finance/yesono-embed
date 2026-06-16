@@ -1,12 +1,17 @@
 /**
- * useTagTree Hook - 子标签树数据管理
+ * useTagTree Hook - 子标签树数据管理(SWR)
  * 基于 docs/API_HOME.md 文档
+ *
+ * 用 SWR 做「缓存 + 保鲜」:
+ *  - 切回/重挂时从缓存秒返(不卡骨架,不再因标签未就绪把网格 gate 进骨架)
+ *  - revalidateOnMount/onFocus 后台自动重拉、拿到新数据再更新(不会"一直吃旧缓存")
+ *  - dedupingInterval 防短时间内重复打;keepPreviousData 切语言时不闪空
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { getTagTree, isHorizontalTagTree } from '@/lib/services/homeService';
-import { TagTreeNode } from '@/types/home';
-import { useLocale } from '@/lib/i18n';
+import useSWR from "swr";
+import { getTagTree, isHorizontalTagTree } from "@/lib/services/homeService";
+import { TagTreeNode } from "@/types/home";
+import { useLocale } from "@/lib/i18n";
 
 export interface UseTagTreeOptions {
   slug?: string;
@@ -32,77 +37,37 @@ export function useTagTree({
   initialTags,
 }: UseTagTreeOptions): UseTagTreeReturn {
   const { locale } = useLocale();
-  const [tags, setTags] = useState<TagTreeNode[]>(initialTags || []);
-  const hasInitialData = Array.isArray(initialTags) && initialTags.length > 0;
-  const [isLoading, setIsLoading] = useState<boolean>(
-    // 如果没有初始 tags 且启用了数据请求，则开始为 loading
-    !hasInitialData && enabled
+
+  const { data, isLoading, error, mutate } = useSWR<TagTreeNode[]>(
+    // key 含 slug/withCount/category/locale;不含 token(标签是公共结构)
+    enabled ? ["tagtree", slug ?? "", withCount, category ?? "", locale] : null,
+    () => getTagTree(slug, withCount, category),
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateIfStale: true, // 命中缓存也在后台重拉,保证相对实时
+      dedupingInterval: 5000, // 5s 内同 key 不重复打(防抖),超过即后台保鲜
+      keepPreviousData: true, // 切语言等 key 变化时先用旧数据,避免闪空
+      fallbackData:
+        initialTags && initialTags.length > 0 ? initialTags : undefined,
+    }
   );
-  const hasFetchedOnce = useRef<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isHorizontal, setIsHorizontal] = useState(true);
 
-  const fetchTags = useCallback(async (opts?: { background?: boolean }) => {
-    if (!enabled) {
-      setIsLoading(false);
-      return;
-    }
-
-    const isBackground = Boolean(opts?.background);
-
-    // 如果是第一次且有初始数据，我们以后台方式请求，不覆盖当前 isLoading
-    if (!isBackground) {
-      // 普通（手动或非后台）请求显示 loading
-      setIsLoading(true);
-    }
-
-    setError(null);
-
-    try {
-      const data = await getTagTree(slug, withCount, category);
-      setTags(data);
-      setIsHorizontal(isHorizontalTagTree(data));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch tags');
-      setTags([]);
-    } finally {
-      hasFetchedOnce.current = true;
-      if (!isBackground) {
-        setIsLoading(false);
-      }
-    }
-  }, [slug, withCount, category, enabled]);
-
-  useEffect(() => {
-    // 如果有初始数据且尚未请求过，则以后台方式请求一次；否则正常请求
-    if (hasInitialData && !hasFetchedOnce.current) {
-      // 不阻塞初始渲染
-      fetchTags({ background: true });
-      return;
-    }
-
-    fetchTags();
-  }, [fetchTags, locale, hasInitialData]);
-
-  // 如果外部传入 initialTags，保持同步（prop 变化时更新）
-  useEffect(() => {
-    if (initialTags) {
-      setTags(initialTags);
-      // 重置已请求标记以便新的 initialTags 可触发后台刷新
-      hasFetchedOnce.current = false;
-    }
-  }, [initialTags]);
-
-  const refresh = useCallback(async () => {
-    await fetchTags();
-  }, [fetchTags]);
+  const tags = data ?? initialTags ?? [];
 
   return {
     tags,
-    isLoading,
-    error,
-    isHorizontal,
-    refresh,
+    // 仅在「无任何数据且首次加载」时为 true → 切回有缓存时不出骨架
+    isLoading: enabled ? isLoading && tags.length === 0 : false,
+    error: error
+      ? error instanceof Error
+        ? error.message
+        : String(error)
+      : null,
+    isHorizontal: isHorizontalTagTree(tags),
+    refresh: async () => {
+      await mutate();
+    },
   };
 }
 

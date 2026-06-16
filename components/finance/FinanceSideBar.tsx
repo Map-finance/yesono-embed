@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 import FilterSidebar, {
   FilterGroup,
   FilterItem,
 } from "../common/FilterSidebar";
 import { useLocale } from "@/lib/i18n";
 import { TagTreeNode } from "@/types/home";
+import useTagTree from "@/lib/hooks/useTagTree";
 import {
-  getTagTree,
   getFinanceEndDates,
   CryptoEndDateItem,
 } from "@/lib/services/homeService";
@@ -54,43 +55,28 @@ const FinanceSideBar: React.FC<FinanceSideBarProps> = ({
 }) => {
   const { locale } = useLocale();
   const router = useRouter();
-  const [financeTags, setFinanceTags] = useState<TagTreeNode[]>([]);
-  const [endDateItems, setEndDateItems] = useState<CryptoEndDateItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // 加载 finance 标签树 + end dates
+  // 标签树走 SWR(缓存+保鲜):切回秒返、不卡骨架,后台自动刷新。
+  const { tags: financeTags, isLoading } = useTagTree({ slug: "finance" });
+
+  // 标签就绪通知父级(驱动默认选中 / financeTagsReady)。幂等,重复调用无害。
   useEffect(() => {
-    let isMounted = true;
-
-    const run = async () => {
-      setIsLoading(true);
-      try {
-        const tags = await getTagTree("finance");
-        if (!isMounted) return;
-        setFinanceTags(tags);
-        onTagsLoaded?.(tags);
-
-        // 获取 end dates
-        if (tags.length > 0) {
-          const tagSlugs = tags.map((t) => t.slug);
-          const dates = await getFinanceEndDates(tagSlugs);
-          if (isMounted) setEndDateItems(dates);
-        }
-      } catch (error) {
-        console.error("[FinanceSideBar] Failed to load:", error);
-        if (isMounted) {
-          setFinanceTags([]);
-          onTagsLoaded?.([]);
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    run();
-    return () => { isMounted = false; };
+    if (financeTags.length > 0) onTagsLoaded?.(financeTags);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  }, [financeTags]);
+
+  // endDates 依赖 tags slug,单独走 SWR:tags 先出,endDates 随后填充(不阻塞侧栏骨架)。
+  const tagSlugsKey = financeTags.map((t) => t.slug).join(",");
+  const { data: endDateItems = [] } = useSWR<CryptoEndDateItem[]>(
+    financeTags.length > 0 ? ["finance-enddates", tagSlugsKey, locale] : null,
+    () => getFinanceEndDates(financeTags.map((t) => t.slug)),
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      keepPreviousData: true,
+    }
+  );
 
   const { tagItems, dateItems } = useMemo(() => {
     const tItems: FilterItem[] = financeTags.map((tag) => ({

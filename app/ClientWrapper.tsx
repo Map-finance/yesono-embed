@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { SWRConfig } from 'swr';
 import { applyTheme, defaultTheme, lightTheme } from '@/lib/theme';
 import { I18nProvider } from '@/lib/i18n';
@@ -28,17 +28,22 @@ export default function ClientWrapper({
     applyTheme(theme);
   }, []);
 
+  // value 包 useMemo:配置对象引用稳定,SWRConfig 内部 useContext 不会因每次
+  // render 看到新对象引用而把全树 SWR 消费者标脏(虽然字段未变)。
+  const swrConfigValue = useMemo(
+    () => ({
+      refreshWhenHidden: false,
+      refreshWhenOffline: false,
+      revalidateOnReconnect: true,
+    }),
+    []
+  );
+
   return (
     <I18nProvider initialLocale={initialLocale}>
       {/* 全局 SWR 默认配置:页面隐藏/离线时不轮询不重新验证,
           避免锁屏/后台 tab 持续浪费电量与请求;切回前台/重连自动 revalidate */}
-      <SWRConfig
-        value={{
-          refreshWhenHidden: false,
-          refreshWhenOffline: false,
-          revalidateOnReconnect: true,
-        }}
-      >
+      <SWRConfig value={swrConfigValue}>
         <EmbedProvider>
           <ToastProvider>
             <NavigationProvider initialData={initialNavigation}>

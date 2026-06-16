@@ -203,7 +203,7 @@ export default function CreateMarketNew({
     loadMore,
     filterBySlug,
     filterByDateRange,
-  } = useCandidates({ limit: 10 });
+  } = useCandidates({ limit: 10 }, open);
 
   // 链上交易 Hook
   const {

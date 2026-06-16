@@ -425,15 +425,20 @@ export default function MarketDetailPage() {
     isLoadingRef.current = true;
     try {
       setLoading(true);
-      const eventResp = await getEventBySlug(id);
-      // 先按事件 tags 判断是否 finance，再取对应的 need-time-tag-tags
+      // 并行发起:event 详情 + 两套 time-tag-tags(homeService 内部各自有 TTL 缓存 +
+      // in-flight 去重,首次访问会多预热一个接口,后续命中缓存几乎零成本)。
+      // 串行改并行可省 200-500ms 首屏。
+      const [eventResp, defaultTimeTagTags, financeTimeTagTags] = await Promise.all([
+        getEventBySlug(id),
+        getNeedTimeTagTags(),
+        getFinanceNeedTimeTagTags(),
+      ]);
+      // 根据事件 tags 是否包含 finance 选择不同的 need-time-tag-tags 接口
       const financeFlag = !!eventResp?.tags?.some(
         (tag) => tag.slug === "finance"
       );
       setIsFinanceEvent(financeFlag);
-      const timeTagTags = await (financeFlag
-        ? getFinanceNeedTimeTagTags()
-        : getNeedTimeTagTags());
+      const timeTagTags = financeFlag ? financeTimeTagTags : defaultTimeTagTags;
       setNeedTimeTagTags(timeTagTags);
 
       if (eventResp) {

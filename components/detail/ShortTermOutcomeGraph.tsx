@@ -532,4 +532,4 @@ const ShortTermOutcomeGraph: React.FC<ShortTermOutcomeGraphProps> = ({
   );
 };
 
-export default ShortTermOutcomeGraph;
+export default React.memo(ShortTermOutcomeGraph);

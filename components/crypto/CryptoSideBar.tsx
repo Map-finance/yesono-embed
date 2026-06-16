@@ -1,13 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import FilterSidebar, {
   FilterGroup,
   FilterItem,
   FilterSidebarStyles,
 } from "../common/FilterSidebar";
-import { useLocale } from "@/lib/i18n";
 import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { TagTreeNode } from "@/types/home";
-import { getTagTree } from "@/lib/services/homeService";
+import useTagTree from "@/lib/hooks/useTagTree";
 
 import { getCryptoSidebarIcon } from "./CryptoSideBarIcons";
 
@@ -24,63 +23,17 @@ const CryptoSideBar: React.FC<CryptoSideBarProps> = ({
   initialTags,
   onTagsLoaded,
 }) => {
-  const { locale } = useLocale();
-  const [assetTags, setAssetTags] = useState<TagTreeNode[]>(initialTags ?? []);
-  const [isLoadingTags, setIsLoadingTags] = useState<boolean>(!(initialTags && initialTags.length > 0));
+  // 标签树走 SWR(缓存+保鲜):切回侧栏秒返、不卡骨架,后台自动刷新保持相对实时。
+  const { tags: assetTags, isLoading: isLoadingTags } = useTagTree({
+    slug: "crypto",
+    initialTags,
+  });
 
-
+  // 标签就绪即通知父级(驱动默认选中 / cryptoTagsReady)。回调幂等,重复调用无害。
   useEffect(() => {
-    let isMounted = true;
-
-    const run = async () => {
-      // 有初始数据：先渲染初始数据，不展示 loading，然后在后台尝试刷新以保证数据新鲜
-      if (initialTags && initialTags.length > 0) {
-        setAssetTags(initialTags);
-        setIsLoadingTags(false);
-        onTagsLoaded?.(initialTags);
-
-        try {
-          const tags = await getTagTree("crypto");
-          if (!isMounted) return;
-          // 仅在不同的情况下替换，以避免闪烁
-          const same =
-            Array.isArray(tags) &&
-            tags.length === initialTags.length &&
-            JSON.stringify(tags) === JSON.stringify(initialTags);
-          if (!same) {
-            setAssetTags(tags);
-            onTagsLoaded?.(tags);
-          }
-        } catch (error) {
-          // 后台刷新失败时只记录日志，不影响当前 UI
-          console.error("[CryptoSideBar] background refresh failed:", error);
-        }
-      } else {
-        // 无初始数据：展示 loading 并正式拉取数据
-        setIsLoadingTags(true);
-        try {
-          const tags = await getTagTree("crypto");
-          if (!isMounted) return;
-          setAssetTags(tags);
-          onTagsLoaded?.(tags);
-        } catch (error) {
-          console.error("[CryptoSideBar] Failed to load crypto tags:", error);
-          if (!isMounted) return;
-          setAssetTags([]);
-          onTagsLoaded?.([]);
-        } finally {
-          if (isMounted) setIsLoadingTags(false);
-        }
-      }
-    };
-
-    run();
-
-    return () => {
-      isMounted = false;
-    };
-    // 依赖 locale 以便语言变化时刷新；依赖 initialTags 以响应外部注入的数据变化
-  }, [locale, initialTags]);
+    if (assetTags.length > 0) onTagsLoaded?.(assetTags);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetTags]);
 
   const { frequencyItems, assetItems } = useMemo(() => {
     const freqs: FilterItem[] = [];

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { translations, Locale, TranslationKeys } from './translations';
 import { mutate } from "swr";
@@ -77,8 +77,12 @@ export function I18nProvider({ children, initialLocale }: { children: React.Reac
 
   const t = (translations[locale] ?? translations.en) as TranslationKeys;
 
+  // value 引用稳定:setLocale 已是 useCallback,t / locale 真变了才重建,
+  // 避免父级 re-render 时让全树 i18n 消费者跟着重渲染。
+  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
+
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   );

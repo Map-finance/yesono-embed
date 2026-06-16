@@ -511,13 +511,15 @@ export function useCategories() {
 /**
  * 获取候选事件列表 Hook
  */
-export function useCandidates(initialQuery: CandidateQuery = {}) {
+export function useCandidates(initialQuery: CandidateQuery = {}, enabled: boolean = true) {
   const [candidates, setCandidates] = useState<CandidateResp[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState<CandidateQuery>(initialQuery);
 
+  // 初始 query 快照(limit 等):enabled 跳变时回到干净首页查询,清掉上次会话残留的 key/slug/offset
+  const initialQueryRef = useRef(initialQuery);
   // 用 ref 保存最新 query / candidates / total，使回调引用稳定
   const queryRef = useRef(query);
   queryRef.current = query;
@@ -576,9 +578,18 @@ export function useCandidates(initialQuery: CandidateQuery = {}) {
     load(newQuery);
   }, [load]);
 
+  // 仅在 enabled(弹窗打开)时加载候选列表;enabled false→true 跳变触发一次。
+  // 旧实现无条件 load() —— CreateMarketNew 在 FilterBarSimple 等处常驻挂载,
+  // 导致每个列表页/PNA 页首屏都无谓请求一次候选列表。gate 后改为弹窗打开才拉。
+  // 同时把 query 重置为初始快照,避免上次会话搜索/筛选的 key/slug/offset 残留导致拉到被过滤的列表。
+  // enabled 默认 true → 不传 enabled 的调用方行为与旧实现一致。
+  // load 引用稳定([]),故 effect 实际只在 enabled 变化时重跑。
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!enabled) return;
+    const base = { ...initialQueryRef.current, offset: 0 };
+    setQuery(base);
+    load(base);
+  }, [enabled, load]);
 
   return {
     candidates,
