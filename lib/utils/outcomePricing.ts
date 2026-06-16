@@ -3,8 +3,24 @@ import {
   fillEvenSplitWhenAllZero,
 } from "@/utils/format";
 
-/** 市价单默认滑点(基点):500 = 5% */
-export const MARKET_SLIPPAGE_BPS = 500;
+/**
+ * 市价单滑点(基点;500 = 5%)。**单一来源**:保护价、资金预留等全部从这里派生,
+ * 改一处即全同步,避免漏改导致"预留与保护价不一致"。
+ * 可由 env NEXT_PUBLIC_MARKET_SLIPPAGE_BPS 覆盖(构建期注入);非法值回落 500。
+ */
+function readMarketSlippageBps(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_MARKET_SLIPPAGE_BPS);
+  // 合理区间 (0, 5000]:>50% 视为误配,回落默认
+  if (Number.isFinite(raw) && raw > 0 && raw <= 5000) return Math.round(raw);
+  return 500; // 默认 5%
+}
+export const MARKET_SLIPPAGE_BPS = readMarketSlippageBps();
+
+/**
+ * 资金预留 / Max-buy 金额折算用的乘数 = 1 + 滑点。与保护价同源(派生自 BPS),
+ * 不要再在别处硬编码 1.10/1.05。例:5% → 1.05。
+ */
+export const MARKET_SLIPPAGE_DIVISOR = 1 + MARKET_SLIPPAGE_BPS / 10000;
 
 /**
  * 给市价单的可成交价加滑点:BUY 上浮(愿意多付)、SELL 下浮(愿意少收),

@@ -57,6 +57,7 @@ import MergeShares from "./MergeShares";
 import SplitShares from "./SplitShares";
 import { useTradingStore } from "@/lib/store/tradingStore";
 import { applyMarketSlippage } from "@/lib/utils/outcomePricing";
+import { mapTradeErrorMessage } from "@/lib/utils/tradeError";
 import { useToast } from "@/components/ui/Toast";
 import ProxyImage from "@/components/common/ProxyImage";
 import { useDydx } from "@/lib/hooks/useDydx";
@@ -740,9 +741,16 @@ export default function TradingPanel({
         return;
       }
       hapticNotification('Error');
-      // 优先展示后端返回的业务错误信息（如 SELF_TRADE_PREVENTION 的详细 message）
+      // 优先展示后端返回的业务错误信息（如 SELF_TRADE_PREVENTION 的详细 message）;
+      // 已知错误模式(市场已结算 / 重复下单等)映射成友好文案,其它原样透出。
       const backendMsg = e?.response?.data?.message;
-      toast.error(backendMsg || e.message || t.common?.tradeFailed || "Trade failed");
+      const friendly = mapTradeErrorMessage(backendMsg || e.message, {
+        marketExpired: (t.market as any)?.marketExpired || "Market has ended",
+        duplicateOrder:
+          (t.market as any)?.duplicateOrder ||
+          "Duplicate order detected, please wait a moment and try again",
+      });
+      toast.error(friendly || t.common?.tradeFailed || "Trade failed");
     } finally {
       setIsSubmitting(false);
     }

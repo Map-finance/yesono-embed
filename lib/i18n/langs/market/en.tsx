@@ -544,6 +544,8 @@ export default {
   change24h: '24h Change',
   noOrderbookData: 'No orderbook data for selected side',
   marketIndexing: 'Market orderbook is being indexed, please try again later',
+  marketExpired: 'Market has ended, orders are no longer accepted',
+  duplicateOrder: 'Duplicate order detected, please wait a moment and try again',
   profitLoss: 'P&L',
   noPositionData: 'No position data',
 }

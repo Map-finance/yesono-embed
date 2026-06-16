@@ -52,7 +52,8 @@ export default function useGetPositions(options: UseGetPositionsNewOptions = {})
     const [hasFetched, setHasFetched] = useState(false);
 
     const fetchPositions = useCallback(async (): Promise<Position[]> => {
-        if (!accessToken) return [];
+        // 查看他人持仓(targetUserId 提供)不需要登录;看自己仍需 accessToken
+        if (!targetUserId && !accessToken) return [];
 
         setIsLoading(true);
         setError(null);
@@ -88,10 +89,15 @@ export default function useGetPositions(options: UseGetPositionsNewOptions = {})
     }, [userId, limit, offset, locale]);
 
     useEffect(() => {
-        if (enabled && isAuthenticated && accessToken && !hasFetched) {
+        // 查看他人(targetUserId)免登录;看自己需 isAuthenticated + accessToken
+        if (
+            enabled &&
+            !hasFetched &&
+            (targetUserId || (isAuthenticated && accessToken))
+        ) {
             fetchPositions();
         }
-    }, [enabled, isAuthenticated, accessToken, hasFetched, fetchPositions]);
+    }, [enabled, isAuthenticated, accessToken, hasFetched, fetchPositions, targetUserId]);
 
     // 提供手动刷新方法，返回最新数据以便调用方做验证
     const refresh = useCallback((): Promise<Position[]> => {

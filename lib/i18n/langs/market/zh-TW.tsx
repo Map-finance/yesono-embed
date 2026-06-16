@@ -452,4 +452,6 @@ export default {
   change24h: '24小時變化',
   noOrderbookData: '所選方向沒有可用的訂單簿數據',
   marketIndexing: '市場訂單簿索引中，請稍後再試',
+  marketExpired: '市場已結束，無法下單',
+  duplicateOrder: '請勿重複提交訂單，請稍候再試',
 }

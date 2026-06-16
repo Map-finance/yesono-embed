@@ -542,6 +542,8 @@ export default {
   change24h: '24小时变化',
   noOrderbookData: '所选方向没有可用的订单簿数据',
   marketIndexing: '市场订单簿索引中，请稍后再试',
+  marketExpired: '市场已结束，无法下单',
+  duplicateOrder: '请勿重复提交订单，请稍候再试',
   profitLoss: '盈亏',
   noPositionData: '暂无持仓数据',
 }
