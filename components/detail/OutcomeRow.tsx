@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo, memo } from "react";
+import dynamic from "next/dynamic";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -22,7 +23,22 @@ import {
 } from "@/lib/utils/outcomePricing";
 import SpotOrderbook from "./SpotOrderbook";
 import BuyButton from "./BuyButton";
-import OutcomeGraph from "./OutcomeGraph";
+// OutcomeGraph(普通市场概率图,内含 recharts ~340KB)dynamic 加载:
+// 默认 orderbook tab 不进首屏 chunk;切到 graph tab 时才异步加载,带 skeleton 占位
+const OutcomeGraph = dynamic(() => import("./OutcomeGraph"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-xl p-4 animate-pulse">
+      <div className="h-4 w-32 bg-[var(--bg-secondary)] rounded mb-4" />
+      <div className="flex gap-1 mb-4">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="h-7 w-12 bg-[var(--bg-secondary)] rounded-full" />
+        ))}
+      </div>
+      <div className="h-[200px] bg-[var(--bg-secondary)] rounded" />
+    </div>
+  ),
+});
 import ShortTermOutcomeGraph from "./ShortTermOutcomeGraph";
 import { isShortTermFrequencySlug } from "@/lib/utils/eventFrequency";
 import { formatButtonPrice, type DisplayOption } from "./OutcomeList.helpers";

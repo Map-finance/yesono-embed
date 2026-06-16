@@ -23,7 +23,17 @@ import { Market } from "@/types/types";
 import { useTradingStore } from "@/lib/store/tradingStore";
 import ProxyImage from "@/components/common/ProxyImage";
 import { resolveEventDate } from "@/lib/utils/sportsNav";
-import SharedTradingPanel from "@/components/common/TradingPanel";
+import dynamic from "next/dynamic";
+import TradingPanelSkeleton from "@/components/common/TradingPanel/Skeleton";
+// TradingPanel 体量较大,首屏不强依赖 → dynamic 拉出主 chunk,
+// Skeleton 占位避免布局抖动
+const SharedTradingPanel = dynamic(
+  () => import("@/components/common/TradingPanel"),
+  {
+    ssr: false,
+    loading: () => <TradingPanelSkeleton hideHeader />,
+  }
+);
 import {
   getMoneylineSettlementLabel,
   getSpreadSettlementLabel,
