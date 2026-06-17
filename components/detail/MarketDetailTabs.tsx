@@ -89,9 +89,9 @@ const MarketDetailTabs: React.FC<MarketDetailTabsProps> = ({ marketId, unionKey,
         <CommentSection entityId={String(commentMarketId)} onCommentCreated={handleCommentCreated} />
       )}
 
-      {/* Top Holders Tab Content */}
+      {/* Top Holders Tab Content — 透传 selectedMarketId 让排行榜默认跟随主列表选中 */}
       {activeTab === 1 && (
-        <TopHolders markets={markets || []} />
+        <TopHolders markets={markets || []} activeMarketId={selectedMarketId} />
       )}
 
       {/* Activity Tab Content */}

@@ -8,6 +8,7 @@ import Avatar from "@/components/common/Avatar";
 import { UserProfile } from "@/components/common/UserProfile";
 import { PolymarketMarketResp } from "@/types/home";
 import { normalizeBinaryOutcomeLabel } from "@/lib/utils/outcomes";
+import { pickDefaultMarket } from "@/lib/utils/marketSelection";
 
 interface PositionsProps {
   markets: PolymarketMarketResp[];
@@ -153,9 +154,12 @@ const Positions: React.FC<PositionsProps> = ({ markets }) => {
     }));
   }, [markets]);
 
-  const [selectedMarketId, setSelectedMarketId] = useState<string>(() => {
-    return markets.length > 0 ? String(markets[0].id) : "";
-  });
+  // 默认选首个"未结算"市场;全已结算才回退首项。
+  // markets 常按 volume 排序,首项可能是已结算高额档,直接 markets[0] 会让 Positions
+  // 默认落到已结算市场,与列表里高亮的活跃市场错位(与 TopHolders / page 同口径)
+  const [selectedMarketId, setSelectedMarketId] = useState<string>(() =>
+    String(pickDefaultMarket(markets)?.id ?? "")
+  );
 
   const selectedMarket = useMemo(() => {
     return markets.find(m => String(m.id) === selectedMarketId);

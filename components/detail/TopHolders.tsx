@@ -7,9 +7,27 @@ import { Popover } from "../ui/Popover";
 import HoldersList from "../common/HoldersList";
 import { PolymarketMarketResp } from '@/types/home';
 import { normalizeBinaryOutcomeLabel } from "@/lib/utils/outcomes";
+import { pickDefaultMarket } from "@/lib/utils/marketSelection";
 
 interface TopHoldersProps {
   markets: PolymarketMarketResp[];
+  /** 主列表(OutcomeList)当前选中的 market.id;持有者排行榜默认跟随它 */
+  activeMarketId?: string;
+}
+
+/**
+ * 选默认市场:优先主列表选中市场(且在 markets 内),否则走共享口径(首个未结算,
+ * 全已结算回退首项)。避免多档事件(markets 按 volume 排序、首项常为已结算)
+ * 默认落到已结算档,与主面板错位。
+ */
+function pickDefaultMarketId(
+  markets: PolymarketMarketResp[],
+  activeMarketId?: string
+): string {
+  if (activeMarketId && markets.some((m) => String(m.id) === activeMarketId)) {
+    return activeMarketId;
+  }
+  return String(pickDefaultMarket(markets)?.id ?? "");
 }
 
 /**
@@ -76,7 +94,7 @@ function useHolders(market: PolymarketMarketResp | undefined) {
 
 
 
-const TopHolders: React.FC<TopHoldersProps> = ({ markets }) => {
+const TopHolders: React.FC<TopHoldersProps> = ({ markets, activeMarketId }) => {
   const { t } = useTranslation();
 
   // 市场选项列表（和 outcome 列表数据源一致）
@@ -87,9 +105,18 @@ const TopHolders: React.FC<TopHoldersProps> = ({ markets }) => {
     }));
   }, [markets]);
 
-  const [selectedMarketId, setSelectedMarketId] = useState<string>(() => {
-    return markets.length > 0 ? String(markets[0].id) : '';
-  });
+  const [selectedMarketId, setSelectedMarketId] = useState<string>(() =>
+    pickDefaultMarketId(markets, activeMarketId)
+  );
+
+  // 主列表切换选中市场时,持有者排行榜跟随。仅依赖 activeMarketId,不依赖 markets,
+  // 避免后台轮询刷新 markets 引用时覆盖用户在本组件下拉里的手动选择。
+  useEffect(() => {
+    if (activeMarketId && markets.some((m) => String(m.id) === activeMarketId)) {
+      setSelectedMarketId(activeMarketId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMarketId]);
 
   const selectedMarket = useMemo(() => {
     return markets.find(m => String(m.id) === selectedMarketId);

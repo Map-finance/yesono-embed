@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import NumberFlow from "@number-flow/react";
 import { getAssetColor } from "@/utils/format";
 import { useTranslation } from "@/lib/i18n";
+import { serverNow } from "@/lib/utils/serverTime";
 import GoToLiveMarketButton from "./GoToLiveMarketButton";
 
 interface LivePriceHeaderProps {
@@ -27,6 +28,7 @@ const DEFAULT_LIVE_PRICE_HEADER_TEXT = {
   finalPrice: "Final price",
   goToLiveMarket: "Go to live market",
   liveButton: "Live",
+  settling: "Settling…",
   countdown: {
     days: "Days",
     hours: "Hours",
@@ -64,6 +66,11 @@ export default function LivePriceHeader({
     (t.market as any).livePriceHeader ?? DEFAULT_LIVE_PRICE_HEADER_TEXT;
   const countdownText =
     livePriceHeaderText.countdown ?? DEFAULT_LIVE_PRICE_HEADER_TEXT.countdown;
+  const settlingText =
+    livePriceHeaderText.settling ?? DEFAULT_LIVE_PRICE_HEADER_TEXT.settling;
+  // 已结束但后端结算价(finalPrice/closePrice)还没到 → 结算中:显示占位、不展示最后
+  // 一跳价 / 涨跌,对齐 Polymarket(结算价只认后端,过渡期显示 pending,不拿最后一跳冒充)
+  const isSettling = !isLive && finalPrice === null;
   const formatChange = `$${Math.abs(displayChange).toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -89,7 +96,8 @@ export default function LivePriceHeader({
     }
 
     const updateCountdown = () => {
-      const difference = endDate - Date.now();
+      // 用服务器校准时间(WS tick 时间戳校准);没收到 WS 时 serverNow() 退化为本地 Date.now()
+      const difference = endDate - serverNow();
       if (difference <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
@@ -163,7 +171,9 @@ export default function LivePriceHeader({
                 ? livePriceHeaderText.currentPrice
                 : livePriceHeaderText.finalPrice}
             </span>
-            {currentPrice !== 0 && (
+            {/* 未开始的市场没有开盘价基准(priceToBeat=null,初始价显示「—」),涨跌无从谈起,
+                不展示;结算中(isSettling)同样不展示;有基准价后才显示「当前/最终价 − 开盘价」 */}
+            {!isSettling && currentPrice !== 0 && priceToBeat != null && (
               <span className={`text-[11px] font-semibold ${changeColor}`}>
                 {changeSymbol} {formatChange}
               </span>
@@ -193,6 +203,11 @@ export default function LivePriceHeader({
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
+              </span>
+            ) : isSettling ? (
+              // 结算中:后端结算价未到的过渡态(对齐 Polymarket,不显示最后一跳价)
+              <span className="text-base sm:text-lg text-(--text-secondary) animate-pulse">
+                {settlingText}
               </span>
             ) : (
               <span className="text-(--text-secondary)">—</span>
