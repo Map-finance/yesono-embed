@@ -79,6 +79,11 @@ const ClaimWinningsPanel = dynamic(
   () => import("@/components/detail/ClaimWinningsPanel"),
   { ssr: false }
 );
+// 详情页"我的持仓 / 当前委托 / 成交历史"堆叠区(仅登录态 + 有数据时渲染)
+const MyMarketStack = dynamic(
+  () => import("@/components/detail/MyMarketStack"),
+  { ssr: false }
+);
 const LivePriceChart = dynamic(
   () => import("@/components/detail/LivePriceChart"),
   {
@@ -793,6 +798,18 @@ export default function MarketDetailPage() {
           </div>
           )}
 
+          {/* 我的持仓 / 当前委托 / 成交历史 —— h2 单市场布局口径,堆在 OutcomeList 下方;
+              三块都为空则整段不渲染。不放在底部 MarketDetailTabs(那里只有评论/持有人/活动)。 */}
+          <MyMarketStack
+            market={selectedMarketObj ?? null}
+            isResolved={selectedIsResolved}
+            resolvedYesPayout={
+              selectedMarketInfo?.marketId
+                ? selectedSettlements[String(selectedMarketInfo.marketId)] ?? null
+                : null
+            }
+          />
+
           {/* 评论区 */}
           <MarketDetailTabs
             marketId={market.id}
@@ -801,8 +818,6 @@ export default function MarketDetailPage() {
             eventId={selectedMarketInfo?.eventId || eventData?.id}
             markets={eventData?.markets || []}
             selectedMarketId={selectedMarketInfo?.marketId}
-            selectedMarketObj={selectedMarketObj}
-            isResolved={selectedIsResolved}
           />
         </div>
 
