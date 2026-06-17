@@ -23,7 +23,13 @@ interface TabsProps {
 export default function Tabs({ items, value, defaultValue, onChange, className = '', rightSlot, size = 'medium', lazyContent = false }: TabsProps) {
   const [internalTab, setInternalTab] = useState(defaultValue || items[0]?.value)
   const activeTab = value !== undefined ? value : internalTab
-  
+  // 兜底:选中 tab 因 items 变化被移除(卖光持仓 / 撤光委托 / WS 刷新后该 tab 消失)时,
+  // 回落到第一个 tab,避免指示器与内容都指向不存在的 value 而露白。
+  const effectiveTab = useMemo(
+    () => (items.some((i) => i.value === activeTab) ? activeTab : items[0]?.value),
+    [items, activeTab]
+  )
+
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
   const tabsRef = useRef<{ [key: string]: HTMLButtonElement | null }>({})
   const itemsSignature = useMemo(
@@ -32,7 +38,7 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
   )
 
   const updateIndicator = useCallback(() => {
-    const activeButton = tabsRef.current[activeTab]
+    const activeButton = tabsRef.current[effectiveTab]
     if (!activeButton) return
     const nextLeft = activeButton.offsetLeft
     const nextWidth = activeButton.offsetWidth
@@ -41,7 +47,7 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
         ? prev
         : { left: nextLeft, width: nextWidth }
     )
-  }, [activeTab])
+  }, [effectiveTab])
 
   const handleTabClick = (val: string) => {
     if (value === undefined) {
@@ -52,7 +58,7 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
 
   useEffect(() => {
     updateIndicator()
-  }, [activeTab, itemsSignature, updateIndicator])
+  }, [effectiveTab, itemsSignature, updateIndicator])
 
   useEffect(() => {
     const handleResize = () => updateIndicator()
@@ -74,7 +80,7 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
                 py-2 text-sm transition-colors 
                 ${size === 'small' ? '' : 'py-1 h-12 text-[15px]'} 
                 ${
-                  activeTab === item.value
+                  effectiveTab === item.value
                     ? 'text-(--text-primary)'
                     : 'text-(--text-secondary) opacity-60 hover:opacity-100 hover:text-(--text-primary)'
                 }
@@ -100,7 +106,7 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
       {/* Tab Content */}
       {lazyContent
         ? (() => {
-            const activeItem = items.find((i) => i.value === activeTab)
+            const activeItem = items.find((i) => i.value === effectiveTab)
             return activeItem?.content != null ? (
               <div key={activeItem.value} className="flex-1 overflow-hidden">
                 {activeItem.content}
@@ -110,7 +116,7 @@ export default function Tabs({ items, value, defaultValue, onChange, className =
         : items.map((item) => (
             <div
               key={item.value}
-              className={`flex-1 overflow-hidden ${activeTab === item.value ? 'block' : 'hidden'}`}
+              className={`flex-1 overflow-hidden ${effectiveTab === item.value ? 'block' : 'hidden'}`}
             >
               {item.content}
             </div>

@@ -1,5 +1,10 @@
-const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
-initOpenNextCloudflareForDev();
+// OpenNext 的 Cloudflare dev 集成会给每个 `next dev` 额外拉起一个 workerd 运行时进程,
+// CPU/内存翻倍。本项目代码未使用 Cloudflare bindings(getCloudflareContext),
+// 故默认关闭,仅在需要本地验证 CF runtime 时显式 ENABLE_CF_DEV=1 pnpm dev 开启。
+if (process.env.ENABLE_CF_DEV === "1") {
+  const { initOpenNextCloudflareForDev } = require("@opennextjs/cloudflare");
+  initOpenNextCloudflareForDev();
+}
 
 const HOST_FRAME_ANCESTORS =
   process.env.NEXT_PUBLIC_EMBED_FRAME_ANCESTORS || "*";

@@ -100,7 +100,7 @@ export const formatAbbreviatedCurrency = (
     return `${sign}${currencySymbol}${n.toLocaleString()}`;
   }
 
-  const units = ['k', 'm', 'b', 't'];
+  const units = ['K', 'M', 'B', 'T'];
   let unitIndex = -1;
   while (n >= 1000 && unitIndex < units.length - 1) {
     n = Math.round(n / 1000);
