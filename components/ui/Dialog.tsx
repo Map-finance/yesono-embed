@@ -99,7 +99,7 @@ export function Dialog({
     >
       {/* 遮罩层 */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-xs"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         aria-hidden="true"
       />
 

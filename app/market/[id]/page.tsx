@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Market } from "@/types/types";
 import { PolymarketEventResp, PolymarketMarketResp } from "@/types/home";
@@ -33,6 +33,8 @@ import ProxyImage from "@/components/common/ProxyImage";
 import { favoriteEvent } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { isSportsEvent, buildSportsEventUrl } from "@/lib/utils/sportsNav";
+import { pickDefaultMarket } from "@/lib/utils/marketSelection";
+import { serverNow } from "@/lib/utils/serverTime";
 import { trackEvent } from "@/lib/sentryClient";
 import { getOutcomesByMarket, getBinaryOutcomeLabels } from "@/lib/utils/outcomes";
 import { useSettlementResults } from "@/lib/hooks/useSettlementResults";
@@ -103,6 +105,7 @@ export default function MarketDetailPage() {
   const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   // 控制 description 显示更多
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -148,14 +151,17 @@ export default function MarketDetailPage() {
       setIsMarketEnded(false);
       return;
     }
-    if (Date.now() >= end) {
+    // 用 serverNow 做服务器校时:用户本地时间偏快/偏慢时,短周期市场倒计时与
+     // "已截止" 切换不会被偏成提前/滞后(WS 收到任一带 timestamp 的 tick 后才生效;
+     // 无 WS 数据时 serverNow() 退化为 Date.now(),不会比当前更差)。
+    if (serverNow() >= end) {
       setIsMarketEnded(true);
       return;
     }
     setIsMarketEnded(false);
     // 超长延迟（>24.8 天）用 setLongTimeout 兜住原生 setTimeout 的 32 位溢出，
     // 否则远期市场会被立即误判为"已截止，等待结算"。
-    return setLongTimeout(() => setIsMarketEnded(true), end - Date.now());
+    return setLongTimeout(() => setIsMarketEnded(true), end - serverNow());
   }, [eventData?.endDate]);
 
   // 判断是否应该显示“Live Price Chart”选项 (只对包含了特定时间周期的事件开放)
@@ -456,9 +462,17 @@ export default function MarketDetailPage() {
         }
         setEventData(eventResp);
         setSelectedEvent(eventResp);
-        // 选中第一个市场
+        // 选中市场:URL ?market=xxx 优先(从 PNA / 外链跳转过来时定位到该档),
+        // 否则首个"未结算"市场(避免落到已结算档 → 右栏默认显示"已结算结果"与
+        // 列表里高亮的活跃市场错位)。全已结算才回退到 markets[0]。
         if (eventResp.markets?.length > 0) {
-          setSelectedMarket(eventResp.markets[0]);
+          const urlMarketHint = searchParams.get("market") || undefined;
+          const hinted = urlMarketHint
+            ? eventResp.markets.find((m) => String(m.id) === urlMarketHint)
+            : undefined;
+          const targetMarket =
+            hinted || pickDefaultMarket(eventResp.markets) || eventResp.markets[0];
+          setSelectedMarket(targetMarket);
         }
         // 转换为 Market 类型给现有组件使用
         const convertedMarket = convertEventToMarket(eventResp);
