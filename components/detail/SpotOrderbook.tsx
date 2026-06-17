@@ -131,11 +131,16 @@ const generateMockOrderbook = (basePrice: number, depth: number = 15): LocalOrde
     });
   }
   
-  const bestAsk = asks[0]?.price || basePrice;
-  const bestBid = bids[0]?.price || basePrice;
+  const hasAsk = asks.length > 0;
+  const hasBid = bids.length > 0;
+  const bestAsk = hasAsk ? asks[0].price : basePrice;
+  const bestBid = hasBid ? bids[0].price : basePrice;
   const midPrice = (bestAsk + bestBid) / 2;
-  const spread = bestAsk - bestBid;
-  const spreadPercent = (spread / midPrice) * 100;
+  // 单边盘口(只有买单或只有卖单)时 spread 无意义 → 置 0,避免 0 − bestBid 这种负数;
+  // UI 侧会据 asks/bids 是否都非空再决定显示数值还是 "—"。
+  const spread = hasAsk && hasBid ? bestAsk - bestBid : 0;
+  const spreadPercent =
+    hasAsk && hasBid && midPrice > 0 ? (spread / midPrice) * 100 : 0;
   
   return {
     asks: asks.reverse(), // 显示时从高到低
@@ -215,6 +220,11 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
   // 当前市场的订单簿 WS 实例:经 registry 按 marketId 去重共享(与 tradingStore 同市场共用
   // 一条连接,refCount 自管),满足后端"切市场断开新开"约束。wsRef 只为刷新按钮拿当前实例。
   const wsRef = useRef<OrderBookWebSocket | null>(null);
+  // 交叉盘口自愈:本地增量盘口可能因丢消息/重连间隙残留过期档位 → bestBid ≥ bestAsk
+  // (交叉,不可能的合法状态)。持续交叉就自动重拉全量快照修复(快速市场低流动性 + 频繁
+  // 断线时尤其需要,否则会永久显示无效状态)。
+  const healCooldownRef = useRef(false); // heal 后 10s 冷却,防 heal 风暴
+  const crossedSinceRef = useRef<number | null>(null); // 首次发现交叉的时间戳
 
   // Resolve yes/no asset id candidates (support multiple formats)
   // 用 ref 存储，避免数组引用变化导致 handler 函数重建，进而触发 WS 重订阅
@@ -392,6 +402,65 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
       wsRef.current = null;
     };
   }, [marketId, handleSnapshot, handlePriceChange]); // handleSnapshot/handlePriceChange 现在永久稳定
+
+  // 静默自愈 + forceReconnect 拉全新全量快照(刷新按钮 / 交叉自愈共用)。
+  //
+  // 关键:不清空已展示的订单簿、不重置 store —— 保留现有数据继续显示,等后端推来的全量
+  // snapshot 经 handleSnapshot 的 applySnapshot(内部 clear 后全量重建)原地覆盖旧数据。
+  // 用户无感、不会闪 "Connecting...";薄盘/临近结算市场交叉自愈频繁触发时尤其明显。
+  //
+  // 为何连 store 也不重置:若先 new OrderBookStore() 清空,而 price_change 早于 snapshot
+  // 到达,增量会落在近空 store 上 flush 出近空簿造成闪烁。保留旧 store 让增量先叠在旧数据
+  // 上,snapshot 到达时由 applySnapshot 一次性全量覆盖,过渡平滑。
+  //
+  // opts.feedback=true(手动点刷新按钮):短暂翻 isLoading 让刷新图标转一下作反馈。
+  const healOrderbook = useCallback((opts?: { feedback?: boolean }) => {
+    if (!marketId) return;
+    setError(null);
+    if (opts?.feedback) {
+      setIsLoading(true);
+      // snapshot 到达时 handleSnapshot 会置 false;此处兜底防快照迟迟不来导致图标永转
+      setTimeout(() => setIsLoading(false), 5000);
+    }
+    // forceReconnect 内部带 single-flight 锁,狂触发不会堆 pending 连接
+    wsRef.current?.forceReconnect();
+  }, [marketId]);
+
+  // 交叉盘口自愈:1s 巡检,持续交叉(bestBid ≥ bestAsk,两侧都有单)≥2s 自动重拉全量快照
+  // 修复。排除瞬时在途更新(只一帧交叉不 heal);heal 后 10s 冷却避免风暴。快速市场低
+  // 流动性 + 高频更新场景下尤为关键 —— 没有这个守卫,WS 丢一个 size=0 删除消息就会让
+  // 本地簿残留过期档,bestBid 反超 bestAsk 后用户看到的将是无效的负 spread / 错乱档位。
+  useEffect(() => {
+    if (!marketId) return;
+    const isCrossed = (ob: ProcessedOrderBook | null) =>
+      !!ob && ob.bestBid > 0 && ob.bestAsk > 0 && ob.bestBid >= ob.bestAsk;
+    const id = setInterval(() => {
+      if (healCooldownRef.current) return;
+      const crossed =
+        isCrossed(yesStoreRef.current.getProcessedOrderBook()) ||
+        isCrossed(noStoreRef.current.getProcessedOrderBook());
+      if (!crossed) {
+        crossedSinceRef.current = null;
+        return;
+      }
+      if (crossedSinceRef.current == null) {
+        crossedSinceRef.current = Date.now(); // 首帧交叉,先观望
+        return;
+      }
+      if (Date.now() - crossedSinceRef.current >= 2000) {
+        crossedSinceRef.current = null;
+        healCooldownRef.current = true;
+        setTimeout(() => {
+          healCooldownRef.current = false;
+        }, 10_000);
+        console.warn(
+          '[SpotOrderbook] crossed orderbook (bestBid ≥ bestAsk) → auto re-snapshot'
+        );
+        healOrderbook();
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [marketId, healOrderbook]);
 
   // 调试:截止时间到时打印该市场所有 WS 推送(用于排查推送/漂移/陈旧)。
   // 只在 endDateMs 提供、有效、未过期时启用,截止瞬间打印一次。
@@ -656,18 +725,10 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
 
           <button
             onClick={() => {
-              if (!marketId || isLoading) return;
-              // 不清空旧簿:保留现有数据继续显示,等后端推来的全量 snapshot 经
-              // handleSnapshot.applySnapshot(内部 clear 后全量重建)原地覆盖。
-              // 用户无感、不会闪 "Connecting..." 空态;若先清空,而 price_change 早于
-              // snapshot 到达,增量会落在近空 store 上 flush 出近空簿造成闪烁。
-              setError(null);
-              // 短暂翻 isLoading 让刷新图标转一下作 feedback;snapshot 到达时
-              // handleSnapshot 会把 isLoading 置 false;此处兜底防快照迟迟不来导致图标永转
-              setIsLoading(true);
-              setTimeout(() => setIsLoading(false), 5000);
-              // forceReconnect 内部带 single-flight 锁,狂触发不会堆 pending 连接
-              wsRef.current?.forceReconnect();
+              if (isLoading) return;
+              // 手动刷新:复用统一 healOrderbook(带 feedback 让图标转一下);
+              // 不清空旧簿,数据原地刷新不闪屏。详细注释见 healOrderbook 函数体。
+              healOrderbook({ feedback: true });
             }}
             className="p-1 rounded hover:bg-(--bg-hover) text-(--text-secondary)"
           >
@@ -726,7 +787,13 @@ const SpotOrderbook: React.FC<SpotOrderbookProps> = ({
                   {t.market.last}: <span className="font-medium text-(--text-primary)">{formatPrice(lastPrice)}</span>
                 </span>
                 <span className="text-(--text-secondary)">
-                  {t.market.spread}: <span className="font-medium text-(--text-primary)">{formatPrice(orderbook.spread)}</span>
+                  {t.market.spread}: <span className="font-medium text-(--text-primary)">{
+                    // 两侧都有真实挂单 → 显示数值,交叉盘口(bid>ask 的负数)钳到 0;
+                    // 单边盘口(一侧无挂单)→ "—"(此时 spread 无意义)
+                    orderbook.asks.length > 0 && orderbook.bids.length > 0
+                      ? formatPrice(Math.max(0, orderbook.spread))
+                      : "—"
+                  }</span>
                 </span>
               </div>
             </div>
