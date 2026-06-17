@@ -9,6 +9,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_C2C_API_BASE_URL!;
 const API_HOST = getAuthApiHost();
 const AUTH_BASE_URL = `${API_HOST}/api`;
 
+/**
+ * 详情页「我的持仓 / 当前委托 / 成交历史 / 成交明细」走 legacy h2 后端
+ * (c.qf318.com)。embed 自有 TOB 后端对应能力上线后,把这个常量切换到
+ * NEXT_PUBLIC_ROUTER_BASE_URL 即可。空字符串兜底防止运行时 undefined 拼出诡异 URL。
+ */
+const LEGACY_ROUTER_BASE_URL =
+  process.env.NEXT_PUBLIC_LEGACY_ROUTER_BASE_URL ?? "";
+
 export const getLanguageHeaders = () => {
   let lang = "en";
   if (typeof window !== "undefined") {
@@ -202,34 +210,15 @@ export async function deleteComment(commentId: number) {
 }
 
 
-// ─── Unfinished Aggregated Orders ────────────────────────────────────────────
-
-export interface UnfinishedAggregatedOrder {
-  orderId: number;
-  userId: string;
-  tokenId: string;
-  side: 'BUY' | 'SELL';
-  orderType: string;
-  orderPrice: number;
-  filledSize: number;
-  status: 'CREATED' | 'WAITING_DEPOSIT' | 'PARTIALLY_DEPOSITED' | 'EXECUTING';
-  estimatedGasFee: number;
-  actualGasFee: number;
-  placedAmount: number;
-  placedSize: number;
-  avgFillPrice: number;
-  tradingFee: number;
-  outComeUnionKey: string;
-  expiresAt: number | null;
-  executedAt: number | null;
-  completedAt: number | null;
-  eventId: string;
-}
+// ─── Unfinished Aggregated Orders(TOB legacy / pna 用) ─────────────────────
+// 详情页用的统一聚合形态见下方 router/order/list 段落的 UnfinishedAggregatedOrder。
+// 这里 pna /orders/unfinished 端点的字段更窄,为避免与详情页类型重名冲突,直接用 any[]
+// (pna 现有 use-get-orders.ts 也是按 any[] 消费,实际字段动态读取)。
 
 export async function getUnfinishedOrders(userId?: string): Promise<{
   code: number;
   message: string;
-  data: UnfinishedAggregatedOrder[];
+  data: any[];
 }> {
   const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
   const response = await request(`${AUTH_BASE_URL}/orders/unfinished${query}`, {
@@ -895,6 +884,231 @@ export interface ImageReviewData {
   status: boolean;
   error_message: string;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Legacy h2 router 后端(c.qf318.com)— 仅详情页「我的持仓 / 当前委托 / 成交历史
+// / 成交明细 / 撤单 / 领奖」用。TOB 等价接口上线后,把 LEGACY_ROUTER_BASE_URL
+// 在 .env 切换到 ROUTER_BASE_URL 即可。
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── /router/order/list ──────────────────────────────────────────────────────
+
+export type OrderStatus =
+  | "all"
+  | "pending"
+  | "partially_filled"
+  | "filled"
+  | "canceled";
+
+export interface OrderListItem {
+  orderId: number | string;
+  userId?: string;
+  tokenId?: string;
+  side: "BUY" | "SELL" | "buy" | "sell";
+  orderType?: string;
+  orderPrice: number | string;
+  filledSize: number | string;
+  placedSize: number | string;
+  placedAmount: number | string;
+  /** 实际成交金额(USD);历史委托的「金额」用它,而非下单总额 placedAmount */
+  filledAmount?: number | string;
+  avgFillPrice?: number | string;
+  /** 手续费(USDT)。后端订单列表实际字段名是 fee;tradingFee 为历史别名,二者兼容 */
+  fee?: number | string;
+  tradingFee?: number | string;
+  status: string; // 大写(COMPLETED)或小写(filled),前端兼容
+  outComeUnionKey?: string;
+  outcome?: string;
+  question?: string | null;
+  i18nData?: Record<string, { question?: string; groupItemTitle?: string }> | null;
+  icon?: string | null;
+  eventId?: string;
+  eventSlug?: string | null;
+  marketId?: string | number;
+  expiresAt?: number | string | null;
+  executedAt?: number | string | null;
+  completedAt?: number | string | null;
+  createdAt?: number | string | null;
+  updatedAt?: number | string | null;
+}
+
+/**
+ * 详情页「我的持仓 / 当前委托 / 成交历史」共用的统一订单列表。
+ * 按 status 过滤(pending / filled,partially_filled / canceled),按 marketId / eventId 过滤。
+ */
+export async function getOrderList(params: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+  marketId?: string | number;
+  eventId?: string | number;
+}): Promise<{ code: number; message: string; data: OrderListItem[] }> {
+  const qs = new URLSearchParams();
+  qs.set("limit", String(params.limit ?? 10));
+  qs.set("offset", String(params.offset ?? 0));
+  if (params.status && params.status !== "all") qs.set("status", params.status);
+  if (params.marketId != null) qs.set("marketId", String(params.marketId));
+  if (params.eventId != null) qs.set("eventId", String(params.eventId));
+  return request(
+    `${LEGACY_ROUTER_BASE_URL}/order/list?${qs.toString()}`,
+    { method: "GET" },
+    getLanguageHeaders()
+  );
+}
+
+// ─── /router/order/fills(单笔订单成交明细)──────────────────────────────────
+
+export interface OrderFillItem {
+  tradeId: string;
+  side: "BUY" | "SELL";
+  price: string;
+  size: string;
+  amount: string;
+  fee: string;
+  timestamp: number;
+  liquidity: "TAKER" | "MAKER";
+  platform: string;
+}
+
+export async function getOrderFills(
+  orderId: string | number
+): Promise<{ code: number; message: string; data: OrderFillItem[] }> {
+  return request(
+    `${LEGACY_ROUTER_BASE_URL}/order/fills?orderId=${encodeURIComponent(String(orderId))}`,
+    { method: "GET" },
+    getLanguageHeaders()
+  );
+}
+
+// ─── /router/positions/active(当前市场持仓)────────────────────────────────
+
+export async function getPositionsActiveRouter(params: {
+  limit?: number;
+  offset?: number;
+  marketId?: string | number;
+  userId?: string;
+}) {
+  const qs = new URLSearchParams({
+    limit: String(params.limit ?? 10),
+    offset: String(params.offset ?? 0),
+  });
+  if (params.marketId != null) qs.set("marketId", String(params.marketId));
+  if (params.userId) qs.set("userId", params.userId);
+  return request(
+    `${LEGACY_ROUTER_BASE_URL}/positions/active?${qs.toString()}`,
+    { method: "GET" },
+    getLanguageHeaders()
+  );
+}
+
+// ─── /router/order/cancel(撤单 — v1 暂不接 UI,接口先备好)──────────────────
+
+export interface OrderCancelResponse {
+  code: number;
+  message: string;
+  data: boolean;
+  success?: boolean;
+  msg?: string;
+}
+
+export async function cancelOrderApi(params: {
+  orderId: string;
+}): Promise<OrderCancelResponse> {
+  const response = await request(
+    `${LEGACY_ROUTER_BASE_URL}/order/cancel`,
+    { method: "POST", body: JSON.stringify(params) },
+    getLanguageHeaders()
+  );
+  // 取消失败时后端返 { success:false, msg },axios 拦截器放行为"成功";显式判定并抛
+  if (response && response.success === false) {
+    throw new Error(response.msg || response.message || "Failed to cancel order");
+  }
+  return response;
+}
+
+// ─── /router/order/redeem(领奖 — v1 暂不接 UI,接口先备好)───────────────────
+
+export async function createOrderRedeem(params: {
+  marketId: string;
+}): Promise<{ code: number; message: string; data: any; success?: boolean; msg?: string }> {
+  const response = await request(
+    `${LEGACY_ROUTER_BASE_URL}/order/redeem`,
+    { method: "POST", body: JSON.stringify(params) },
+    getLanguageHeaders()
+  );
+  if (response && response.success === false) {
+    throw new Error(response.msg || response.message || "Failed to redeem");
+  }
+  return response;
+}
+
+// ─── 适配:OrderListItem(字符串数值)→ 渲染用的 number 形态 ─────────────────
+
+/**
+ * MyOrdersTable 消费的字段名沿用 h2 的 UnfinishedAggregatedOrder 命名,
+ * 把 OrderListItem 的字符串字段统一适配成 number。renderer 不用感知 wire 类型。
+ */
+export interface UnfinishedAggregatedOrder {
+  /** 必须保留字符串:后端 orderId 是雪花 ID(19 位整数),
+   *  转 number 会让末尾几位变样,fills / cancel 接口会 404。 */
+  orderId: string;
+  userId: string;
+  tokenId: string;
+  side: "BUY" | "SELL";
+  orderType: string;
+  orderPrice: number;
+  filledSize: number;
+  status: string;
+  estimatedGasFee: number;
+  actualGasFee: number;
+  placedAmount: number;
+  placedSize: number;
+  filledAmount: number;
+  avgFillPrice: number;
+  tradingFee: number;
+  outComeUnionKey: string;
+  expiresAt: number | null;
+  executedAt: number | null;
+  completedAt: number | null;
+  /** 取消单用它当结束时间兜底(completedAt 为 0/空时) */
+  updatedAt: number | null;
+  eventId: string;
+}
+
+const _toNum = (v: any): number => {
+  if (v == null || v === "") return 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+export function adaptOrderItem(it: OrderListItem): UnfinishedAggregatedOrder {
+  const sideUpper = String(it.side).toUpperCase();
+  return {
+    orderId: String(it.orderId),
+    userId: String(it.userId ?? ""),
+    tokenId: String(it.tokenId ?? ""),
+    side: (sideUpper === "SELL" ? "SELL" : "BUY") as "BUY" | "SELL",
+    orderType: String(it.orderType ?? "LIMIT"),
+    orderPrice: _toNum(it.orderPrice),
+    filledSize: _toNum(it.filledSize),
+    status: it.status as any,
+    estimatedGasFee: 0,
+    actualGasFee: 0,
+    placedAmount: _toNum(it.placedAmount),
+    placedSize: _toNum(it.placedSize),
+    filledAmount: _toNum(it.filledAmount),
+    avgFillPrice: _toNum(it.avgFillPrice),
+    tradingFee: _toNum(it.fee ?? it.tradingFee),
+    outComeUnionKey: String(it.outComeUnionKey ?? ""),
+    expiresAt: _toNum(it.expiresAt) || null,
+    executedAt: _toNum(it.executedAt) || null,
+    completedAt: _toNum(it.completedAt) || null,
+    updatedAt: _toNum(it.updatedAt) || null,
+    eventId: String(it.eventId ?? ""),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function reviewMarketImage(imageUrl: string) {
   const reviewHost =

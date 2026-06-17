@@ -72,6 +72,11 @@ const MarketDetailTabs = dynamic(
     })),
   { ssr: false }
 );
+// 已结算市场右栏的领奖大面板:仅当 selectedIsResolved 时挂载
+const ClaimWinningsPanel = dynamic(
+  () => import("@/components/detail/ClaimWinningsPanel"),
+  { ssr: false }
+);
 const LivePriceChart = dynamic(
   () => import("@/components/detail/LivePriceChart"),
   {
@@ -782,52 +787,27 @@ export default function MarketDetailPage() {
             eventId={selectedMarketInfo?.eventId || eventData?.id}
             markets={eventData?.markets || []}
             selectedMarketId={selectedMarketInfo?.marketId}
+            selectedMarketObj={selectedMarketObj}
+            isResolved={selectedIsResolved}
           />
         </div>
 
         {/* 右侧面板 - 移动端隐藏 */}
         <div className="w-80 shrink-0 space-y-4 hidden lg:block sticky top-[calc(120px+1.5rem)] max-h-[calc(100vh-120px)] scrollbar-hide overflow-y-auto">
-          {/* 已结算 → 五态结算卡片；已截止待结算 → 等待结算卡片；否则交易面板 */}
+          {/* 已结算 → Polymarket 风格 Claim 大面板(带领奖);已截止待结算 → 等待结算卡片;否则交易面板 */}
           {selectedIsResolved ? (
-            <div className="p-6 rounded-xl border border-(--border) bg-(--bg-card) flex flex-col items-center">
-              {/* 勾选图标（颜色随结算五态变化） */}
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                style={{
-                  backgroundColor:
-                    selectedSettlementDisplay?.accent || "#3b82f6",
-                }}
-              >
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              {/* Outcome 文字（优先用 settlement-result 五态结果） */}
-              <div
-                className="text-xl font-semibold mb-2 text-center"
-                style={{
-                  color: selectedSettlementDisplay?.accent || "#3b82f6",
-                }}
-              >
-                {t.market.common.outcome}{" "}
-                {selectedSettlementDisplay?.label ||
-                  selectedMarketInfo?.resolvedOutcome ||
-                  t.market.common.yes}
-              </div>
-              {/* 标题 */}
-              <div className="text-sm text-(--text-secondary) text-center">
-                {selectedMarketInfo?.title || selectedMarketObj?.question}
-              </div>
-            </div>
+            <ClaimWinningsPanel
+              market={selectedMarketObj ?? null}
+              settlementDisplay={selectedSettlementDisplay}
+              resolvedYesPayout={
+                selectedMarketInfo?.marketId
+                  ? selectedSettlements[String(selectedMarketInfo.marketId)] ?? null
+                  : null
+              }
+              marketTitle={
+                selectedMarketInfo?.title || selectedMarketObj?.question
+              }
+            />
           ) : selectedTradingEnded ? (
             <div className="p-6 rounded-xl border border-(--border) bg-(--bg-card) flex flex-col items-center">
               {/* 时钟图标：已截止，等待结算结果 */}
