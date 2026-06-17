@@ -337,14 +337,22 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
     }
   }, [activeOptions, resolvedOptions, setMarket, setSelectOutcomeId, onMarketSelect]);
 
+  // 单选项市场:表头(OUTCOME / % CHANCE)只有列名作用,只有一行时无从排序、无视觉收益,
+  // 一律隐藏(对齐 h2 OutcomeList:1202-1211)。快速市场(常单选项)同时被这一支命中。
+  const isSingleMarket =
+    activeOptions.length + resolvedOptions.length <= 1;
+
   return (
     <div className="mt-4">
-      {/* 表头 */}
-      <div className="flex items-center justify-between px-4 py-2 text-xs text-(--text-secondary) uppercase">
-        <span className="flex-1">{t.market.outcome}</span>
-        <span className="w-24 text-center">{`% ${t.common.chance} ⇅`}</span>
-        <span className="w-48"></span>
-      </div>
+      {/* 表头(结果 / % 概率):仅多选项市场才有意义。单一市场(含快速市场 / 单个日周市场 /
+          已结算只剩一个)一律隐藏。原来的 ⇅ 是写死字符、没有排序功能(误导),去掉。 */}
+      {!isSingleMarket && (
+        <div className="flex items-center justify-between px-4 py-2 text-xs text-(--text-secondary) uppercase">
+          <span className="flex-1">{t.market.outcome}</span>
+          <span className="w-24 text-center">{`% ${t.common.chance}`}</span>
+          <span className="w-48"></span>
+        </div>
+      )}
 
       <div className="space-y-2 max-h-[800px] overflow-y-auto scrollbar-hide">
         {/* Active markets */}

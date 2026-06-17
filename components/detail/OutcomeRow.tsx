@@ -5,7 +5,7 @@
  * 从 OutcomeList.tsx 拆出，机械搬运无修改。
  */
 
-import React, { useState, useMemo, memo } from "react";
+import React, { useState, useMemo, memo, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
@@ -89,6 +89,17 @@ const OutcomeRow = memo(
     const [activeTab, setActiveTab] = useState<
       "orderbook" | "graph" | "resolution"
     >("orderbook");
+
+    // 快速市场(\d+m / \d+h):隐藏整条行头(标题/概率/Buy 按钮/折叠箭头),强制展开
+    // 只显示订单簿。右侧交易面板已覆盖 Buy/Sell,行内重复;概率几乎一直 50%/50%,无价值。
+    const isShortTerm = isShortTermFrequencySlug(frequencySlug);
+    // 防御:之前在普通市场切到过 graph/resolution 时,快速市场 activeTab 会停留在
+    // 失效值导致展开区空白;强制锁回 orderbook
+    useEffect(() => {
+      if (isShortTerm && activeTab !== "orderbook") {
+        setActiveTab("orderbook");
+      }
+    }, [isShortTerm, activeTab]);
 
     // token ids (prefer clobTokenIds, fallback to parsedTokenIds)
     const volume = option.volume;
@@ -237,15 +248,16 @@ const OutcomeRow = memo(
     return (
       <div
         className={`rounded-xl border transition-all ${
-          isExpanded
+          isExpanded || isShortTerm
             ? "border-(--accent) bg-(--bg-card)"
             : "border-(--border) bg-(--bg-card) hover:border-(--border-light)"
         }`}
       >
-        {/* Desktop Layout */}
+        {/* Desktop Layout — 快速市场隐藏整条行头(标题/交易量/概率/Buy 按钮/折叠箭头),
+            因为右侧已有交易面板 Buy/Sell + 行内 50% 概率几乎一直不变。展开区强制 orderbook */}
         <div
           onClick={(e) => onToggleExpand(index, e)}
-          className="hidden lg:flex items-center justify-between p-4 cursor-pointer"
+          className={`${isShortTerm ? "hidden" : "hidden lg:flex"} items-center justify-between p-4 cursor-pointer`}
         >
           <div className="flex-1">
             <div className="font-medium text-(--text-primary)">
@@ -322,10 +334,10 @@ const OutcomeRow = memo(
           </div>
         </div>
 
-        {/* Mobile Layout */}
+        {/* Mobile Layout — 快速市场同样隐藏行头 */}
         <div
           onClick={(e) => onToggleExpand(index, e)}
-          className="lg:hidden p-4 cursor-pointer"
+          className={`${isShortTerm ? "hidden" : "lg:hidden"} p-4 cursor-pointer`}
         >
           <div className="flex items-start justify-between mb-1">
             <div className="flex-1">
@@ -392,28 +404,31 @@ const OutcomeRow = memo(
           )}
         </div>
 
-        {/* Expanded Content */}
-        {isExpanded && (
-          <div className="px-4 pb-4 border-t border-(--border)">
-            <div className="flex items-center justify-between py-3">
-              <div className="flex gap-4">
-                {tabs
-                  .filter((tab) => !option.isResolved || tab.id !== "orderbook")
-                  .map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`text-sm font-medium transition-colors ${
-                        activeTab === tab.id
-                          ? "text-(--text-primary)"
-                          : "text-(--text-secondary) hover:text-(--text-primary)"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+        {/* Expanded Content（快速市场:无行头,强制展开;去掉顶部分隔线,直接顶到边） */}
+        {(isExpanded || isShortTerm) && (
+          <div className={`px-4 pb-4 ${isShortTerm ? "pt-4" : "border-t border-(--border)"}`}>
+            {/* 快速市场:tab 栏(订单簿/图表/结算)冗余,隐藏,只直接展示订单簿 */}
+            {!isShortTerm && (
+              <div className="flex items-center justify-between py-3">
+                <div className="flex gap-4">
+                  {tabs
+                    .filter((tab) => !option.isResolved || tab.id !== "orderbook")
+                    .map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`text-sm font-medium transition-colors ${
+                          activeTab === tab.id
+                            ? "text-(--text-primary)"
+                            : "text-(--text-secondary) hover:text-(--text-primary)"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {activeTab === "orderbook" && !option.isResolved && (
               <SpotOrderbook
