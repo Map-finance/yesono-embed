@@ -118,7 +118,11 @@ function ActivePositions({ targetUserId }: { targetUserId?: string }) {
                         {t.pna.positions.claiming}
                       </>
                     ) : (
-                      t.pna.positions.claim
+                      // 胜方=领奖(currentPrice ≥ 0.5)、败方=清仓(< 0.5,$0 清掉
+                      // worthless token,同一个 onClaim);对齐 h2 PositionsTable:209-213
+                      (Number(p.currentPrice) || 0) >= 0.5
+                        ? t.pna.positions.claim
+                        : ((t.market as any).clearPosition || "Redeem")
                     )}
                   </button>
                 ) : null}

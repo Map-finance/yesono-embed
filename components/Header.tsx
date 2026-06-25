@@ -169,9 +169,11 @@ const Header: React.FC = () => {
                     size="sm"
                     className={cn(
                       "whitespace-nowrap",
+                      // 对齐 h2 AdaptiveNav 的极简风:active 仅加粗 + 主色文字,无 chip 背景;
+                      // 非 active 状态 hover 时填充 bg-secondary(原 embed 只换文字色,没填背景)
                       isActive
-                        ? "text-(--text-primary) bg-(--bg-secondary)"
-                        : "text-(--text-secondary) hover:text-(--text-primary)"
+                        ? "font-semibold text-(--text-primary)"
+                        : "text-(--text-secondary) hover:text-(--text-primary) hover:bg-(--bg-secondary)"
                     )}
                   >
                     <Link
