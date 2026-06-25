@@ -82,6 +82,51 @@ function formatLocalizedMonthDayYear(
   }).format(date);
 }
 
+/**
+ * Polymarket 风格的「月 日, 年」：中文「6月 11, 2026」、英文「Jun 11, 2026」。
+ * 月份本地化(short)，日/年用纯数字(避免中文 Intl 带出「日」「年」字)，逗号分隔。
+ */
+function formatLocalizedMonthDayCommaYear(
+  date: Date,
+  locale: string,
+  timeZone: string
+): string {
+  const month = new Intl.DateTimeFormat(locale, {
+    timeZone,
+    month: "short",
+  }).format(date);
+  const day = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    day: "numeric",
+  }).format(date);
+  const year = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+  }).format(date);
+  return `${month} ${day}, ${year}`;
+}
+
+// ---------------------------------------------------------------- 结算结果方向
+
+/** 已结算事件的涨跌方向：up=上涨方赢 / down=下跌方赢 / push=平局。 */
+export type SettlementDirection = "up" | "down" | "push";
+
+/**
+ * 由 settlementResult（YES/上涨方赔付比例 0~1）推导涨跌方向。
+ * - >0.5 → up（上涨方赢） / <0.5 → down（下跌方赢） / =0.5 → push（平局）
+ * - null/undefined/非数 → null（未结算，不展示）
+ */
+export function getSettlementDirection(
+  result?: number | null
+): SettlementDirection | null {
+  if (result === null || result === undefined) return null;
+  const v = Number(result);
+  if (!Number.isFinite(v)) return null;
+  if (v > 0.5) return "up";
+  if (v < 0.5) return "down";
+  return "push";
+}
+
 // ---------------------------------------------------------------- 对外导出
 
 /** 默认 i18n 兜底文案。 */
@@ -131,7 +176,12 @@ export function formatLocalizedEndDateLabel(
   // 一律只显示绝对日期（不含时间、也不用"今天/明天"），靠日期区分
   const isDateOnlyFreq = /^(daily|weekly|\d+D|\d+W)$/i.test(frequencySlug);
   if (isDateOnlyFreq) {
-    const dateLabel = formatLocalizedMonthDay(date, locale, ET_TIME_ZONE);
+    // 横排胶囊(showRelativeDay=false)只显示「6月11日」保持简短;
+    // 历史 / 更多下拉(showRelativeDay=true)显示带年份的「6月 11, 2026」，
+    // 与 Polymarket 一致，避免跨年历史日期歧义。
+    const dateLabel = showRelativeDay
+      ? formatLocalizedMonthDayCommaYear(date, locale, ET_TIME_ZONE)
+      : formatLocalizedMonthDay(date, locale, ET_TIME_ZONE);
     return { timeLabel: dateLabel, relativeDay: "", fullStr: dateLabel };
   }
 

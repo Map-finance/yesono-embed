@@ -10,6 +10,7 @@ import {
   SportsEventDetailResponse,
 } from '@/types/sports';
 import { getAuthApiUrl } from '@/lib/config/authApiUrl';
+import { fetchWithTimeout } from '@/lib/utils/fetchWithTimeout';
 
 // API 基础路径 - 与 homeService 保持一致
 const API_BASE_URL = getAuthApiUrl('').replace(/\/$/, '');
@@ -28,7 +29,8 @@ function getSportsHeaders(): Record<string, string> {
  * GET /api/sports/events?tags=sports,soccer,bundesliga&tab=games
  */
 export async function getSportsEvents(
-  query: SportsEventsQuery = {}
+  query: SportsEventsQuery = {},
+  signal?: AbortSignal
 ): Promise<SportsEventDetail[]> {
   const params = new URLSearchParams();
 
@@ -39,10 +41,11 @@ export async function getSportsEvents(
 
   try {
     const url = `${API_BASE_URL}/api/sports/events?${params.toString()}`;
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: 'GET',
       headers: getSportsHeaders(),
       cache: 'no-store',
+      signal,
     });
 
     if (!response.ok) {

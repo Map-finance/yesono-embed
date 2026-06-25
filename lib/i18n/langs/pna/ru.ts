@@ -1,5 +1,5 @@
 export default {
-  timeRange: { pastDay: "За день", pastWeek: "За неделю", pastMonth: "За месяц", allTime: "Всё время" },
+  timeRange: { pastDay: "За день", pastWeek: "За неделю", pastMonth: "За месяц", allTime: "Всё время", asOfLastHour: "По прошлый час" },
   profile: { joined: "Присоединился", views: "просмотров", positionsValue: "Стоимость позиций", modeYesNo: "Yes/No", modeAsianHandicap: "Азиатский гандикап", asianPositionsValue: "Общая стоимость позиций", asianSlipCount: "Количество слипов", biggestWin: "Крупнейший выигрыш", predictions: "Прогнозы", recharge: "Пополнение", withdraw: "Вывод" },
   tabs: { positions: "Позиции", activity: "Активность", asianHandicapOrders: "Ордера АГ", openOrders: "Открытые ордера", marketCreation: "Записи создания", marketAudit: "Записи аудита", marketRecords: "Записи рынка", depositWithdrawHistory: "История пополнений/выводов" },
   auditRecords: { event: "Событие / Рынки", status: "Статус", createdAt: "Отправлено", action: "Действие", create: "Создать", edit: "Изменить", pendingHint: "Ожидание проверки", total: "Всего", noRecords: "Нет записей аудита" },

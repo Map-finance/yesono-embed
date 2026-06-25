@@ -52,7 +52,7 @@ const HoldersList: React.FC<HoldersListProps> = ({
               className="flex items-center gap-3 py-1.5 hover:bg-(--bg-hover) rounded-lg px-2 -mx-2 cursor-pointer"
             >
               <UserProfile userId={holder.userId} displayName={holder.userName}>
-                <Avatar name={holder.userName} id={holder.userId} size="sm" />
+                <Avatar name={holder.userName} size={32} />
               </UserProfile>
               {/* 容器宽时(@sm+)同行;窄时换行,shares 单位仅窄时显示 */}
               <div className="block items-center gap-3 flex-1 @sm:flex">

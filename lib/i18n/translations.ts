@@ -6,7 +6,6 @@ import sports from "./langs/sports"
 import leaderboard from "./langs/leaderboard"
 import trade from "./langs/trade"
 import pna from "./langs/pna"
-import dashboards from "./langs/dashboards"
 import earnings from "./langs/earnings"
 import rewards from "./langs/rewards"
 import accuracy from "./langs/accuracy"
@@ -161,7 +160,6 @@ const en = {
   leaderboard: leaderboard.en,
   trade: trade.en,
   pna: pna.en,
-  dashboards: dashboards.en,
   earnings: earnings.en,
   account: account.en,
   rewards: rewards.en,
@@ -228,7 +226,6 @@ const zh_CN = {
   leaderboard: leaderboard['zh-CN'],
   trade: trade.zh,
   pna: pna['zh-CN'],
-  dashboards: dashboards.zh,
   earnings: earnings.zh,
   account: account['zh-CN'],
   rewards: rewards.zh,

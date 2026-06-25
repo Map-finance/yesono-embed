@@ -125,4 +125,6 @@ export default {
   removedFromFavorites: 'Removed from favorites',
   operationFailed: 'Operation failed',
   linkCopied: 'Link copied!',
-}  
+  pageNotFound: 'Page not found',
+  backToHome: 'Back to Home',
+}

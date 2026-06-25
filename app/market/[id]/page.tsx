@@ -33,7 +33,7 @@ import ProxyImage from "@/components/common/ProxyImage";
 import { favoriteEvent } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { isSportsEvent, buildSportsEventUrl } from "@/lib/utils/sportsNav";
-import { pickDefaultMarket } from "@/lib/utils/marketSelection";
+import { isMarketResolved, pickDefaultMarket } from "@/lib/utils/marketSelection";
 import { serverNow } from "@/lib/utils/serverTime";
 import { trackEvent } from "@/lib/sentryClient";
 import { getOutcomesByMarket, getBinaryOutcomeLabels } from "@/lib/utils/outcomes";
@@ -164,9 +164,32 @@ export default function MarketDetailPage() {
       return;
     }
     setIsMarketEnded(false);
-    // 超长延迟（>24.8 天）用 setLongTimeout 兜住原生 setTimeout 的 32 位溢出，
-    // 否则远期市场会被立即误判为"已截止，等待结算"。
-    return setLongTimeout(() => setIsMarketEnded(true), end - serverNow());
+
+    // 临近结束的最后窗口用 1s 轮询 serverNow():effect 首次跑时 WS 可能还没校准(offset=0),
+    // 轮询读实时 serverNow,WS 校准后能精确翻转,不受本地时钟偏差影响。
+    // 远期市场先用 setLongTimeout 长睡到窗口边缘再开轮询,避免长时间空转(并兜 32 位溢出)。
+    const POLL_WINDOW_MS = 60_000;
+    let cancelLong: (() => void) | null = null;
+    let pollId: ReturnType<typeof setInterval> | null = null;
+    const startPolling = () => {
+      pollId = setInterval(() => {
+        if (serverNow() >= end) {
+          setIsMarketEnded(true);
+          if (pollId) clearInterval(pollId);
+          pollId = null;
+        }
+      }, 1000);
+    };
+    const lead = end - serverNow() - POLL_WINDOW_MS;
+    if (lead <= 0) {
+      startPolling();
+    } else {
+      cancelLong = setLongTimeout(startPolling, lead);
+    }
+    return () => {
+      if (cancelLong) cancelLong();
+      if (pollId) clearInterval(pollId);
+    };
   }, [eventData?.endDate]);
 
   // 判断是否应该显示“Live Price Chart”选项 (只对包含了特定时间周期的事件开放)
@@ -235,39 +258,40 @@ export default function MarketDetailPage() {
     return `${coin}/usd`;
   }, [market?.slug]);
 
-  // 当前选中 market 的状态
-  const [selectedMarketInfo, setSelectedMarketInfo] = useState<{
-    isResolved: boolean;
-    resolvedOutcome?: string;
-    title: string;
-    percentage?: number;
-    icon?: string;
-    marketId: string;
-    questionID: string;
-    eventId?: string;
-  } | null>(null);
-
   const { locale } = useLocale();
   const mobileCountdownLabels =
     (t.market as any).livePriceHeader?.countdown ??
     DEFAULT_LIVE_COUNTDOWN_LABELS;
 
-  // 选中市场对象：取真实 yes/no outcome 文案 + 实时判断结算状态
-  const selectedMarketObj = useMemo(
-    () =>
-      eventData?.markets?.find(
-        (m) => String(m.id) === String(selectedMarketInfo?.marketId)
-      ),
-    [eventData?.markets, selectedMarketInfo?.marketId]
+  // 选中市场 = 全局 store 的 market(单一数据源)。不再用 onMarketSelect 回调把选中态
+  // 复制成一份本地 selectedMarketInfo —— 那份副本与 store 不同步,正是右侧面板错位的根源。
+  // 选中 id 直接读 store.market.id:OutcomeList 点行/买入按钮、页面加载默认选中都写它。
+  const selectedMarketId =
+    selectedMarket?.id != null ? String(selectedMarket.id) : undefined;
+
+  // 记录已成功加载的 slug(对应当前 eventData 的路由)。声明在此处供 selectedMarketObj 的
+  // 新鲜度 guard 使用;实际写入在下方 loadMarket 成功后。
+  const loadedSlugRef = useRef<string | null>(null);
+
+  // 选中市场对象:从最新 eventData 按选中 id 取,用于真实 yes/no 文案 + 实时结算状态。
+  //
+  // 新鲜度 guard:/market/[id] 路由切换时 Next 不卸载本组件,eventData 仍是「上个市场」的数据。
+  // 若直接用它派生 selectedIsResolved,切到新快速市场的瞬间会短暂用上个(可能已结算)市场的状态
+  // 渲染右侧面板(闪「结果: 是/否」)。loadedSlugRef 在 setEventData 同一批次更新,故 eventData
+  // 变化触发本 memo 时它已对应当前数据;与当前路由不一致 → 视为无选中 → 走交易面板,不闪结果。
+  const selectedMarketObj = useMemo(() => {
+    if (loadedSlugRef.current !== (params.id as string)) return undefined;
+    return eventData?.markets?.find((m) => String(m.id) === selectedMarketId);
+  }, [eventData, params.id, selectedMarketId]);
+  // 选中市场标题(对齐 OutcomeList 行 label:groupItemTitle 优先,回退 question)
+  const selectedMarketTitle =
+    (selectedMarketObj as any)?.groupItemTitle || selectedMarketObj?.question;
+  // 结算状态纯从 selectedMarketObj(最新 eventData)派生 —— 截止后轮询刷新 eventData,
+  // 面板自动从交易翻成结算,无需任何回调重新上报。
+  const selectedIsResolved = useMemo(
+    () => isMarketResolved(selectedMarketObj),
+    [selectedMarketObj]
   );
-  // 结算状态以最新 eventData 为准：onMarketSelect 只在"切换市场"时上报，不会在
-  // "选中市场原地结算"时重新触发，故这里从 selectedMarketObj 派生，保证截止后轮询
-  // 刷新 eventData 后右侧面板能自动从交易面板翻成结算面板。
-  const selectedIsResolved = useMemo(() => {
-    if (selectedMarketInfo?.isResolved) return true;
-    const m = selectedMarketObj as any;
-    return m?.umaResolutionStatus === "RESOLVED" || m?.status === "RESOLVED";
-  }, [selectedMarketInfo?.isResolved, selectedMarketObj]);
 
   // 已截止但未结算：展示"等待结算"中间态、禁止下单。
   // 以后端权威信号为准（closed / 停止接单）。endDate 到点只触发轮询刷新 eventData（见下方
@@ -281,31 +305,40 @@ export default function MarketDetailPage() {
 
   // 选中市场已结算时拉结算结果（YES 侧赔付比例），用于右侧面板五态展示（与 OutcomeList 共享缓存）
   const selectedSettlements = useSettlementResults(
-    selectedIsResolved && selectedMarketInfo?.marketId
-      ? [selectedMarketInfo.marketId]
-      : []
+    selectedIsResolved && selectedMarketId ? [selectedMarketId] : []
   );
   const selectedSettlementDisplay = useMemo(() => {
-    if (!selectedIsResolved || !selectedMarketInfo) return null;
+    if (!selectedIsResolved || !selectedMarketId) return null;
     const [yesLabel, noLabel] = getBinaryOutcomeLabels(selectedMarketObj, {
       yes: t.common.yes,
       no: t.common.no,
       up: t.common.up,
       down: t.common.down,
     });
-    return getSettlementDisplay(
-      selectedSettlements[String(selectedMarketInfo.marketId)],
-      {
-        yes: yesLabel,
-        no: noLabel,
-        halfWin: t.market.settlement.halfWin,
-        halfLose: t.market.settlement.halfLose,
-        push: t.market.settlement.push,
+    // settlement payout 由 useSettlementResults 异步拉取;切换市场瞬间新 marketId 还没到账
+    // (undefined)→ 之前会让 settlementDisplay=null → ClaimWinningsPanel 闪「蓝色 Yes」默认值。
+    // 回退:已结算市场的 outcomePrices[0](YES 价)在 market 对象上立即可得,且与 payout 同尺度
+    // (赢≈1 / 输≈0 / 平≈0.5),用它先算出正确结果;payout 到账后再精修(half-win/lose)。
+    let payout: number | null | undefined = selectedSettlements[selectedMarketId];
+    if (payout == null) {
+      try {
+        const prices = JSON.parse((selectedMarketObj as any)?.outcomePrices || "[]");
+        const yesPrice = Number(prices[0]);
+        if (Number.isFinite(yesPrice)) payout = yesPrice;
+      } catch {
+        /* outcomePrices 缺失/非法 → 保持 null,由 ClaimWinningsPanel 走中性兜底 */
       }
-    );
+    }
+    return getSettlementDisplay(payout, {
+      yes: yesLabel,
+      no: noLabel,
+      halfWin: t.market.settlement.halfWin,
+      halfLose: t.market.settlement.halfLose,
+      push: t.market.settlement.push,
+    });
   }, [
     selectedIsResolved,
-    selectedMarketInfo,
+    selectedMarketId,
     selectedMarketObj,
     selectedSettlements,
     t.common,
@@ -429,7 +462,7 @@ export default function MarketDetailPage() {
 
   // 加载市场数据（使用多重 guard 防止重复加载）
   const isLoadingRef = useRef(false); // 防止并发加载
-  const loadedSlugRef = useRef<string | null>(null); // 记录已成功加载的 slug
+  // loadedSlugRef 已在上方(selectedMarketObj 之前)声明
   const loadMarketRef = useRef<((force?: boolean) => Promise<void>) | undefined>(undefined);
   loadMarketRef.current = async (force = false) => {
     const id = params.id as string;
@@ -758,7 +791,6 @@ export default function MarketDetailPage() {
             eventSlug={eventData?.slug}
             eventEnded={isMarketEnded}
             frequencySlug={shortTermFrequencySlug ?? frequencySlug}
-            onMarketSelect={setSelectedMarketInfo}
           />
 
           {/* Market Context */}
@@ -804,8 +836,8 @@ export default function MarketDetailPage() {
             market={selectedMarketObj ?? null}
             isResolved={selectedIsResolved}
             resolvedYesPayout={
-              selectedMarketInfo?.marketId
-                ? selectedSettlements[String(selectedMarketInfo.marketId)] ?? null
+              selectedMarketId != null
+                ? selectedSettlements[selectedMarketId] ?? null
                 : null
             }
           />
@@ -815,9 +847,9 @@ export default function MarketDetailPage() {
             marketId={market.id}
             unionKey={eventData?.slug || market.id}
             eventSlug={eventData?.slug || market.id}
-            eventId={selectedMarketInfo?.eventId || eventData?.id}
+            eventId={eventData?.id}
             markets={eventData?.markets || []}
-            selectedMarketId={selectedMarketInfo?.marketId}
+            selectedMarketId={selectedMarketId}
           />
         </div>
 
@@ -829,13 +861,11 @@ export default function MarketDetailPage() {
               market={selectedMarketObj ?? null}
               settlementDisplay={selectedSettlementDisplay}
               resolvedYesPayout={
-                selectedMarketInfo?.marketId
-                  ? selectedSettlements[String(selectedMarketInfo.marketId)] ?? null
+                selectedMarketId != null
+                  ? selectedSettlements[selectedMarketId] ?? null
                   : null
               }
-              marketTitle={
-                selectedMarketInfo?.title || selectedMarketObj?.question
-              }
+              marketTitle={selectedMarketTitle}
             />
           ) : selectedTradingEnded ? (
             <div className="p-6 rounded-xl border border-(--border) bg-(--bg-card) flex flex-col items-center">
@@ -847,19 +877,19 @@ export default function MarketDetailPage() {
                 {t.market.settlement.awaiting}
               </div>
               <div className="text-sm text-(--text-secondary) text-center">
-                {selectedMarketInfo?.title || selectedMarketObj?.question}
+                {selectedMarketTitle}
               </div>
             </div>
           ) : (
             (() => {
               const polyMarket =
                 eventData?.markets?.find(
-                  (m) => String(m.id) === String(selectedMarketInfo?.marketId)
+                  (m) => String(m.id) === selectedMarketId
                 ) || eventData?.markets?.[0];
               return polyMarket ? (
                 <TradingPanel
                   market={polyMarket}
-                  eventId={selectedMarketInfo?.eventId || eventData?.id}
+                  eventId={eventData?.id}
                 />
               ) : null;
             })()

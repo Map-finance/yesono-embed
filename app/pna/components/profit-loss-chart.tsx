@@ -16,6 +16,8 @@ import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import useProfitLossChart from "@/app/pna/hooks/use-profit-loss-chart";
+import useProfitLossSummary from "@/app/pna/hooks/use-profit-loss-summary";
+import { getSummaryValueForRange } from "@/lib/services/profitLossService";
 
 interface ProfitLossChartProps {
   targetUserId?: string;
@@ -72,9 +74,17 @@ export default function ProfitLossChart({ targetUserId }: ProfitLossChartProps) 
   const [hovered, setHovered] = useState<HoverPayload | null>(null);
 
   const { chartData, isLoading } = useProfitLossChart(timeRange, targetUserId);
+  // 盈亏图头部的默认数字：取汇总接口对应窗口的"总盈亏"，避免落在曲线最后一点上
+  const { summary } = useProfitLossSummary(targetUserId);
 
   const lastPoint = chartData[chartData.length - 1];
-  const displayValue = hovered?.val ?? lastPoint?.val ?? 0;
+  // 当前显示的值优先级：
+  //   1. 悬浮中 → 悬浮点的曲线值
+  //   2. 汇总接口对应窗口的总盈亏（1D→today, 1W→weekly, 1M→monthly, 1Y→yearly, ALL→total）
+  //   3. 兜底曲线最后一点
+  //   4. 兜底 0
+  const summaryValue = getSummaryValueForRange(summary, timeRange);
+  const displayValue = hovered?.val ?? summaryValue ?? lastPoint?.val ?? 0;
   const displayTime = hovered?.fullTime ?? lastPoint?.fullTime ?? "";
   const isPositive = displayValue >= 0;
 
@@ -107,6 +117,13 @@ export default function ProfitLossChart({ targetUserId }: ProfitLossChartProps) 
             <div className="text-xs text-(--text-secondary) mt-1">
               {isLoading ? <Skeleton className="h-3 w-24 mt-1" /> : displayTime || "—"}
             </div>
+            {/* 说明：盈亏区间是「周期开始 → 上一个小时」。悬停查看具体某点时不显示，
+                避免与该点时间冲突。 */}
+            {!isLoading && !hovered && (
+              <div className="text-[10px] text-(--text-tertiary) mt-0.5">
+                {t.pna.timeRange.asOfLastHour}
+              </div>
+            )}
           </div>
           <div className="flex gap-1">
             {TIME_RANGES.map((r) => (

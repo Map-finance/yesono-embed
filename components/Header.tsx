@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState, useMemo } from "react";
+import React, { Suspense, useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
@@ -30,6 +30,12 @@ const Header: React.FC = () => {
 
   const { data: navData, dynamicItems } = useNavigation();
 
+  // 动态分类导航由客户端 SWR 异步加载：SSR 时为空、客户端 hydrate 后才有数据。
+  // 用 mounted 门控，让首屏（SSR + 客户端首次渲染）只渲染固定项，挂载后再补动态项，
+  // 避免 server/client nav 列表不一致触发 hydration mismatch。
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // 认证状态（embed 不显示余额，余额由父页面控制）
   const { status: embedStatus } = useEmbed();
   const isAuthed = embedStatus === "authed";
@@ -53,16 +59,20 @@ const Header: React.FC = () => {
   ];
 
   const navItems = useMemo((): NavItem[] => {
-    if (!dynamicItems?.length && !navData?.length) return FIXED_NAV_ITEMS;
+    // 首屏仅固定项，保证 SSR 与客户端首次渲染一致
+    if (!mounted) return [...FIXED_NAV_ITEMS];
+    if (!dynamicItems?.length && !navData?.length) return [...FIXED_NAV_ITEMS];
     const dynamic: NavItem[] = dynamicItems.map((item: any) => {
+      // 「体育」走专属 /sports 区(联赛侧栏 + 赛事富视图，默认进第一个运动)，
+      // 其余分类走 trending 分类页
       const path =
         item.slug?.toLowerCase() === "sports"
-          ? "/sports?tag=asian"
+          ? "/sports"
           : `/trending/${item.slug}`;
       return { label: item.label, path };
     });
     return [...FIXED_NAV_ITEMS, ...dynamic];
-  }, [navData, dynamicItems, (t as any)]);
+  }, [mounted, navData, dynamicItems]);
 
   // 路由高亮：取最长前缀匹配的 nav path（/trending/new 优先于 /trending）
   const activeNavPath = useMemo(() => {

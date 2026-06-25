@@ -29,6 +29,7 @@ import {
   nextWsId,
   wsLog,
 } from "@/lib/utils/safeCloseWs";
+import { syncServerTime } from "@/lib/utils/serverTime";
 
 // §6.1 #6: WS URL 必须模块顶层校验，禁用非空断言
 const RAW_WS_URL = process.env.NEXT_PUBLIC_ORDERBOOK_WS_URL;
@@ -345,6 +346,8 @@ class PriceChannel extends Channel {
       const ts = Number(payload.timestamp);
       const value = Number(payload.value);
       if (!Number.isFinite(ts) || !Number.isFinite(value)) return;
+      // 用服务端 tick 时间戳校准本地↔服务端时钟偏移(LivePriceHeader 倒计时/结算时点依赖 serverNow())
+      syncServerTime(ts);
       this.markHasData();
       this.emit({
         type: "update",
@@ -371,6 +374,8 @@ class PriceChannel extends Channel {
         typeof payload.value === "number" ? payload.value : msg.price
       );
       if (!Number.isFinite(ts) || !Number.isFinite(value)) return;
+      // 用服务端 tick 时间戳校准本地↔服务端时钟偏移(同上)
+      syncServerTime(ts);
       this.markHasData();
       this.emit({
         type: "update",

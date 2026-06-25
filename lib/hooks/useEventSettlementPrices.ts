@@ -18,6 +18,8 @@ export interface EventSettlementPricesState {
  * "Price to beat" 与 "Final price",以及结束后折线图末点的锚定。
  *
  * - eventId 变化时拉一次。
+ * - openPrice 仍为 null 时轮询:停留在"未来市场"上,首拉拿到的是 null(窗口未开始),
+ *   到点开盘后后端才捕获开盘价,需轮询补上,否则初始价格一直显示「—」不更新。
  * - pollUntilClose 为真(市场已结束)且 closePrice 仍为 null 时,轮询直到拿到收盘价
  *   (后端结算价可能晚于结束时刻)。
  */
@@ -56,9 +58,15 @@ export function useEventSettlementPrices(
     };
   }, [eventId]);
 
-  // 已结束但 closePrice 仍为 null(结算延迟):轮询直到拿到收盘价
+  // 轮询补缺:
+  //  - openPrice 仍为 null → 未来市场到点开盘后才捕获,轮询补上(否则初始价格永远「—」)。
+  //  - 已结束(pollUntilClose)但 closePrice 仍为 null → 结算延迟,轮询等收盘价。
+  // 两者都满足后停止轮询。
   useEffect(() => {
-    if (!pollUntilClose || !eventId || state.closePrice !== null) return;
+    if (!eventId) return;
+    const needOpen = state.openPrice === null;
+    const needClose = pollUntilClose && state.closePrice === null;
+    if (!needOpen && !needClose) return;
     let cancelled = false;
     let count = 0;
     let timer: ReturnType<typeof setInterval> | null = null;
@@ -108,7 +116,7 @@ export function useEventSettlementPrices(
         document.removeEventListener("visibilitychange", onVisible);
       }
     };
-  }, [eventId, pollUntilClose, state.closePrice]);
+  }, [eventId, pollUntilClose, state.openPrice, state.closePrice]);
 
   return state;
 }

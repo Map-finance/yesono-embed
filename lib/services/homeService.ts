@@ -15,6 +15,7 @@ import {
 import { getValidAccessToken } from "@/lib/api";
 import { embedFetch } from "@/lib/embed/embedFetch";
 import { getAuthApiUrl } from "@/lib/config/authApiUrl";
+import { dedupe } from "@/lib/utils/requestDedupe";
 
 const NEED_TIME_TAG_TAGS_CACHE_TTL_MS = 30 * 60 * 1000;
 let needTimeTagTagsCache: { data: string[]; fetchedAt: number } | null = null;
@@ -125,48 +126,56 @@ export async function getTagTree(
   withCount: boolean = false,
   category?: string
 ): Promise<TagTreeNode[]> {
-  try {
-    const params = new URLSearchParams();
-    if (slug) {
-      params.append("slug", slug);
-    }
-    if (category) {
-      params.append("category", category);
-    }
-    // 直接访问 API
-    const response = await authedFetch(
-      `${getAuthApiUrl("/api/tag")}?${params.toString()}`,
-      {
-        method: "GET",
-        headers: await getCommonHeaders(),
-        cache: "no-store",
+  // in-flight 去重(ttl=0,不缓存,保证实时):并发的相同 tag 请求坍缩成一个,
+  // 折叠跨组件/切 tab/StrictMode 的重复请求,但每次完成后都重新拉最新,不返回陈旧数据。
+  // 「切回秒开 + 后台保鲜」由调用方的 SWR(useTagTreeSwr / 侧栏)负责,不在此处缓存。
+  return dedupe(
+    `tagtree:${slug ?? ""}:${withCount}:${category ?? ""}`,
+    async () => {
+      try {
+        const params = new URLSearchParams();
+        if (slug) {
+          params.append("slug", slug);
+        }
+        if (category) {
+          params.append("category", category);
+        }
+        // 直接访问 API
+        const response = await authedFetch(
+          `${getAuthApiUrl("/api/tag")}?${params.toString()}`,
+          {
+            method: "GET",
+            headers: await getCommonHeaders(),
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          console.error("[homeService] getTagTree failed:", response.status);
+          return [];
+        }
+
+        const result: ApiResponse<TagTreeNode[]> = await response.json();
+
+        if (result.success && result.data) {
+          // API 可能返回 label 而非 name，统一映射
+          return result.data.map((node: any) => ({
+            ...node,
+            name: node.name || node.label || "",
+            children: node.children?.map((child: any) => ({
+              ...child,
+              name: child.name || child.label || "",
+            })),
+          }));
+        }
+
+        return [];
+      } catch (error) {
+        console.error("[homeService] getTagTree error:", error);
+        return [];
       }
-    );
-
-    if (!response.ok) {
-      console.error("[homeService] getTagTree failed:", response.status);
-      return [];
     }
-
-    const result: ApiResponse<TagTreeNode[]> = await response.json();
-
-    if (result.success && result.data) {
-      // API 可能返回 label 而非 name，统一映射
-      return result.data.map((node: any) => ({
-        ...node,
-        name: node.name || node.label || "",
-        children: node.children?.map((child: any) => ({
-          ...child,
-          name: child.name || child.label || "",
-        })),
-      }));
-    }
-
-    return [];
-  } catch (error) {
-    console.error("[homeService] getTagTree error:", error);
-    return [];
-  }
+  );
 }
 
 /**
@@ -199,7 +208,10 @@ export function isHorizontalTagTree(nodes: TagTreeNode[]): boolean {
 /**
  * 获取事件列表
  */
-export async function getEvents(query: EventsQuery = {}): Promise<EventsResp> {
+export async function getEvents(
+  query: EventsQuery = {},
+  signal?: AbortSignal
+): Promise<EventsResp> {
   try {
     const params = new URLSearchParams();
 
@@ -232,6 +244,7 @@ export async function getEvents(query: EventsQuery = {}): Promise<EventsResp> {
       method: "GET",
       headers: await getCommonHeaders(),
       cache: "no-store",
+      signal,
     });
 
     if (!response.ok) {
@@ -282,7 +295,8 @@ export interface CryptoEventsQuery {
  * GET /api/crypto?slug=xxx&limit=20&offset=0
  */
 export async function getCryptoEvents(
-  query: CryptoEventsQuery
+  query: CryptoEventsQuery,
+  signal?: AbortSignal
 ): Promise<EventsResp> {
   try {
     const params = new URLSearchParams();
@@ -301,6 +315,7 @@ export async function getCryptoEvents(
       method: "GET",
       headers: await getCommonHeaders(),
       cache: "no-store",
+      signal,
     });
 
     if (!response.ok) {
@@ -349,7 +364,8 @@ export interface FinanceEventsQuery {
  * GET /api/finance?slug=xxx&limit=20&offset=0
  */
 export async function getFinanceEvents(
-  query: FinanceEventsQuery
+  query: FinanceEventsQuery,
+  signal?: AbortSignal
 ): Promise<EventsResp> {
   try {
     const params = new URLSearchParams();
@@ -368,6 +384,7 @@ export async function getFinanceEvents(
       method: "GET",
       headers: await getCommonHeaders(),
       cache: "no-store",
+      signal,
     });
 
     if (!response.ok) {
@@ -526,6 +543,14 @@ export async function getNeedTimeTagTags(
 export interface CryptoEndDateItem {
   slug: string;
   endDate: number;
+  /**
+   * 该期结算结果（YES/上涨方赔付比例）：
+   * - 1（或 >0.5）→ 上涨方赢 ▲
+   * - 0（或 <0.5）→ 下跌方赢 ▼
+   * - 0.5         → 平局 push ⏺
+   * - null/缺省   → 尚未结算（live/future），不展示箭头
+   */
+  settlementResult?: number | null;
 }
 
 /**
@@ -561,6 +586,67 @@ export async function getCryptoEndDates(
     console.error("[homeService] getCryptoEndDates error:", error);
     return [];
   }
+}
+
+export interface TagVolumeData {
+  slugs: string[];
+  period: string;       // 归一化:1D/1W/1M/1Y/TOTAL
+  bucketStart: number | string;
+  volume: number;
+}
+
+export interface TagVolumeQuery {
+  /** 标签 slug 数组,命中行需同时包含全部(AND 语义) */
+  slugs: string[];
+  /** 周期:1d/1w/1m/1y/total,默认 1d */
+  period?: string;
+}
+
+/**
+ * 批量按标签聚合成交量。
+ * POST /api/tag/volume/batch  body: [{ slugs, period }, ...]
+ * 返回与入参顺序一致的结果数组(无记录 volume=0)。
+ */
+export async function getTagVolumeBatch(
+  queries: TagVolumeQuery[]
+): Promise<TagVolumeData[]> {
+  if (!queries.length) return [];
+  try {
+    const response = await authedFetch(
+      getAuthApiUrl("/api/tag/volume/batch"),
+      {
+        method: "POST",
+        headers: await getCommonHeaders(),
+        body: JSON.stringify(
+          queries.map((q) => ({ slugs: q.slugs, period: q.period ?? "1d" }))
+        ),
+        cache: "no-store",
+      }
+    );
+    if (!response.ok) {
+      console.error("[homeService] getTagVolumeBatch failed:", response.status);
+      return [];
+    }
+    const result = await response.json();
+    if (Array.isArray(result?.data)) {
+      return result.data as TagVolumeData[];
+    }
+    return [];
+  } catch (error) {
+    console.error("[homeService] getTagVolumeBatch error:", error);
+    return [];
+  }
+}
+
+/**
+ * 单组便捷封装:取某组 tag 在指定周期的总交易量。
+ */
+export async function getTagVolume(
+  slugs: string[],
+  period: string = "1d"
+): Promise<TagVolumeData | null> {
+  const arr = await getTagVolumeBatch([{ slugs, period }]);
+  return arr[0] ?? null;
 }
 
 /**

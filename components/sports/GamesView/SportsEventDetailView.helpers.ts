@@ -6,6 +6,7 @@
 import type { SportsEventDetail, SportsMarketItem } from "@/types/sports";
 import type { Market } from "@/types/types";
 import type { PolymarketMarketResp } from "@/types/home";
+import { clampOutcomeProbabilityPercent } from "@/utils/format";
 
 /**
  * 构造 MarketChart 所需的 (market, eventMarkets) — 取 moneyline 三个 market。
@@ -28,7 +29,8 @@ export function toChartData(
         m.outcomes?.find((o) => o.outcome === "Yes") || m.outcomes?.[0];
       return {
         label: m.marketTitle.replace(/\s*\(.*?\)/, "").trim(),
-        percentage: yes ? Math.round(parseFloat(yes.price) * 100) : 50,
+        // clamp 到 [1, 99] 防 100/0 边界(详见 utils/format.ts);全 0 回退 50。
+        percentage: yes ? clampOutcomeProbabilityPercent(yes.price) : 50,
       };
     }),
     volume: "",

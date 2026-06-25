@@ -5,6 +5,7 @@ import Tabs from "@/components/ui/Tabs";
 import { ChevronLeft, ChevronRightIcon, RefreshCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "@/lib/i18n";
+import { formatOutcomeProbabilityCents } from "@/utils/format";
 
 export default function MarketGroup() {
   return (
@@ -166,7 +167,7 @@ function OutcomeGrid(props: OutcomeGridProps) {
         >
           <div className="flex items-center gap-1 px-4 justify-center">
             <div className="opacity-70">{outcome.label}</div>
-            <div>{(outcome.price * 100).toFixed(0)}¢</div>
+            <div>{formatOutcomeProbabilityCents(outcome.price, 0)}</div>
           </div>
         </GameButton>
       ))}

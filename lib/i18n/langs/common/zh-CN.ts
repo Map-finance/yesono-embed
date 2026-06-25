@@ -125,4 +125,6 @@ export default {
     removedFromFavorites: '已取消收藏',
     operationFailed: '操作失败',
     linkCopied: '链接已复制！',
-}  
+    pageNotFound: '页面不存在',
+    backToHome: '返回首页',
+}

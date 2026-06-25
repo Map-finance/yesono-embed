@@ -1,5 +1,5 @@
 export default {
-  timeRange: { pastDay: "Χθες", pastWeek: "Τελευταία εβδομάδα", pastMonth: "Τελευταίος μήνας", allTime: "Συνολικά" },
+  timeRange: { pastDay: "Χθες", pastWeek: "Τελευταία εβδομάδα", pastMonth: "Τελευταίος μήνας", allTime: "Συνολικά", asOfLastHour: "Έως την προηγούμενη ώρα" },
   profile: { joined: "Εγγράφηκε", views: "προβολές", positionsValue: "Αξία θέσεων", modeYesNo: "Yes/No", modeAsianHandicap: "Ασιατικό Χάντικαπ", asianPositionsValue: "Συνολική αξία θέσεων", asianSlipCount: "Αριθμός slip", biggestWin: "Μεγαλύτερο κέρδος", predictions: "Προβλέψεις", recharge: "Κατάθεση", withdraw: "Ανάληψη" },
   tabs: { positions: "Θέσεις", activity: "Δραστηριότητα", asianHandicapOrders: "Εντολές ΑΧ", openOrders: "Ανοιχτές εντολές", marketCreation: "Αρχεία δημιουργίας", marketAudit: "Αρχεία ελέγχου", marketRecords: "Αρχεία αγοράς", depositWithdrawHistory: "Ιστορικό καταθέσεων/αναλήψεων" },
   auditRecords: { event: "Εκδήλωση / Αγορές", status: "Κατάσταση", createdAt: "Υποβλήθηκε", action: "Ενέργεια", create: "Δημιουργία", edit: "Επεξεργασία", pendingHint: "Αναμονή ελέγχου", total: "Σύνολο", noRecords: "Δεν υπάρχουν αρχεία ελέγχου" },

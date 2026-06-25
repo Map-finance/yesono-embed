@@ -3,12 +3,10 @@
 /**
  * Sports Tag Navigation Component
  * 从 /api/tag 获取数据，显示 All Sports 菜单
- * Asian 作为 All Sports 第一项显示
  */
 
-import { Radio, BarChartBig } from "lucide-react";
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { NavItem } from "./Nav/NavItem";
 import Drawer from "@/components/ui/Drawer";
 import { useTranslation, useLocale } from "@/lib/i18n";
@@ -30,7 +28,6 @@ export default function SportsTagNav(props: SportsTagNavProps) {
   const { selectedTagSlug, tagsChain, onTagSelect } = props;
   const { t } = useTranslation();
   const { locale } = useLocale();
-  const pathname = usePathname();
   const router = useRouter();
 
   const [sportsTags, setSportsTags] = useState<TagTreeNode[]>([]);
@@ -94,8 +91,7 @@ export default function SportsTagNav(props: SportsTagNavProps) {
     if (isLoading || !selectedTagSlug || sportsTags.length === 0) return;
     // 已经展开过相同的 tag，不重复处理
     if (autoExpandedRef.current === selectedTagSlug) return;
-    // 如果 selectedTagSlug 是顶级标签或 Asian/Live，无需展开
-    if (selectedTagSlug === "__asian__" || selectedTagSlug === "__live__") return;
+    // 如果 selectedTagSlug 是顶级标签，无需展开
     if (sportsTags.some((t) => t.slug === selectedTagSlug)) return;
 
     // 从 tagsChain 中找到父标签（tagsChain 格式: "sports,soccer,gua-d1"）
@@ -172,27 +168,8 @@ export default function SportsTagNav(props: SportsTagNavProps) {
     return getEffectiveChildren(tag);
   };
 
-  // 在 All Sports 顶部插入 Asian 项
-  const sportsTagsWithAsian = useMemo(() => {
-    const asianItem: TagTreeNode = {
-      id: -1,
-      name: t.sports.nav.asian,
-      slug: "__asian__",
-      count: undefined,
-      children: [],
-    };
-    return [asianItem, ...sportsTags];
-  }, [sportsTags, t.sports.nav.asian]);
-
-  // 判断菜单是否激活
-  const isMenuActive = useCallback(
-    (menu: "live" | "futures") => {
-      if (menu === "live") return pathname === "/sports/live";
-      if (menu === "futures") return pathname?.startsWith("/sports/futures");
-      return false;
-    },
-    [pathname]
-  );
+  // Asian 盘口已下线，不再注入 Asian 项,直接使用接口返回的 sports 标签
+  const sportsTagList = sportsTags;
 
   // 判断标签是否选中
   const isTagActive = useCallback(
@@ -205,7 +182,7 @@ export default function SportsTagNav(props: SportsTagNavProps) {
   // 判断父标签是否有子标签被选中
   const isParentTagActive = useCallback(
     (tag: TagTreeNode) => {
-      // 父标签本身被选中（包括 Asian 的 __asian__ slug）
+      // 父标签本身被选中
       if (selectedTagSlug === tag.slug) return true;
       // 检查预加载的子标签
       if (tag.children) {
@@ -234,28 +211,6 @@ export default function SportsTagNav(props: SportsTagNavProps) {
 
   return (
     <div className="flex md:flex-col max-md:items-center gap-2 pb-1">
-      {/* Live 按钮 */}
-      {/* <NavItem
-        type="button"
-        onClick={() => onTagSelect?.("__live__")}
-        active={selectedTagSlug === "__live__"}
-        icon={<Radio className="w-5 h-5" />}
-        label={t.sports.nav.live}
-        className="flex-col md:flex-row"
-      /> */}
-
-      {/* Futures 链接 */}
-      {/* <NavItem
-        type="link"
-        href="/sports/futures/nfl"
-        onClick={() => {}}
-        active={isMenuActive("futures")}
-        icon={<BarChartBig className="w-5 h-5" />}
-        label={t.sports.nav.futures}
-        className="flex-col md:flex-row"
-      /> */}
-
-      {/* <div className="h-6 w-px bg-(--border) shrink-0 md:h-px md:w-full"></div> */}
 
       {/* All Sports 标题 */}
       <h3 className="px-3 py-1.5 text-[10px] font-semibold text-(--text-tertiary) uppercase tracking-wide m-0 hidden md:block">
@@ -269,9 +224,9 @@ export default function SportsTagNav(props: SportsTagNavProps) {
         </div>
       )}
 
-      {/* Sports 标签列表（Asian 在最前） */}
+      {/* Sports 标签列表 */}
       {!isLoading &&
-        sportsTagsWithAsian.map((tag) => {
+        sportsTagList.map((tag) => {
           const isExpanded = expandedTag === tag.slug;
           const hasChildren = isExpandable(tag);
           const childrenList = getChildrenList(tag);

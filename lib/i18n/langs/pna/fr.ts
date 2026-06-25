@@ -1,5 +1,5 @@
 export default {
-  timeRange: { pastDay: "Hier", pastWeek: "Semaine passée", pastMonth: "Mois passé", allTime: "Tout" },
+  timeRange: { pastDay: "Hier", pastWeek: "Semaine passée", pastMonth: "Mois passé", allTime: "Tout", asOfLastHour: "Jusqu'à l'heure précédente" },
   profile: { joined: "Inscrit", views: "vues", positionsValue: "Valeur des positions", modeYesNo: "Yes/No", modeAsianHandicap: "Handicap Asiatique", asianPositionsValue: "Valeur totale", asianSlipCount: "Nombre de slips", biggestWin: "Plus grand gain", predictions: "Prédictions", recharge: "Dépôt", withdraw: "Retrait" },
   tabs: { positions: "Positions", activity: "Activité", asianHandicapOrders: "Ordres HA", openOrders: "Ordres ouverts", marketCreation: "Registres de création", marketAudit: "Dossiers d'audit", marketRecords: "Registres de marché", depositWithdrawHistory: "Historique dépôts/retraits" },
   auditRecords: { event: "Événement / Marchés", status: "Statut", createdAt: "Soumis", action: "Action", create: "Créer", edit: "Modifier", pendingHint: "En attente de révision", total: "Total", noRecords: "Aucun dossier d'audit" },

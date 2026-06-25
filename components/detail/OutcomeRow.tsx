@@ -92,14 +92,23 @@ const OutcomeRow = memo(
 
     // 快速市场(\d+m / \d+h):隐藏整条行头(标题/概率/Buy 按钮/折叠箭头),强制展开
     // 只显示订单簿。右侧交易面板已覆盖 Buy/Sell,行内重复;概率几乎一直 50%/50%,无价值。
-    const isShortTerm = isShortTermFrequencySlug(frequencySlug);
+    //
+    // 仅对「未结算」的快速市场生效:已结算后没有订单簿(orderbook 被 !isResolved gate 掉),
+    // 若仍隐藏行头 + 强制展开,展开区因 activeTab 锁死 orderbook 而无任何内容 → 渲染成一个空盒子,
+    // 且结算结果徽章(在行头里)也被一起藏掉。已结算快速市场退回普通已结算行:显示结算徽章、可折叠、不强制展开。
+    const isShortTerm =
+      isShortTermFrequencySlug(frequencySlug) && !option.isResolved;
     // 防御:之前在普通市场切到过 graph/resolution 时,快速市场 activeTab 会停留在
-    // 失效值导致展开区空白;强制锁回 orderbook
+    // 失效值导致展开区空白;强制锁回 orderbook。
+    // 已结算行:orderbook tab 被过滤掉、内容也被 gate 掉,默认停在 orderbook 会展开成空白 →
+    // 落到 graph,直接显示结算后的价格图。(isShortTerm 与 isResolved 互斥,两分支不冲突)
     useEffect(() => {
       if (isShortTerm && activeTab !== "orderbook") {
         setActiveTab("orderbook");
+      } else if (option.isResolved && activeTab === "orderbook") {
+        setActiveTab("graph");
       }
-    }, [isShortTerm, activeTab]);
+    }, [isShortTerm, activeTab, option.isResolved]);
 
     // token ids (prefer clobTokenIds, fallback to parsedTokenIds)
     const volume = option.volume;

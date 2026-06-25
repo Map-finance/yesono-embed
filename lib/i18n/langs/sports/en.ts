@@ -47,7 +47,7 @@ export default {
     halftimeResult: "Halftime Result",
     corners: "Corners",
     bothTeamsToScore: "Both Teams to Score?",
-    positions: "Positions",
+    positions: "Positions P&L",
     moreGames: "More Games",
   },
   marketAbout: {

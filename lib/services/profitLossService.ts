@@ -104,6 +104,59 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<ApiRe
   }
 }
 
+// ============== 盈亏汇总 API ==============
+
+/**
+ * 盈亏汇总（按时间窗）
+ * 接口：GET /api/profit-loss/pnl-summary
+ * 用于盈亏图头部"对应窗口的总盈亏"展示，避免默认值落在最后一个曲线点
+ * 上（曲线点是某时刻 endEquity 衍生值，跟"窗口累计盈亏"语义不同）
+ */
+export interface ProfitLossSummary {
+  todayPnlValue: number;
+  weeklyPnlValue: number;
+  monthlyPnlValue: number;
+  yearlyPnlValue: number;
+  totalPnlValue: number;
+}
+
+export async function getProfitLossSummary(
+  userId?: string,
+): Promise<ApiResponse<ProfitLossSummary>> {
+  const query = new URLSearchParams();
+  if (userId) query.append('userId', userId);
+  const qs = query.toString();
+  const url = `${AUTH_BASE_URL}/profit-loss/pnl-summary${qs ? `?${qs}` : ''}`;
+  return request<ProfitLossSummary>(url);
+}
+
+/**
+ * 把 UI timeRange 映射到 summary 上的对应字段
+ * 1D → todayPnlValue, 1W → weeklyPnlValue, 1M → monthlyPnlValue,
+ * 1Y → yearlyPnlValue, ALL → totalPnlValue
+ * 找不到 / summary 为空时返回 null（调用方再回退到曲线点）
+ */
+export function getSummaryValueForRange(
+  summary: ProfitLossSummary | null,
+  timeRange: string,
+): number | null {
+  if (!summary) return null;
+  switch (timeRange) {
+    case '1D':
+      return summary.todayPnlValue;
+    case '1W':
+      return summary.weeklyPnlValue;
+    case '1M':
+      return summary.monthlyPnlValue;
+    case '1Y':
+      return summary.yearlyPnlValue;
+    case 'ALL':
+      return summary.totalPnlValue;
+    default:
+      return summary.totalPnlValue;
+  }
+}
+
 // ============== 盈亏统计曲线 API ==============
 
 /**

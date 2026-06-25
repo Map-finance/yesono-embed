@@ -19,6 +19,25 @@ export function isMarketResolved(
   return m?.umaResolutionStatus === "RESOLVED" || m?.status === "RESOLVED";
 }
 
+/** 体育盘口是否「已成功部署」(可展示)。
+ *  过滤掉未部署成功的盘口(status=DEPLOYING、或 conditionId/tokenId 为空)——它们没有链上盘口、
+ *  显示出来就是没价格的破按钮。ACTIVE 和 RESOLVED(已结算,带 conditionId/token)都算已部署、保留。 */
+export function isSportsMarketDeployed(
+  m:
+    | {
+        status?: string | null;
+        conditionId?: string | null;
+        outcomes?: { tokenId?: string | null }[] | null;
+      }
+    | null
+    | undefined
+): boolean {
+  if (!m) return false;
+  if (m.status === "DEPLOYING") return false;
+  if (!m.conditionId) return false;
+  return (m.outcomes || []).some((o) => !!o?.tokenId);
+}
+
 /**
  * 选默认市场:首个"未结算"市场;全部已结算时回退到首项;空数组返回 undefined。
  *

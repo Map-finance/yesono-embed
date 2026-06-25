@@ -17,7 +17,9 @@ import { useToast } from "@/components/ui/Toast";
 
 interface ImageCardProps {
   market: Market;
-  onFavoriteChange?: () => void;
+  onFavoriteChange?: (slug: string, isFavorite: boolean) => void;
+  /** 是否显示收藏按钮。默认 true;数据源无收藏字段的场景(如 sports props 卡)传 false 隐藏 */
+  showBookmark?: boolean;
 }
 
 interface BuyState {
@@ -28,6 +30,7 @@ interface BuyState {
 const ImageCard: React.FC<ImageCardProps> = ({
   market,
   onFavoriteChange,
+  showBookmark = true,
 }) => {
   const router = useRouter();
   const { t } = useTranslation();
@@ -96,7 +99,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
         } else {
           toast.success(t.common.removedFromFavorites);
         }
-        onFavoriteChange?.();
+        onFavoriteChange?.(slug, !market.isFavorite);
       } else {
         toast.error(t.common.operationFailed);
       }
@@ -346,19 +349,21 @@ const ImageCard: React.FC<ImageCardProps> = ({
           <BarChart3 size={12} />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleFavoriteClick}
-            className={`p-1.5 rounded transition-colors ${
-              market.isFavorite
-                ? "text-(--accent) hover:text-(--accent)"
-                : "text-(--text-secondary) hover:text-(--text-primary)"
-            }`}
-          >
-            <Bookmark
-              size={16}
-              fill={market.isFavorite ? "currentColor" : "none"}
-            />
-          </button>
+          {showBookmark && (
+            <button
+              onClick={handleFavoriteClick}
+              className={`p-1.5 rounded transition-colors ${
+                market.isFavorite
+                  ? "text-(--accent) hover:text-(--accent)"
+                  : "text-(--text-secondary) hover:text-(--text-primary)"
+              }`}
+            >
+              <Bookmark
+                size={16}
+                fill={market.isFavorite ? "currentColor" : "none"}
+              />
+            </button>
+          )}
         </div>
       </div>
     </div>

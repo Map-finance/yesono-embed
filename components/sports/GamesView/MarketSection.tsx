@@ -9,6 +9,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
 import { SportsMarketItem } from "@/types/sports";
+import { getTeamAbbr as getAbbr } from "@/lib/utils/teamAbbr";
 import { useTranslation } from "@/lib/i18n";
 import {
   fillEvenSplitWhenAllZero,
@@ -136,13 +137,13 @@ interface MarketSectionProps {
   /** 多线图表数据（用于 moneyline 显示所有 market 曲线） */
   chartMarket?: Market;
   chartEventMarkets?: PolymarketMarketResp[];
-}
-
-function getAbbr(title: string): string {
-  const clean = title.replace(/\s*\(.*?\)/, "").trim();
-  const words = clean.split(/\s+/);
-  const word = words.find((w) => w.length > 2) || words[0] || "";
-  return word.slice(0, 4).toUpperCase();
+  /** 事件 id（透传，保留与上游一致的签名；embed 显示态不拉委托数据） */
+  eventId?: string | number | null;
+  /** 受控展开:传入则由父级控制展开状态(详情页做手风琴用,只展开一个);
+   *  不传则组件内部自管。 */
+  isExpanded?: boolean;
+  /** 受控展开时,头部点击的回调(父级据此切换 expandedKey,实现「展开一个收起其它」)。 */
+  onToggleExpand?: () => void;
 }
 
 /**
@@ -187,9 +188,12 @@ function groupByLineValue(markets: SportsMarketItem[]): [number, SportsMarketIte
   return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
 }
 
-/** Spread 用：每个 market 独立一组，不去重 */
+/** Spread 用：每个 market 独立一组，不去重；按 abs(lineValue) 升序(最小盘口在前,如 0.5 1.5 2.5)。
+ *  与默认「首个未结算线」配合 → 默认落在最小未结算让分线;切换器也按此序显示。 */
 function groupEachByMarket(markets: SportsMarketItem[]): [number, SportsMarketItem[]][] {
-  return markets.map((m) => [Math.abs(m.lineValue ?? 0), [m]]);
+  return [...markets]
+    .sort((a, b) => Math.abs(a.lineValue ?? 0) - Math.abs(b.lineValue ?? 0))
+    .map((m) => [Math.abs(m.lineValue ?? 0), [m]]);
 }
 
 // 颜色常量
@@ -210,10 +214,17 @@ const MarketSection: React.FC<MarketSectionProps> = ({
   awayAbbr = "",
   chartMarket,
   chartEventMarkets,
+  eventId,
+  isExpanded: controlledExpanded,
+  onToggleExpand,
 }) => {
   const { t } = useTranslation();
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [lineIdx, setLineIdx] = useState(0);
+  // 受控(父级传 isExpanded)→ 用父级值;否则内部自管。
+  const isControlledExpand = controlledExpanded !== undefined;
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const isExpanded = isControlledExpand ? controlledExpanded : internalExpanded;
+  const toggleExpand = () =>
+    isControlledExpand ? onToggleExpand?.() : setInternalExpanded((p) => !p);
 
   const lineGroups = useMemo(
     () => hasLineValues
@@ -222,13 +233,51 @@ const MarketSection: React.FC<MarketSectionProps> = ({
     [markets, hasLineValues, sectionKey]
   );
 
-  // hasLineValues 时每组只有 1 个 market，lineIdx 对应第 lineIdx 个 market
-  const currentMarkets = hasLineValues
-    ? lineGroups[lineIdx]?.[1] || []
-    : markets;
+  // 初始线值:首个「含未结算 market」的线(对齐默认展开「首个未结算分类」口径);
+  // 全已结算时回退 0。避免默认落在已结算/旧线上(seed 会选中不可交易的盘)。
+  const [lineIdx, setLineIdx] = useState(() => {
+    const i = lineGroups.findIndex(([, ms]) => ms.some((m) => !isMarketResolved(m)));
+    return i >= 0 ? i : 0;
+  });
+
+  // lineIdx 收敛到有效范围:lineGroups 在实时刷新后组数变少时,旧 lineIdx 可能越界,
+  // 导致 lineGroups[lineIdx] 为 undefined → currentMarkets 变空 → 误显示 noEvents。
+  const safeLineIdx = Math.min(lineIdx, Math.max(0, lineGroups.length - 1));
+  // hasLineValues 时每组只有 1 个 market，lineIdx 对应第 lineIdx 个 market。
+  // 用 useMemo 稳定引用:否则每次渲染都是新数组,会让下方依赖它的 effect 每次都重跑。
+  const currentMarkets = useMemo(
+    () => (hasLineValues ? lineGroups[safeLineIdx]?.[1] || [] : markets),
+    [hasLineValues, lineGroups, safeLineIdx, markets]
+  );
 
   // 判断是否为 moneyline 类型
   const isMoneyline = markets.length > 0 && markets[0]?.subType === "moneyline";
+
+  // 某盘口「成为展开段」且当前选中市场不属于本段时,把它订单簿的当前市场(currentMarkets[0])
+  // 同步给右侧交易面板 → 保证「展开的那段 = 面板交易的那段」(含正确线值)。
+  // 每次展开只种一次(收起时重置);选中已在本段则不种。仅桌面端自动 seed(移动端交易面板是弹窗)。
+  const seededForExpandRef = useRef(false);
+  useEffect(() => {
+    if (!isExpanded) {
+      seededForExpandRef.current = false;
+      return;
+    }
+    if (seededForExpandRef.current) return;
+    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+    if (!isDesktop) return;
+    const selectedInSection = markets.some(
+      (m) => String(m.marketId) === String(selectedMarketId)
+    );
+    if (selectedInSection) {
+      seededForExpandRef.current = true;
+      return;
+    }
+    const seed = currentMarkets[0];
+    if (seed && onOutcomeClick) {
+      seededForExpandRef.current = true;
+      onOutcomeClick(seed, selectedOutcomeIdx ?? 0);
+    }
+  }, [isExpanded, selectedMarketId, markets, currentMarkets, onOutcomeClick, selectedOutcomeIdx]);
 
   const handleClick = (e: React.MouseEvent, item: SportsMarketItem, idx: number) => {
     e.stopPropagation();
@@ -248,7 +297,10 @@ const MarketSection: React.FC<MarketSectionProps> = ({
     const awayLvStr = awayLv > 0 ? `+${awayLv}` : awayLv !== 0 ? String(awayLv) : "";
     const homeAbbrFromOutcome = homeOutcome ? getAbbr(homeOutcome.outcome) : (homeAbbr || "H");
     const awayAbbrFromOutcome = awayOutcome ? getAbbr(awayOutcome.outcome) : (awayAbbr || "A");
-    const isSelected = selectedMarketId === item.marketId;
+    // 让分盘 home/away 是两个独立 outcome,高亮按「market + outcome」判定,否则两个一起亮。
+    const isThisMarket = selectedMarketId === item.marketId;
+    const active0 = isThisMarket && selectedOutcomeIdx === 0;
+    const active1 = isThisMarket && selectedOutcomeIdx === 1;
     // 组内全 0 时 home/away 平分（各 50%），避免显示 0.1¢/0.1¢ 误导
     const filledPrices = fillEvenSplitWhenAllZero(sorted.map((o) => o.price));
     const homePriceLabel = homeOutcome
@@ -263,8 +315,8 @@ const MarketSection: React.FC<MarketSectionProps> = ({
           key={`${item.marketId}-home`}
           size="sm"
           variant="secondary"
-          color={isSelected ? GREEN_ACTIVE : UNSELECTED_BG}
-          textColor={isSelected ? "#fff" : "var(--text-primary)"}
+          color={active0 ? GREEN_ACTIVE : UNSELECTED_BG}
+          textColor={active0 ? "#fff" : "var(--text-primary)"}
           className="min-w-[90px]"
           onClick={(e) => handleClick(e, item, 0)}
         >
@@ -276,8 +328,8 @@ const MarketSection: React.FC<MarketSectionProps> = ({
           key={`${item.marketId}-away`}
           size="sm"
           variant="secondary"
-          color={isSelected ? RED_ACTIVE : UNSELECTED_BG}
-          textColor={isSelected ? "#fff" : "var(--text-primary)"}
+          color={active1 ? RED_ACTIVE : UNSELECTED_BG}
+          textColor={active1 ? "#fff" : "var(--text-primary)"}
           className="min-w-[90px]"
           onClick={(e) => handleClick(e, item, 1)}
         >
@@ -371,10 +423,15 @@ const MarketSection: React.FC<MarketSectionProps> = ({
       return renderTotalButtons(currentMarkets);
     }
 
-    // Moneyline: render all buttons inline
+    // Moneyline: 按 1X2 习惯排「主 / 平 / 客」—— 平局放中间(后端常把 draw 排在末尾)。
+    const drawM = markets.find((m) => m.marketTitle.toLowerCase().startsWith("draw"));
+    const nonDrawM = markets.filter((m) => !m.marketTitle.toLowerCase().startsWith("draw"));
+    const orderedMoneyline = drawM
+      ? ([nonDrawM[0], drawM, nonDrawM[1]].filter(Boolean) as SportsMarketItem[])
+      : markets;
     return (
       <div className="flex gap-2 flex-wrap">
-        {markets.map((item) => {
+        {orderedMoneyline.map((item) => {
           const isDraw = item.marketTitle.toLowerCase().startsWith("draw");
           const abbr = isDraw ? "DRAW" : getAbbr(item.marketTitle);
           const isActive = selectedMarketId === item.marketId;
@@ -400,7 +457,7 @@ const MarketSection: React.FC<MarketSectionProps> = ({
   return (
     <div
       className="border border-(--border) rounded-lg overflow-hidden cursor-pointer"
-      onClick={() => setIsExpanded((p) => !p)}
+      onClick={toggleExpand}
     >
       <div className="p-3 hover:bg-(--bg-secondary)/30 transition-all">
         {/* 标题 + 按钮：桌面端同行，移动端上下排列 */}
@@ -425,7 +482,7 @@ const MarketSection: React.FC<MarketSectionProps> = ({
         {hasLineValues && lineGroups.length > 1 && (
           <LineValueSwitcher
             lines={lineGroups.map(([lv], i) => ({ value: Math.abs(lv), idx: i }))}
-            activeIdx={lineIdx}
+            activeIdx={safeLineIdx}
             onSelect={(idx) => {
               setLineIdx(idx);
               // 切换 lineValue 时同步到交易面板
@@ -474,6 +531,9 @@ const MarketSection: React.FC<MarketSectionProps> = ({
                           tokenId: String(o.tokenId || o.id),
                           originalIndex: o.originalIndex,
                           tradingPair: o.tradingPair || undefined,
+                          // 跟随盘口自身的 outcome 名:让分/独赢=队名,总分盘=Over/Under,
+                          // 让订单簿 tab/表头与盘口按钮一致,不再 fallback 成"是/否"
+                          name: o.outcome,
                         })) || []
                       }
                       selectedSide={selectedOutcomeIdx === 1 ? "no" : "yes"}

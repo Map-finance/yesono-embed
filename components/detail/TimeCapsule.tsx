@@ -22,6 +22,8 @@ import {
   DEFAULT_TIME_CAPSULE_TEXT,
   getMarketRouteMeta,
   formatLocalizedEndDateLabel,
+  getSettlementDirection,
+  type SettlementDirection,
 } from "./TimeCapsule.format";
 import CaretDownIcon from "./CaretDownIcon";
 
@@ -60,6 +62,35 @@ interface TimeCapsuleProps {
   /** 金融事件：走 /api/finance/end-dates 且不套用按币种 slug 前缀的过滤 */
   isFinance?: boolean;
 }
+
+// ============== 结算结果迷你箭头（Polymarket 风格）==============
+
+/** 圆底填充的涨跌三角，绿=上涨方赢 / 红=下跌方赢 / 灰=平局。 */
+const SettlementResultIcon: React.FC<{ direction: SettlementDirection }> = ({
+  direction,
+}) => {
+  if (direction === "push") {
+    return (
+      <span className="shrink-0 inline-block w-3.5 h-3.5 rounded-full bg-(--text-tertiary)" />
+    );
+  }
+  const isUp = direction === "up";
+  return (
+    <span
+      className={`shrink-0 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ${
+        isUp ? "bg-(--green)" : "bg-(--red)"
+      }`}
+    >
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+        {isUp ? (
+          <path d="M4 1.5 L7 6 L1 6 Z" fill="white" />
+        ) : (
+          <path d="M4 6.5 L1 2 L7 2 Z" fill="white" />
+        )}
+      </svg>
+    </span>
+  );
+};
 
 // ============== 主组件 ==============
 
@@ -542,6 +573,9 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
           {pastItems.map((item) => {
             const labelObj = pastLabels.get(item.slug);
             if (!labelObj) return null;
+            const direction = getSettlementDirection(
+              (item as { settlementResult?: number | null }).settlementResult
+            );
             return (
               <Link
                 key={item.slug}
@@ -550,6 +584,11 @@ const TimeCapsule: React.FC<TimeCapsuleProps> = ({
                 onClick={() => handleNavClick(item.slug)}
               >
                 <div className="flex items-center text-sm">
+                  {direction && (
+                    <span className="mr-1.5 flex items-center">
+                      <SettlementResultIcon direction={direction} />
+                    </span>
+                  )}
                   <span className="font-semibold text-(--text-primary)">
                     {labelObj.timeLabel}
                   </span>

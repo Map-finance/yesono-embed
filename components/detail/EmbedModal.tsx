@@ -9,6 +9,7 @@ import {
   generateEmbedCode,
   renderHighlightedCodeLine,
 } from "./EmbedModal.helpers";
+import { buildSportsEventUrl } from "@/lib/utils/sportsNav";
 import EmbedPreviewCard from "./EmbedPreviewCard";
 
 interface EmbedModalProps {
@@ -134,7 +135,10 @@ export default function EmbedModal({
   // 使用当前站点域名
   const siteOrigin = typeof window !== "undefined" ? window.location.origin : "https://yesono.com";
   const marketSlug = market.slug || market.id;
-  const marketUrl = `${siteOrigin}/market/${marketSlug}`;
+  // 体育赛事详情在 /sports?event={slug}，不是 /market/{slug};否则分享链接定位不到本场比赛。
+  const marketUrl = isSports
+    ? `${siteOrigin}${buildSportsEventUrl(String(marketSlug))}`
+    : `${siteOrigin}/market/${marketSlug}`;
 
   const embedSrc = `${siteOrigin}/embed/${marketSlug}?chart=${config.chart}&buy=${config.buyButtons}&vol=${config.volume}&theme=${config.darkMode ? 'dark' : 'light'}&border=${config.border}`;
 

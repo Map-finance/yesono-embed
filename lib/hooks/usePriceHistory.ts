@@ -372,6 +372,28 @@ export function usePriceHistory(
           const lastHistoryPrice = effectiveHistory[effectiveHistory.length - 1].p * 100;
           prices[m.marketId] = finalPrice > 0 ? finalPrice * 100 : lastHistoryPrice;
         }
+
+        // 兜底:没有任何历史点时(新市场 / 后端 history 为空),用当前盘口最高买价
+        // 画一条"当前概率"水平线(区间起点 + 当前 各一个同值点),避免有行情却显示「暂无数据」。
+        // 非 Polymarket 关联的市场也适用——用它自己的 orderbook。
+        if (effectiveHistory.length === 0) {
+          const ourMaxBid = m.orderbook ? getMaxBidPrice(m.orderbook.bids) : 0;
+          const fallbackPrice = m.havePoly
+            ? Math.max(ourMaxBid, polyOrderbooks[i] || 0)
+            : ourMaxBid;
+          if (fallbackPrice > 0) {
+            const startMs = startTs * 1000;
+            const tsPoints =
+              startMs < latestTimestamp ? [startMs, latestTimestamp] : [latestTimestamp];
+            for (const ts of tsPoints) {
+              if (!timeMap.has(ts)) {
+                timeMap.set(ts, { timestamp: ts, date: formatDate(ts, range) });
+              }
+              timeMap.get(ts)![m.marketId] = fallbackPrice * 100;
+            }
+            prices[m.marketId] = fallbackPrice * 100;
+          }
+        }
       }
 
       // Convert map to sorted array

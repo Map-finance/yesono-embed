@@ -24,6 +24,7 @@ import {
 } from "recharts";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { useFormattedDate } from "@/lib/hooks/useFormattedDate";
 import {
   CHART_LEFT,
   CHART_RIGHT_PAD,
@@ -73,6 +74,7 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
   isLive,
 }) => {
   const { t } = useTranslation();
+  const { intlLocale } = useFormattedDate();
 
   // Smart downsample: preserve step-chart transitions, remove only same-value plateaus
   const displayData = useMemo(() => {
@@ -255,7 +257,7 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
       const d = new Date(ts);
       // 统一按美东时区显示，与 TimeCapsule 对齐（避免图表用本地时区造成时间错位）
       if (["1H", "6H"].includes(selectedRange)) {
-        return d.toLocaleTimeString("en-US", {
+        return d.toLocaleTimeString(intlLocale, {
           timeZone: "America/New_York",
           hour: "numeric",
           minute: "2-digit",
@@ -263,7 +265,7 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
         });
       }
       if (selectedRange === "1D") {
-        return d.toLocaleDateString("en-US", {
+        return d.toLocaleDateString(intlLocale, {
           timeZone: "America/New_York",
           month: "short",
           day: "numeric",
@@ -271,7 +273,7 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
           minute: "2-digit",
         });
       }
-      return d.toLocaleDateString("en-US", {
+      return d.toLocaleDateString(intlLocale, {
         timeZone: "America/New_York",
         month: "short",
         day: "numeric",
@@ -280,7 +282,7 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
         minute: "2-digit",
       });
     },
-    [selectedRange]
+    [selectedRange, intlLocale]
   );
 
   // Forward-fill lookup: for each displayData index, pre-compute filled values per market
@@ -458,7 +460,15 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
       const LastDot = (props: any) => {
         const { cx, cy, index } = props;
         const len = displayDataLenRef.current;
-        if (len > 0 && index === len - 1) {
+        // 只在"最后一个点 + 该序列在此点有有效值"时画线尾圆点。
+        // 无数据的 outcome(如新加的 0% 项)末点为 null → recharts 传进来的 cy 是
+        // null/NaN,若照画 <circle cy={null}> 会被当 0 钉在图顶,出现"贴顶半截幽灵点"。
+        if (
+          len > 0 &&
+          index === len - 1 &&
+          Number.isFinite(cx) &&
+          Number.isFinite(cy)
+        ) {
           return <circle cx={cx} cy={cy} r={5} fill={color} />;
         }
         return null;
@@ -469,8 +479,10 @@ const MarketChartView: React.FC<MarketChartViewProps> = ({
     return map;
   }, []);
 
+  // recharts 的 dot 接收元素/渲染函数;React 19 下 FC 的返回类型与 DotType 有摩擦,这里返回类型放宽为 any。
   const createLastDot = useCallback(
-    (color: string) => {
+     
+    (color: string): any => {
       return lastDotComponents[color] || lastDotComponents[colors[0]];
     },
     [lastDotComponents]

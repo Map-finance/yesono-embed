@@ -41,6 +41,7 @@ export function applyMarketSlippage(
   return Math.round(clamped * 1e6) / 1e6;
 }
 
+/** 单侧实时盘口报价(ratio 0-1);无盘口时各字段为 0 */
 export interface SideQuote {
   bestAsk: number;
   bestBid: number;
@@ -48,13 +49,37 @@ export interface SideQuote {
 }
 export const EMPTY_SIDE_QUOTE: SideQuote = { bestAsk: 0, bestBid: 0, mid: 0 };
 
+/**
+ * 单侧可成交展示价(ratio),四级回退:
+ *  ① 该侧有实时价(BUY→bestAsk、SELL→bestBid)→ 用它;
+ *  ② 该侧无实时价,但对侧有互补价 → 用互补价推导。
+ *     二元市场两个 outcome 是同一个簿的两面("买 Up @98" ≡ "卖 Down @2",98+2=100),
+ *     故 本侧 ask = 1 − 对侧 bid;本侧 bid = 1 − 对侧 ask。这是真实可成交价,
+ *     避免单边盘口时把该侧买价显示成 0(→ clamp 成误导性的 0.1¢)。
+ *  ③ 互补也推不出,但该侧盘口有中点(mid,与概率同口径)→ 用 mid。
+ *     单边盘口(只有该侧 bid、无 ask)时:mid = bid,与概率一致;比直接跳静态更贴近真实。
+ *     避免后端静态为 0 被调用方均分成 50/50 时,把订单簿真实信号(如 10¢)盖成误导性的 50¢。
+ *  ④ 盘口完全无价 → 静态价(整组全 0 时由调用方做 50/50 均分,新市场默认)。
+ */
 export function resolveSidePrice(
   direction: "BUY" | "SELL",
   quote: SideQuote | undefined,
+  otherQuote: SideQuote | undefined,
   staticPrice: number,
 ): number {
   const live = direction === "SELL" ? quote?.bestBid : quote?.bestAsk;
-  return live && live > 0 ? live : staticPrice;
+  if (live && live > 0) return live;
+  // ② 互补推导:买入要本侧 ask = 1 − 对侧 bid;卖出要本侧 bid = 1 − 对侧 ask
+  const otherComplement = direction === "SELL" ? otherQuote?.bestAsk : otherQuote?.bestBid;
+  if (otherComplement && otherComplement > 0 && otherComplement < 1) {
+    return 1 - otherComplement;
+  }
+  // ③ 该侧盘口中点:单边盘口下保留订单簿信号,优先于(可能被均分的)静态价
+  const mid = quote?.mid;
+  if (mid && mid > 0 && mid < 1) {
+    return mid;
+  }
+  return staticPrice; // ④ 盘口完全无价 → 静态(调用方传入的可能是 50/50 均分值)
 }
 
 export function resolveButtonPrices(args: {
@@ -66,8 +91,8 @@ export function resolveButtonPrices(args: {
 }): { yes: number; no: number } {
   const [fy, fn] = fillEvenSplitWhenAllZero([args.yesStatic, args.noStatic]);
   return {
-    yes: resolveSidePrice(args.direction, args.yesQuote, fy ?? args.yesStatic),
-    no: resolveSidePrice(args.direction, args.noQuote, fn ?? args.noStatic),
+    yes: resolveSidePrice(args.direction, args.yesQuote, args.noQuote, fy ?? args.yesStatic),
+    no: resolveSidePrice(args.direction, args.noQuote, args.yesQuote, fn ?? args.noStatic),
   };
 }
 

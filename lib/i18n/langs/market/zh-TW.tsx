@@ -422,6 +422,7 @@ export default {
     currentPrice: '當前價格',
     priceToBeat: '目標價格',
     finalPrice: '最終價格',
+    settling: '結算中…',
     goToLiveMarket: '前往即時盤口',
     liveButton: '直播',
     countdown: {
@@ -441,6 +442,10 @@ export default {
   rulesDesc: '本市場中的聯準會利率由目標聯邦基金利率區間的上限定義。關於目標的決定...',
   past: '歷史',
   comments: '評論',
+  position: '持倉',
+  clearPosition: '清倉',
+  historicalOrders: '歷史委託',
+  viewNetPositions: '查看全部持倉',
   positions: '持倉',
   buyYes: '買入 Yes',
   buyNo: '買入 No',

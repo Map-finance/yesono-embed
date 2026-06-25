@@ -39,7 +39,7 @@ export function useActivity({
   unionKey,
   eventSlug,
   enabled = true,
-  pageSize = 20,
+  pageSize = 10, // 统一页大小:对齐后端单页上限 10(原 20 会让 hasMore=10>=20 误判到底)
 }: UseActivityOptions): UseActivityReturn {
   const [trades, setTrades] = useState<TradeRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -4,6 +4,7 @@ export default {
     pastWeek: "สัปดาห์ที่ผ่านมา",
     pastMonth: "เดือนที่ผ่านมา",
     allTime: "ทั้งหมด",
+    asOfLastHour: "ณ ชั่วโมงที่ผ่านมา",
   },
 
   profile: {

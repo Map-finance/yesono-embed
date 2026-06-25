@@ -19,7 +19,9 @@ interface MarketGridProps {
   columns?: number;
   loading?: boolean;
   emptyMessage?: string;
-  onFavoriteChange?: () => void;
+  onFavoriteChange?: (slug: string, isFavorite: boolean) => void;
+  /** 是否显示卡片上的收藏按钮。默认 true */
+  showBookmark?: boolean;
 }
 
 export default function MarketGrid({
@@ -28,6 +30,7 @@ export default function MarketGrid({
   loading = false,
   emptyMessage,
   onFavoriteChange,
+  showBookmark = true,
 }: MarketGridProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -151,6 +154,7 @@ export default function MarketGrid({
                   <MarketCard
                     market={market}
                     onFavoriteChange={onFavoriteChange}
+                    showBookmark={showBookmark}
                     />
                 </Link>
               </div>

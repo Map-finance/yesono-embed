@@ -22,6 +22,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useTranslation } from "@/lib/i18n";
+import { useFormattedDate } from "@/lib/hooks/useFormattedDate";
 import { useSingleMarketPriceHistory } from "@/lib/hooks/usePriceHistory";
 import { mapToApiRange, timeRanges, type UITimeRange } from "./OutcomeList.helpers";
 
@@ -225,26 +226,27 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
     ];
   }, [chartData]);
 
-  // Format tooltip timestamp
+  const { formatDate, intlLocale } = useFormattedDate();
+  // Format tooltip timestamp(走当前 locale,不再硬编 en-US)
   const formatTooltipTime = useCallback(
     (ts: number) => {
       const d = new Date(ts);
       if (["1H", "6H"].includes(selectedRange)) {
-        return d.toLocaleTimeString("en-US", {
+        return d.toLocaleTimeString(intlLocale, {
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
         });
       }
       if (selectedRange === "1D") {
-        return d.toLocaleDateString("en-US", {
+        return formatDate(d, {
           month: "short",
           day: "numeric",
           hour: "numeric",
           minute: "2-digit",
         });
       }
-      return d.toLocaleDateString("en-US", {
+      return formatDate(d, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -252,7 +254,7 @@ const OutcomeGraph: React.FC<OutcomeGraphProps> = ({
         minute: "2-digit",
       });
     },
-    [selectedRange]
+    [selectedRange, intlLocale, formatDate]
   );
 
   const CHART_LEFT = 35;

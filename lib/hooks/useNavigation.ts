@@ -58,13 +58,15 @@ async function fetchNavigationApi([, locale]: [string, string]): Promise<Navigat
     },
   });
 
+  // 失败必须 throw,不能 return []:否则 SWR 把"空"当成成功结果缓存,
+  // onErrorRetry 不触发,后端瞬时抖动后导航只剩固定项且不会自愈(刷新偶发不显示)。
   if (!response.ok) {
-    return [];
+    throw new Error(`navigation api failed: ${response.status}`);
   }
 
   const result: ApiResponse<NavigationItem[]> = await response.json();
   if (!result.success || !Array.isArray(result.data)) {
-    return [];
+    throw new Error("navigation api returned invalid payload");
   }
 
   return result.data;
@@ -100,6 +102,10 @@ export function useNavigation() {
       keepPreviousData: true,
       // fetch 未回/失败时回退上次成功的导航,避免动态分类消失
       fallbackData: cachedItems,
+      // 后端瞬时失败时自动重试,避免动态导航刷新偶发空白
+      shouldRetryOnError: true,
+      errorRetryCount: 5,
+      errorRetryInterval: 2000,
     }
   );
 

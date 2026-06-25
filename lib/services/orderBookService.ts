@@ -285,8 +285,13 @@ export class OrderBookWebSocket {
           // 握手期间(还没 settle)就被 close —— 把等待者 reject 掉,
           // 否则它们会等到 10s 超时才退出
           settle(() => reject(new Error(`WS closed before open: code=${event.code}`)));
-          // 只有非正常关闭时才重连
-          if (event.code !== 1000) {
+          // 重连判断改为「只要不是我们自己 disconnect() 主动关的就重连」。
+          // 原来用 code !== 1000:服务端/云 LB 用 1000(正常关闭)码踢掉空闲连接时,
+          // 这里会跳过重连,且 subscribedMarketIds 标记不被清 → 实例状态错位
+          // (socket 已死但标记还在),再订阅时被 dedup 早返回吞掉,subscribe 帧永不发出。
+          // disconnect() 会置 disposed=true,attemptReconnect 开头已 early-return,
+          // 故对所有非主动关闭统一重连是安全的(含服务端 1000)。
+          if (!this.disposed) {
             this.attemptReconnect();
           }
         };
@@ -445,10 +450,23 @@ export class OrderBookWebSocket {
     if (this.disposed) return;
 
     // 已订阅同一个 marketId:只递增 refCount,不重复发请求
+    // 已订阅同一个 marketId:正常情况只递增 refCount,不重复发请求。
+    // 但要先确认底层 socket 真的还活着 —— 若 socket 已被关闭(被服务端/LB 断开但
+    // 标记没来得及清),这个「已订阅」是假的,直接早返回会把 subscribe 帧吞掉,
+    // 导致切回页面后订单簿停更却看不到任何订阅消息。此时清掉 stale 标记往下重发。
     if (this.subscribedMarketIds.has(marketId)) {
-      const currentRefs = this.subscriptionRefs.get(marketId) || 0;
-      this.subscriptionRefs.set(marketId, currentRefs + 1);
-      return;
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        const currentRefs = this.subscriptionRefs.get(marketId) || 0;
+        this.subscriptionRefs.set(marketId, currentRefs + 1);
+        return;
+      }
+      // socket 已死:仅清订阅标记(保留 subscriptionRefs 里其他消费者累计的引用计数),
+      // 继续往下走 connect + 重新 send subscribe;末尾按 carriedRefs+1 重建计数。
+      wsLog(this.currentWsId ?? 'orderBookWS:?', 'RESUBSCRIBE_STALE_SOCKET', {
+        marketId,
+        readyState: this.ws?.readyState ?? 'null',
+      });
+      this.subscribedMarketIds.delete(marketId);
     }
 
     // 如果正在订阅中（其他 marketId）,排队等当前订阅完成再继续
@@ -489,7 +507,10 @@ export class OrderBookWebSocket {
       this.ws.send(JSON.stringify(message));
       wsLog(this.currentWsId ?? 'orderBookWS:?', 'SEND_SUBSCRIBE', message);
       this.subscribedMarketIds.add(marketId);
-      this.subscriptionRefs.set(marketId, 1);
+      // 首次订阅:subscriptionRefs 无值 → 0+1=1(同原行为)。
+      // stale-socket 重订阅:上面只清了 subscribedMarketIds 标记,subscriptionRefs 仍留着
+      // 其他消费者的累计计数 → 在其基础上 +1,避免把别人的引用计数冲掉。
+      this.subscriptionRefs.set(marketId, (this.subscriptionRefs.get(marketId) || 0) + 1);
     } finally {
       this.isSubscribing = false;
 

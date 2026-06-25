@@ -12,17 +12,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { useSportsEvents } from "@/lib/hooks/useSportsEvents";
 import { useTagTree } from "@/lib/hooks/useTagTree";
-import { SportsEventDetail, SportsMarketItem } from "@/types/sports";
+import { SportsEventDetail, SportsMarketItem, getEventCommentMarketId } from "@/types/sports";
 import { sortOutcomesByOriginalIndex } from "@/lib/utils/outcomes";
 import { clampOutcomeProbabilityPercent } from "@/utils/format";
 import SportsEventCard from "./SportsEventCard";
 import SportsEventDetailView from "./SportsEventDetailView";
 import CommentSection from "@/components/common/CommentSection";
+import { Skeleton } from "@/components/ui/shadcn/skeleton";
 import MarketGrid from "@/components/MarketGrid";
 import { Market } from "@/types/types";
 import { useTradingStore } from "@/lib/store/tradingStore";
 import ProxyImage from "@/components/common/ProxyImage";
 import { resolveEventDate } from "@/lib/utils/sportsNav";
+import { isSportsMarketDeployed } from "@/lib/utils/marketSelection";
 import dynamic from "next/dynamic";
 import TradingPanelSkeleton from "@/components/common/TradingPanel/Skeleton";
 // TradingPanel 体量较大,首屏不强依赖 → dynamic 拉出主 chunk,
@@ -125,12 +127,11 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
     setExpandedEventId(null);
   }, [tagsChain]);
 
-  // 当 initialEventSlug 变化时（URL event 参数变化），同步到 detailSlug
+  // detailSlug 始终镜像 URL 的 event 参数(initialEventSlug):
+  // 有值 → 进详情;无值(如后退/前进回到列表 URL)→ 退出详情回列表。
   useEffect(() => {
-    if (initialEventSlug) {
-      setDetailSlug(initialEventSlug);
-      tagsUpdatedRef.current = false;
-    }
+    setDetailSlug(initialEventSlug ?? null);
+    if (initialEventSlug) tagsUpdatedRef.current = false;
   }, [initialEventSlug]);
 
   // 当事件加载完成后，如果 URL 缺少 tag/tags 参数，用事件的 tagsSlug 补全 URL，使左侧菜单正确选中
@@ -182,7 +183,6 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
     hasMore: propsHasMore,
     isLoadingMore: propsLoadingMore,
     loadMore: propsLoadMore,
-    refresh: propsRefresh,
   } = useSportsEvents({
     tags: tagsChain,
     tab: "props",
@@ -310,16 +310,9 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
     });
   }, [activeTab, propsEvents]);
 
-  function getAbbr(title: string): string {
-    const clean = title.replace(/\s*\(.*\)/, "").trim();
-    const words = clean.split(/\s+/);
-    const word = words.find((w) => w.length > 2) || words[0] || "";
-    return word.slice(0, 4).toUpperCase();
-  }
-
-  // 按日期分组赛事（保持插入顺序）
+  // 按日期分组赛事，并按开赛时间排序（早→晚）
+  // 后端返回顺序不保证有序，必须前端兜底排序，否则分组之间 / 组内都会乱序
   const groupedEvents = useMemo(() => {
-    const groups: { date: string; events: SportsEventDetail[] }[] = [];
     const dateMap = new Map<string, SportsEventDetail[]>();
     const formatter = new Intl.DateTimeFormat(locale || "en-US", {
       weekday: "short",
@@ -337,27 +330,68 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
       dateMap.get(dateKey)!.push(ev);
     });
 
-    dateMap.forEach((events, date) => {
-      groups.push({ date, events });
+    const eventTime = (ev: SportsEventDetail) =>
+      resolveEventDate(ev)?.getTime() ?? Number.POSITIVE_INFINITY;
+
+    const groups = Array.from(dateMap.entries()).map(([date, events]) => {
+      // 组内按开赛时间升序（早→晚）
+      const sorted = [...events].sort((a, b) => eventTime(a) - eventTime(b));
+      // 该分组的排序键 = 组内最早一场的时间戳；无日期（TBD）排到最后
+      const sortKey = sorted.length ? eventTime(sorted[0]) : Number.POSITIVE_INFINITY;
+      return { date, events: sorted, sortKey };
     });
 
-    return groups;
+    // 分组按日期升序（早→晚）
+    groups.sort((a, b) => a.sortKey - b.sortKey);
+
+    return groups.map(({ date, events }) => ({ date, events }));
   }, [gamesEvents, locale]);
 
-  // 默认选中第一个赛事的第一个 moneyline market
+  // 默认选中第一个赛事的首个可交易盘口(moneyline→让分→总分 顺序,每类内优先未结算)。
+  // 不再只取 moneyline[0]:很多比赛无 moneyline,会导致右侧面板空白。
+  const pickDefaultSportsMarket = useCallback(
+    (ev?: SportsEventDetail | null): SportsMarketItem | null => {
+      const m = ev?.market as Record<string, SportsMarketItem[]> | undefined;
+      if (!m) return null;
+      const order = ["moneyline", "spreads", "totals"];
+      // 只在「已成功部署」的盘口里选(跳过 DEPLOYING/无 token 的不可交易盘),
+      // 按 abs(lineValue) 升序 → 最小盘口在前(让分 0.5 / 总分 1.5;moneyline 无 lineValue,序不变)。
+      const sortedByLine = (key: string) =>
+        (Array.isArray(m[key]) ? m[key] : [])
+          .filter(isSportsMarketDeployed)
+          .sort((a, b) => Math.abs(a.lineValue ?? 0) - Math.abs(b.lineValue ?? 0));
+      // 优先:按类型顺序「跨所有类型」找首个含未结算盘口的类型,返回其最小未结算线。
+      // (避免 moneyline 全已结算时回退到已结算盘,而 spreads/totals 其实还有可交易盘。)
+      for (const key of order) {
+        const unresolved = sortedByLine(key).find((x) => x?.status !== "RESOLVED");
+        if (unresolved) return unresolved;
+      }
+      // 全部已结算:回退到首个非空类型的最小线(展示已结算态)。
+      for (const key of order) {
+        const arr = sortedByLine(key);
+        if (arr.length > 0) return arr[0];
+      }
+      return null;
+    },
+    []
+  );
+
   // 当 gamesEvents 变化时，如果当前 selectedEvent 不在新列表中则重新选
   useEffect(() => {
     if (activeTab !== "games" || gamesEvents.length === 0) return;
+    // 详情模式:右侧面板的选中由详情页 seed/点击负责,不让「列表默认选中」介入,
+    // 否则刷新时会先把列表首个(可能已结算)赛事选中 → 右面板闪一下「结算」再被纠正。
+    if (detailSlug) return;
     // 当前选中的 event 仍在列表中，保持不变
     if (selectedEvent && gamesEvents.some((ev) => ev.id === selectedEvent.id)) return;
     const firstEvent = gamesEvents[0];
-    const firstMarket = firstEvent.market?.moneyline?.[0];
+    const firstMarket = pickDefaultSportsMarket(firstEvent);
     if (firstMarket) {
       setSelectedMarket(firstMarket);
       setSelectedEvent(firstEvent);
       setSelectedOutcomeIdx(0);
     }
-  }, [gamesEvents, activeTab]);
+  }, [gamesEvents, activeTab, detailSlug, pickDefaultSportsMarket]);
 
   // 移动端底部弹出交易面板状态
   const [showMobileTrading, setShowMobileTrading] = useState(false);
@@ -400,13 +434,23 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
   // Game View 点击：切换到详情视图
   const handleGameView = useCallback((eventSlug: string) => {
     setDetailSlug(eventSlug);
+    // 同步 URL → /sports?event={slug}(保留现有 tag/tags),使刷新/前进后退/分享(顶部复制 location)都能定位本场。
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("event", eventSlug);
+    router.push(`/sports?${params.toString()}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  }, [searchParams, router]);
 
   // 从详情返回列表
   const handleBackFromDetail = useCallback(() => {
     setDetailSlug(null);
-  }, []);
+    // 同步清掉 URL 的 event 参数(保留 tag/tags),保持 URL 与视图一致(否则刷新又进详情)。
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.has("event")) {
+      params.delete("event");
+      router.push(`/sports?${params.toString()}`);
+    }
+  }, [searchParams, router]);
 
   // 详情视图中选中市场
   const handleDetailMarketSelect = useCallback(
@@ -446,10 +490,7 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
   const { tags: sportsRootTags } = useTagTree({
     slug: "sports",
     withCount: true,
-    enabled:
-      !!selectedChainSlug &&
-      selectedChainSlug !== "__asian__" &&
-      selectedChainSlug !== "__live__",
+    enabled: !!selectedChainSlug && selectedChainSlug !== "__asian__",
   });
 
   const { tags: parentChildTags } = useTagTree({
@@ -458,16 +499,12 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
     enabled:
       !!parentChainSlug &&
       parentChainSlug !== "sports" &&
-      selectedChainSlug !== "__asian__" &&
-      selectedChainSlug !== "__live__",
+      selectedChainSlug !== "__asian__",
   });
 
   const localizedDisplayName = useMemo(() => {
     if (selectedChainSlug === "__asian__" || selectedChainSlug === "asian") {
       return t.sports.nav.asian;
-    }
-    if (selectedChainSlug === "__live__" || selectedChainSlug === "live") {
-      return t.sports.nav.live;
     }
     if (selectedChainSlug === "sports") {
       return t.common.nav.sports;
@@ -663,8 +700,21 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
         {activeTab === "games" && (
           <>
             {gamesLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-(--accent)" />
+              // 骨架屏:与其它列表页保持一致(原为居中转圈),按赛事行布局占位
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-(--border) bg-(--bg-card) p-4"
+                  >
+                    <Skeleton className="h-4 w-1/3 mb-3" />
+                    <div className="flex gap-3">
+                      <Skeleton className="h-9 flex-1" />
+                      <Skeleton className="h-9 flex-1" />
+                      <Skeleton className="h-9 flex-1" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : gamesEvents.length === 0 ? (
               <div className="text-center py-12 text-(--text-tertiary)">
@@ -679,14 +729,14 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
                       <h3 className="text-base font-bold text-(--text-primary)">
                         {group.date}
                       </h3>
-                      <div className="hidden md:flex items-center text-[10px] font-medium text-(--text-tertiary) uppercase tracking-wider">
-                        <span className="w-28 text-center">
+                      <div className="hidden md:flex items-center gap-3 text-[10px] font-medium text-(--text-tertiary) uppercase tracking-wider">
+                        <span className="w-32 text-center">
                           {t.sports.market.moneyline}
                         </span>
-                        <span className="w-32 text-center ml-4">
+                        <span className="w-32 text-center">
                           {t.sports.market.spread}
                         </span>
-                        <span className="w-28 text-center ml-4">
+                        <span className="w-32 text-center">
                           {t.sports.market.total}
                         </span>
                       </div>
@@ -740,11 +790,14 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
               <div className="mt-8 border-t border-(--border) pt-6">
                 <CommentSection
                   entityId={
-                    selectedEvent?.market?.moneyline?.[0]?.marketId ||
+                    // 评论按 marketId 维度存:用列表里任意一个 marketId(优先选中事件,
+                    // 否则扫整列表),都取不到才退回 tagSlug / 事件 id。绝不直接用事件 id。
+                    getEventCommentMarketId(selectedEvent) ||
+                    gamesEvents.map(getEventCommentMarketId).find(Boolean) ||
+                    tagSlug ||
                     selectedEvent?.id ||
-                    gamesEvents[0]?.market?.moneyline?.[0]?.marketId ||
                     gamesEvents[0]?.id ||
-                    tagSlug
+                    ""
                   }
                 />
               </div>
@@ -755,35 +808,29 @@ const SportsGamesView: React.FC<SportsGamesViewProps> = ({
         {/* ==================== Props 视图（无右侧交易面板） ==================== */}
         {activeTab === "props" && (
           <>
-            {propsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-(--accent)" />
+            {/* props 数据源(SportsEventDetail)无收藏字段 → 隐藏书签(showBookmark=false),
+                避免"点了没反应"误导;加载态复用 MarketGrid 自带的卡片骨架(loading=propsLoading)。 */}
+            <MarketGrid
+              markets={propsMarkets}
+              columns={3}
+              loading={propsLoading}
+              emptyMessage={t.sports.game.noEvents}
+              showBookmark={false}
+            />
+            {propsHasMore && !propsLoading && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={propsLoadMore}
+                  disabled={propsLoadingMore}
+                  className="px-6 py-2 rounded-lg bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-tertiary) transition-colors disabled:opacity-50 text-sm"
+                >
+                  {propsLoadingMore ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    t.market.common.loadMore
+                  )}
+                </button>
               </div>
-            ) : (
-              <>
-                <MarketGrid
-                  markets={propsMarkets}
-                  columns={3}
-                  loading={false}
-                  emptyMessage={t.sports.game.noEvents}
-                  onFavoriteChange={propsRefresh}
-                />
-                {propsHasMore && (
-                  <div className="flex justify-center mt-4">
-                    <button
-                      onClick={propsLoadMore}
-                      disabled={propsLoadingMore}
-                      className="px-6 py-2 rounded-lg bg-(--bg-secondary) text-(--text-primary) hover:bg-(--bg-tertiary) transition-colors disabled:opacity-50 text-sm"
-                    >
-                      {propsLoadingMore ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        t.market.common.loadMore
-                      )}
-                    </button>
-                  </div>
-                )}
-              </>
             )}
           </>
         )}

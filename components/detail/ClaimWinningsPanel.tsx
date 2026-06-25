@@ -183,9 +183,10 @@ const ClaimWinningsPanel: React.FC<ClaimWinningsPanelProps> = ({
     [redeem, marketId, toast, t, refresh, markClaimed]
   );
 
-  const accent = settlementDisplay?.accent || "#3b82f6";
-  const outcomeLabelText =
-    settlementDisplay?.label || t.common.yes;
+  // settlementDisplay 为 null(结算数据完全缺失,正常情况下不会发生 —— page.tsx 已用
+  // outcomePrices 回退)时,用中性灰 + "—",绝不默认成「蓝色 Yes」误导用户。
+  const accent = settlementDisplay?.accent || "#6b7280";
+  const outcomeLabelText = settlementDisplay?.label || "—";
   const title = marketTitle || (market as any)?.question || "";
 
   // 可领取的一侧:有 conditionId、有价值、且尚未被本地标记为已领取。

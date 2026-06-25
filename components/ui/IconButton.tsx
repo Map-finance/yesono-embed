@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes, forwardRef } from 'react';
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     size?: 'sm' | 'md' | 'lg';
-    variant?: 'default' | 'ghost' | 'outline-solid';
+    variant?: 'default' | 'ghost' | 'outline';
 }
 
 const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(

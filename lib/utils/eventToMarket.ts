@@ -14,12 +14,14 @@ import {
 
 /**
  * 格式化百分比显示
- * - NaN / 非数字 → "<1%"
- * - 0% 或负值 → "<1%"
- * - >=100% → ">99%"（未结算预测市场不显示绝对值；详见 utils/format clamp）
+ * - 0% 或负值显示为 "<1%"
+ * - 100% 或更高显示为 ">99%"（之前显示 "100%"，对未结算预测市场来说是误导：
+ *   暗示"绝对发生"。原始 ratio 0.9995 经 Math.round(*100) 落到 100 是常见情况，
+ *   实际市场始终有套利空间，不会真的 100%）
+ * - NaN / 非有限数 → "—"
  */
 export function formatPercentage(percentage: number): string {
-  if (!Number.isFinite(percentage)) return "<1%";
+  if (!Number.isFinite(percentage)) return "—";
   if (percentage <= 0) return "<1%";
   if (percentage >= 100) return ">99%";
   return `${percentage}%`;

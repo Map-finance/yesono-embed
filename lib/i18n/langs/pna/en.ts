@@ -5,6 +5,7 @@ export default {
     pastWeek: "Past Week",
     pastMonth: "Past Month",
     allTime: "All-Time",
+    asOfLastHour: "Through the previous hour",
   },
 
   // Profile stats

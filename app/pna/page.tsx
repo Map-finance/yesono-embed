@@ -15,18 +15,163 @@
  *   - ?userId=<id>                            看别人的 portfolio
  */
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
+import { Card, CardContent } from "@/components/ui/shadcn/card";
 import { useTranslation } from "@/lib/i18n";
 import { useAuthStore } from "@/lib/stores/authStore";
+import { getUserProfileUserInfo } from "@/lib/api";
+import type { UserInfo } from "@/lib/types";
+import ProxyImage from "@/components/common/ProxyImage";
+import useGetPositions from "@/app/pna/hooks/use-get-positions";
 import ProfitLossChart from "./components/profit-loss-chart";
 import ModeBar, { type PositionMode } from "./components/mode-bar";
 import PositionsTable from "./components/positions-table";
 import ActivityTable from "./components/activity-table";
 import OrdersTable from "./components/orders-table";
 import MarketRecordsTable from "./components/market-records-table";
+
+const AVATAR_GRADIENTS = [
+  "from-purple-500 to-orange-500",
+  "from-pink-500 to-purple-500",
+  "from-indigo-500 to-purple-500",
+  "from-cyan-500 to-blue-500",
+];
+
+/**
+ * 公开个人资料头部卡片（display-only）。
+ * 仅展示头像 / 名称 / 加入时间 / 持仓总额，不含任何账户/编辑/钱包/余额私有 UI。
+ * 数据来源：公开的 getUserProfileUserInfo + useGetPositions（持仓总额客户端推导）。
+ */
+function ProfileHeaderCard({
+  targetUserId,
+  locale,
+  joinedLabel,
+  positionsValueLabel,
+}: {
+  targetUserId?: string;
+  locale: string;
+  joinedLabel: string;
+  positionsValueLabel: string;
+}) {
+  const [profile, setProfile] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!targetUserId) {
+      setProfile(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    (async () => {
+      try {
+        const res = await getUserProfileUserInfo(targetUserId);
+        const data = (res as { data?: UserInfo })?.data;
+        if (!cancelled && data) {
+          setProfile({ ...data, userId: String(data.userId ?? targetUserId) });
+        }
+      } catch (error) {
+        console.warn("[PNA] Failed to fetch public profile:", error);
+        if (!cancelled) setProfile(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetUserId]);
+
+  // 持仓总额：与 mode-bar / positions-table 保持一致，用 shares × currentPrice 客户端推导。
+  const { positions } = useGetPositions({
+    userId: targetUserId,
+    limit: 100,
+    enabled: Boolean(targetUserId),
+  });
+  const positionsValue = useMemo(
+    () =>
+      positions.reduce(
+        (sum, p) => sum + (Number(p.shares) || 0) * (Number(p.currentPrice) || 0),
+        0
+      ),
+    [positions]
+  );
+
+  const displayName = profile?.username || profile?.displayName || targetUserId || "";
+
+  const avatarSeed = profile?.smartAccountAddress || displayName || "user";
+  const avatarGradient = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < avatarSeed.length; i++) {
+      hash = avatarSeed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+  }, [avatarSeed]);
+  const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : "U";
+
+  const formattedJoinedDate = useMemo(() => {
+    if (!profile?.joinedDate) return "";
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        month: "short",
+        year: "numeric",
+      }).format(new Date(profile.joinedDate));
+    } catch {
+      return profile.joinedDate;
+    }
+  }, [profile?.joinedDate, locale]);
+
+  if (!profile) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="grid grid-cols-[64px_1fr] items-start gap-x-3">
+          {/* 头像 */}
+          {profile.avatarUrl ? (
+            <div className="size-16 overflow-hidden rounded-full border border-(--border)">
+              <ProxyImage
+                src={profile.avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : (
+            <div
+              className={`flex size-16 items-center justify-center rounded-full border border-(--border) bg-gradient-to-br ${avatarGradient} text-2xl font-bold text-white`}
+            >
+              {avatarLetter}
+            </div>
+          )}
+
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="truncate text-2xl font-semibold leading-tight">
+              {displayName}
+            </p>
+            {formattedJoinedDate && (
+              <span className="text-sm text-(--text-secondary)">
+                {joinedLabel} {formattedJoinedDate}
+              </span>
+            )}
+            <div className="mt-3 flex flex-col gap-y-0.5">
+              <p className="text-sm font-medium text-(--text-secondary)">
+                {positionsValueLabel}
+              </p>
+              <p className="text-xl font-medium tabular-nums">
+                $
+                {positionsValue.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 const TAB_KEYS = ["positions", "activity", "orders", "records"] as const;
 type TabKey = (typeof TAB_KEYS)[number];
@@ -36,7 +181,7 @@ function isTabKey(v: string | null): v is TabKey {
 }
 
 function PnaPageContent() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
 
@@ -76,7 +221,15 @@ function PnaPageContent() {
 
   return (
     <div className="mx-auto max-w-6xl p-4 space-y-4">
-     
+      {/* 公开个人资料头部卡片：查看他人时展示头像/名称/加入时间/持仓总额 */}
+      {isViewingOtherUser && (
+        <ProfileHeaderCard
+          targetUserId={targetUserId}
+          locale={locale}
+          joinedLabel={t.pna.profile.joined}
+          positionsValueLabel={t.pna.profile.positionsValue}
+        />
+      )}
 
       <ProfitLossChart targetUserId={targetUserId} />
 

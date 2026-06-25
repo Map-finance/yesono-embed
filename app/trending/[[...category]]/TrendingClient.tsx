@@ -8,6 +8,8 @@ import MarketGrid from "@/components/MarketGrid";
 import CryptoSideBar from "@/components/crypto/CryptoSideBar";
 import FinanceSideBar from "@/components/finance/FinanceSideBar";
 import { useEvents } from "@/lib/hooks/useEvents";
+import useSWR from "swr";
+import { getTagVolumeBatch, formatVolume } from "@/lib/services/homeService";
 import { eventsToMarkets } from "@/lib/utils/eventToMarket";
 import { useTranslation } from "@/lib/i18n";
 import { TagTreeNode } from "@/types/home";
@@ -184,16 +186,67 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
   const { events, isLoading, hasMore, loadMore, isLoadingMore, refresh } =
     useEvents({ ...eventsQuery, enabled: enableEvents, initialData });
 
+  // 快市场(crypto/finance):每张卡的交易量用「该 event 的 tags」批量查 tag-volume 覆盖
+  // (卡上的 market.volume 对这些快市场常为 0/陈旧)。一次 batch 查全部可见卡,5s SWR 刷新。
+  const isFastMarket = isCrypto || isFinance;
+  const volumeQueries = useMemo(
+    () =>
+      isFastMarket
+        ? events.map((e) => ({
+            slugs: (e.tags ?? []).map((tag) => tag.slug),
+            period: "1d",
+          }))
+        : [],
+    [isFastMarket, events]
+  );
+  const { data: cardVolumes } = useSWR(
+    volumeQueries.length
+      ? ["card-tag-volumes", JSON.stringify(volumeQueries)]
+      : null,
+    () => getTagVolumeBatch(volumeQueries),
+    {
+      refreshInterval: 5000,
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+      keepPreviousData: true,
+    }
+  );
+
+  // 快市场:在「最近一张卡的 endDate」到点(+2s 缓冲)时刷新列表,把已结束的换成新一轮。
+  // 比固定轮询更精准/更省:只在市场真正结束的边界刷,而非每隔 N 秒空刷。
+  useEffect(() => {
+    if (!isFastMarket || events.length === 0) return;
+    const now = Date.now();
+    const nextEnd = events
+      .map((e) => Number(e.endDate))
+      .filter((d) => Number.isFinite(d) && d > now)
+      .reduce((min, d) => (d < min ? d : min), Infinity);
+    if (!Number.isFinite(nextEnd)) return;
+    const delay = Math.max(nextEnd - now + 2000, 0); // +2s:等后端下掉已结束、建好新一轮
+    const timer = setTimeout(() => {
+      void refresh();
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [isFastMarket, events, refresh]);
+
   // 将事件转换为 Market 类型以兼容现有组件
   const markets: Market[] = useMemo(() => {
-    return eventsToMarkets(events);
-  }, [events]);
+    const base = eventsToMarkets(events);
+    // crypto/finance:用 tag-volume 覆盖每张卡的交易量(events↔markets 1:1 对齐)
+    if (!isFastMarket || !cardVolumes?.length) return base;
+    return base.map((m, i) =>
+      cardVolumes[i] != null
+        ? { ...m, volume: formatVolume(cardVolumes[i].volume) }
+        : m
+    );
+  }, [events, isFastMarket, cardVolumes]);
 
   const isCryptoBooting = isCrypto && !cryptoTagsReady;
   const isFinanceBooting = isFinance && !financeTagsReady;
   const hasSidebar = isCrypto || isFinance;
-  const showSidebarSkeleton =
-    hasSidebar && (isCryptoBooting || isFinanceBooting || isLoading) && markets.length === 0;
+  // 原 showSidebarSkeleton 要求 markets.length===0 → crypto/finance 切换资产时有旧数据就无加载反馈;
+  // 改为 isLoading || crypto/finance 启动中,有旧数据切换也显示加载态(对齐 h2 gridLoading)。
+  const gridLoading = isLoading || isCryptoBooting || isFinanceBooting;
 
   // 处理子标签切换（用于筛选事件列表）
   const handleCategoryChange = useCallback(
@@ -265,7 +318,7 @@ export default function TrendingClient({ initialTags, initialData }: Props) {
       <MarketGrid
         markets={markets}
         columns={hasSidebar ? 3 : 4}
-        loading={hasSidebar ? showSidebarSkeleton : isLoading}
+        loading={gridLoading}
         emptyMessage={t.market.common.noData}
         onFavoriteChange={refresh}
       />

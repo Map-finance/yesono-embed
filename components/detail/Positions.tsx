@@ -113,7 +113,7 @@ const PositionList: React.FC<PositionListProps> = ({ title, holders, highlight =
                 className="flex items-center gap-2 sm:gap-3 py-1.5 hover:bg-(--bg-hover) rounded-lg px-2 -mx-2 cursor-pointer"
               >
                 <UserProfile userId={holder.userId} displayName={holder.userName}>
-                  <Avatar name={holder.userName} id={holder.userId} size="sm" />
+                  <Avatar name={holder.userName} size={32} />
                 </UserProfile>
                 <UserProfile userId={holder.userId} displayName={holder.userName}>
                   <span className="text-sm text-(--text-primary) truncate hover:underline cursor-pointer min-w-0 flex-1">

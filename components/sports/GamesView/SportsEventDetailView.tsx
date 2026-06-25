@@ -6,22 +6,42 @@
  * 包含：面包屑、标题、图表、Game Lines tabs、各市场分类卡片、底部评论区
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Bookmark, Share2, Loader2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { getSportsEventBySlug } from "@/lib/services/sportsEventService";
 import { favoriteEvent } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { SportsEventDetail, SportsMarketItem } from "@/types/sports";
+import { getTeamAbbr } from "@/lib/utils/teamAbbr";
 import ProxyImage from "@/components/common/ProxyImage";
 import MarketSection from "./MarketSection";
 import MarketChart from "@/components/detail/MarketChart";
 import { trackEvent } from "@/lib/sentryClient";
 import { resolveEventDate } from "@/lib/utils/sportsNav";
+import { isMarketResolved, isSportsMarketDeployed } from "@/lib/utils/marketSelection";
 import { toChartData, toPolymarketMarkets } from "./SportsEventDetailView.helpers";
 import ExactScorePanel from "./ExactScorePanel";
 import HalftimeResultPanel from "./HalftimeResultPanel";
 import EventBottomTabs from "./EventBottomTabs";
+
+/** 把 i18n 的 locale 映射到 Intl 用的 BCP47 标签（替代硬编码 "en-US"）。 */
+function toIntlLocale(locale: string): string {
+  switch (locale) {
+    case "en":
+      return "en-US";
+    case "ja":
+      return "ja-JP";
+    case "vi":
+      return "vi-VN";
+    case "th":
+      return "th-TH";
+    case "km":
+      return "km-KH";
+    default:
+      return locale;
+  }
+}
 
 interface SportsEventDetailViewProps {
   /** 赛事 slug，用于调用 /api/sports/events/{slug} */
@@ -49,7 +69,8 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
   selectedOutcomeIdx,
   onEventLoaded,
 }) => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const intlLocale = toIntlLocale(locale);
   const toast = useToast();
   const [eventData, setEventData] = useState<SportsEventDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,13 +84,8 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
       const data = await getSportsEventBySlug(eventSlug);
       setEventData(data);
       setLoading(false);
-      // 默认选中第一个 moneyline market
-      if (data && onMarketSelect) {
-        const firstMarket = data.market?.moneyline?.[0];
-        if (firstMarket) {
-          onMarketSelect(firstMarket, data);
-        }
-      }
+      // 不再在此写死「默认选中 moneyline[0]」—— 改由下方 didInitSelect effect
+      // 选默认展开盘口里的最小未结算线(含无 moneyline 的事件)。
       // 通知父组件事件的 tagsSlug，用于同步左侧菜单选中状态
       if (data && data.tagsSlug && data.tagsSlug.length > 0 && onEventLoaded) {
         onEventLoaded(data.tagsSlug);
@@ -88,13 +104,8 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
     return { home: eventData.title, away: "" };
   }, [eventData]);
 
-  // 缩写
-  const getAbbr = (name: string) => {
-    const clean = name.replace(/\s*\(.*?\)/, "").trim();
-    const words = clean.split(/\s+/);
-    const word = words.find((w) => w.length > 2) || words[0] || "";
-    return word.slice(0, 3).toUpperCase();
-  };
+  // 缩写(统一共享口径:CJK→3 字,拉丁→前 4 字母大写)
+  const getAbbr = getTeamAbbr;
 
   const homeAbbr = getAbbr(teams.home);
   const awayAbbr = getAbbr(teams.away);
@@ -104,10 +115,10 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
     const d = resolveEventDate(eventData);
     if (!d) return { time: "", date: "" };
     return {
-      time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-      date: d.toLocaleDateString("en-US", { month: "long", day: "numeric" }),
+      time: d.toLocaleTimeString(intlLocale, { hour: "numeric", minute: "2-digit", hour12: true }),
+      date: d.toLocaleDateString(intlLocale, { month: "long", day: "numeric" }),
     };
-  }, [eventData]);
+  }, [eventData, intlLocale]);
 
   // 从 market map 获取各分类，并分离特殊标签页内容
   const { gameLineCategories, exactScoreMarkets, halftimeResultMarkets } = useMemo(() => {
@@ -117,8 +128,10 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
     let halftimeResult: SportsMarketItem[] = [];
 
     const marketMap = eventData.market;
-    for (const [key, items] of Object.entries(marketMap)) {
-      if (!items || !Array.isArray(items) || items.length === 0) continue;
+    for (const [key, rawItems] of Object.entries(marketMap)) {
+      // 过滤未成功部署的盘口(DEPLOYING/无 conditionId/无 tokenId);已结算的保留(显示徽章)。
+      const items = (Array.isArray(rawItems) ? rawItems : []).filter(isSportsMarketDeployed);
+      if (items.length === 0) continue;
 
       // 分离到对应标签页
       if (key === "soccer_exact_score") {
@@ -158,6 +171,51 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
     return { gameLineCategories: gameLine, exactScoreMarkets: exactScore, halftimeResultMarkets: halftimeResult };
   }, [eventData, t]);
 
+  // 默认展开「首个含未结算 market 的盘口」(对齐普通市场优先展开未结算市场,避免默认展开已打完的盘);
+  // 全部已结算时回退到第 0 个。
+  const defaultExpandIdx = useMemo(() => {
+    const i = gameLineCategories.findIndex((cat) =>
+      cat.markets.some((m) => !isMarketResolved(m))
+    );
+    return i >= 0 ? i : 0;
+  }, [gameLineCategories]);
+
+  // 手风琴:同一时刻最多展开一个盘口。null = 全部收起(用户可手动收起到 0 个)。
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  // 数据就绪后只初始化一次:默认展开「首个未结算盘口」。之后完全由用户控制(含收起到 0)。
+  const didInitExpandRef = useRef(false);
+  useEffect(() => {
+    if (didInitExpandRef.current || gameLineCategories.length === 0) return;
+    didInitExpandRef.current = true;
+    setExpandedKey(gameLineCategories[defaultExpandIdx]?.key ?? null);
+  }, [gameLineCategories, defaultExpandIdx]);
+
+  // 桌面端:数据就绪后确定性地默认选中右侧交易面板的市场(刷新直接进详情时,
+  // 不再仅依赖 MarketSection 的 seed,避免右面板无选中/无法下单)。
+  // 只在「尚无选中」时种一次;选默认展开盘口里的最小未结算线,与 MarketSection seed 同口径。
+  // 移动端不自动种(交易面板是弹窗,自动种会进页面就弹框)。
+  const didInitSelectRef = useRef(false);
+  useEffect(() => {
+    if (didInitSelectRef.current || gameLineCategories.length === 0) return;
+    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+    if (!isDesktop) return;
+    if (selectedMarketId) {
+      didInitSelectRef.current = true;
+      return;
+    }
+    const cat = gameLineCategories[defaultExpandIdx];
+    if (!cat || cat.markets.length === 0 || !eventData || !onMarketSelect) return;
+    // 与 MarketSection 默认线一致:按 abs(lineValue) 升序、优先未结算。
+    const sorted = [...cat.markets].sort(
+      (a, b) => Math.abs(a.lineValue ?? 0) - Math.abs(b.lineValue ?? 0)
+    );
+    const def = sorted.find((m) => !isMarketResolved(m)) ?? sorted[0];
+    if (def) {
+      didInitSelectRef.current = true;
+      onMarketSelect(def, eventData, 0);
+    }
+  }, [eventData, gameLineCategories, defaultExpandIdx, selectedMarketId, onMarketSelect]);
+
   // 构造 MarketChart 所需数据 + 下游组件的 PolymarketMarketResp[]
   const chartData = useMemo(() => toChartData(eventData), [eventData]);
   const polymarketMarkets = useMemo(
@@ -170,8 +228,13 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
       if (eventData && onMarketSelect) {
         onMarketSelect(item, eventData, idx);
       }
+      // 手风琴:选中某盘口的 outcome → 让它成为唯一展开段(收起其它),保证「展开段=面板交易段」。
+      const cat = gameLineCategories.find((c) =>
+        c.markets.some((m) => String(m.marketId) === String(item.marketId))
+      );
+      if (cat) setExpandedKey(cat.key);
     },
-    [eventData, onMarketSelect]
+    [eventData, onMarketSelect, gameLineCategories]
   );
 
   // Game Lines 子标签（动态生成，根据接口返回的数据决定显示哪些 tab）
@@ -280,7 +343,7 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
         {/* 主队 */}
         <div className="flex flex-col items-center gap-1">
           <ProxyImage
-            src={eventData.icon}
+            src={eventData.home?.logo || eventData.icon}
             alt=""
             className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
             fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHJ4PSIyNCIgZmlsbD0iIzNhM2EzYSIvPjwvc3ZnPg=="
@@ -297,7 +360,7 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
         {/* 客队 */}
         <div className="flex flex-col items-center gap-1">
           <ProxyImage
-            src={eventData.image}
+            src={eventData.away?.logo || eventData.image}
             alt=""
             className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
             fallbackSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHJ4PSIyNCIgZmlsbD0iIzNhM2EzYSIvPjwvc3ZnPg=="
@@ -361,6 +424,11 @@ const SportsEventDetailView: React.FC<SportsEventDetailViewProps> = ({
               onOutcomeClick={handleOutcomeClick}
               selectedMarketId={selectedMarketId}
               selectedOutcomeIdx={selectedOutcomeIdx}
+              eventId={eventData.id}
+              isExpanded={cat.key === expandedKey}
+              onToggleExpand={() =>
+                setExpandedKey((prev) => (prev === cat.key ? null : cat.key))
+              }
               {...(cat.key === "moneyline" && chartData
                 ? { chartMarket: chartData.market, chartEventMarkets: chartData.eventMarkets }
                 : {})}

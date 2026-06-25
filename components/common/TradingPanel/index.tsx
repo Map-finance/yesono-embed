@@ -57,6 +57,11 @@ import MergeShares from "./MergeShares";
 import SplitShares from "./SplitShares";
 import { useTradingStore } from "@/lib/store/tradingStore";
 import { applyMarketSlippage } from "@/lib/utils/outcomePricing";
+import {
+  usdForShares,
+  marketProtectionPrice,
+} from "@/lib/utils/orderbookFill";
+import { resolveFeeRate, formatFeeUsd } from "@/lib/utils/marketFee";
 import { mapTradeErrorMessage } from "@/lib/utils/tradeError";
 import { useToast } from "@/components/ui/Toast";
 import ProxyImage from "@/components/common/ProxyImage";
@@ -140,6 +145,11 @@ export default function TradingPanel({
   // embed 不读 USDT 现金余额（买单 USDT 扣减由父页面统一控制）；
   // 但 CTF 代币持仓（YES/NO shares）仍需在这边查询：卖单要知道"我有多少股可卖"。
   const isTrading = false;
+  // 按类目解析 taker 手续费率(env 覆盖 > 默认表),买入用:展示。对齐 upstream。
+  // 费率来源:store 里的 `event`(PolymarketEventResp)。该类型没有 `categorySlug` 字段,
+  // 但有 `tags: { slug }[]`;resolveFeeRate 会扫 tags[].slug 命中已知类目(crypto/sports/...),
+  // 命中即用对应费率,否则兜底默认 'other' 5%。与 upstream `resolveFeeRate(event as any)` 等价。
+  const feeRate = useMemo(() => resolveFeeRate(event as any), [event]);
   // 获取 YES 和 NO 的实时订单簿价格
   const clobTokenIds = useMemo(() => {
     return JSON.parse(market?.clobTokenIds || "[]") as string[];
@@ -484,12 +494,13 @@ export default function TradingPanel({
         t.trade.errorSelectOutcome || "Please select an outcome";
     }
 
+    // amount 现统一为份额(shares-in):市价/限价、买/卖都是份额。仅作正数/有限校验。
     const amountVal = parseFloat(amount);
     if (!amount || isNaN(amountVal) || amountVal <= 0) {
       newErrors.amount = t.trade.errorInvalidAmount || "Enter a valid amount";
     }
 
-    // 卖单：用 CTF 持仓校验「股数不足」；买单的 USDT 余额校验交给父页面
+    // 卖单：用 CTF 持仓校验「股数不足」(amount 即份额)；买单不读 USDT 余额(父页面控制)
     if (direction === "SELL" && !newErrors.amount) {
       // 先用本地缓存判断，再实时拉一次兜底（避免本地缓存过期导致误放行/误拦截）
       let latestBalance = tokenBalance;
@@ -509,8 +520,8 @@ export default function TradingPanel({
           t.trade.errorInvalidPrice ||
           "Enter a valid price between 0.1 and 99.9¢";
       }
-      // 限价单 CTF 数量必须 >= 5
-      if (amountVal < 5) {
+      // 限价单 CTF 数量必须 >= 5(挂单语义);市价 IOC 吃单不受此限。
+      if (!newErrors.amount && amountVal < 5) {
         newErrors.amount =
           t.trade?.errorLimitMinShares ||
           "Limit order requires at least 5 shares";
@@ -555,23 +566,13 @@ export default function TradingPanel({
       const orderExecType: "LIMIT" | "MARKET" =
         orderType === "limit" ? "LIMIT" : "MARKET";
 
-      // Calculate the amount to submit to buy/sell API:
-      // - LIMIT: user 'amount' is already shares -> submit directly
-      // - MARKET: user 'amount' is USDT (total). convert to shares by consuming orderbook (逐层吃单)，回退到 selectedPrice
-      let submitAmount = amount; // string
+      // amount 即用户输入份额(市价/限价、买/卖统一,对齐 upstream 的 shares-in 模型)。
+      // 市价单以用户份额为准:size 直接用份额;amount(USDT 口径)由走盘口估算成本(买)/到手(卖)反推。
+      let marketEstCost = 0; // 市价单成交额(买=花费/卖=到手),USD
       if (orderType === "market") {
-        const usd = parseFloat(amount || "0");
-        let computedShares = 0;
-
-        // 中文注释：
-        // 1. 确定当前选中的 token 类型 (YES 或 NO)
-        const selectedItem = items.find((i) => i.value === selectOutcomeId);
         const isYes = selectedItem?.type === "YES";
-
-        // 2. 选择对应的 Orderbook (YesOrderbook 或 NoOrderbook)
+        // 对应方向的实时订单簿 (Yes/No)
         const ob = isYes ? yesOrderbook : noOrderbook;
-
-        console.log("ob", selectedItem, yesOrderbook, ob);
 
         // 要求：市价单必须依赖实时订单簿（对应方向）才能下单
         // - BUY 需有 asks
@@ -588,67 +589,37 @@ export default function TradingPanel({
           return;
         }
 
-        if (ob) {
-          let remaining = usd;
-          let totalShares = 0;
+        // 估算成本(买)/到手(卖):护栏价封顶(只算 IOC 实际能成交的档),买入额外算手续费(展示用)。
+        // amount 现为份额,parseFloat(amount) = sharesInput。
+        const side: "buy" | "sell" = direction === "BUY" ? "buy" : "sell";
+        const res = usdForShares(
+          ob,
+          side,
+          parseFloat(amount || "0"),
+          marketProtectionPrice(ob, side),
+          direction === "BUY" ? feeRate : undefined
+        );
+        marketEstCost = res.cost;
 
-          if (direction === "BUY") {
-            const asks = (ob.asks || []).slice().reverse(); // low->high
-            for (const lvl of asks) {
-              if (remaining <= 0) break;
-              const p = lvl.price;
-              const s = lvl.size;
-              const cost = p * s;
-              if (remaining >= cost) {
-                totalShares += s;
-                remaining -= cost;
-              } else {
-                totalShares += remaining / p;
-                remaining = 0;
-                break;
-              }
-            }
-          } else {
-            const bids = ob.bids || []; // high->low
-            for (const lvl of bids) {
-              if (remaining <= 0) break;
-              const p = lvl.price;
-              const s = lvl.size;
-              const proceeds = p * s;
-              if (remaining >= proceeds) {
-                totalShares += s;
-                remaining -= proceeds;
-              } else {
-                totalShares += remaining / p;
-                remaining = 0;
-                break;
-              }
-            }
-          }
-
-          computedShares = totalShares;
-        }
-
-        // 如果计算得到的 shares 为 0（例如用户输入过小或订单簿深度为 0），阻止下单
-        if (!computedShares || computedShares <= 0) {
+        // 盘口深度不足以成交任何份额 → 估算成本为 0,阻止下单
+        if (!(marketEstCost > 0) || !(res.filledShares > 0)) {
           const msg =
             t.trade.errorInvalidAmount || "Calculated order size is zero";
           setErrors((prev) => ({ ...prev, amount: msg }));
           toast.error(msg);
           return;
         }
-
-        // format to 6 decimal places (dYdX expects 6-decimal quantums)
-        submitAmount = computedShares > 0 ? computedShares.toFixed(6) : "0";
       }
 
       // ─── To-B 单步下单（替换原 createOrderNew → bridge → dYdX SDK 三步）──
       // 后端负责拆单、跨链、链上撮合；前端只需拿到 betId/routerOrderId 并展示结果。
       const eventId: string = (market as any).eventId;
 
-      // 买单：amount = USDT 值；卖单：amount=0, size = shares
-      // - 限价买单：用户输入 shares，USDT = shares × (limitPrice / 100)
-      // - 市价买单：用户直接输入 USDT
+      // amount(发后端的 USDT 口径,tob 字段 amountNum 含义不变):
+      //   - 限价单:shares × (limitPrice / 100)
+      //   - 市价单:走盘口护栏价封顶估算的成交额(买=花费/卖=到手),不含手续费(对齐 upstream:
+      //     链上下单 amount = 成交额本身,手续费不并入提交金额)。
+      // size(tob 字段 sizeNum 含义不变):用户输入份额(买卖统一,shares-in)。
       const amountNum =
         orderType === "limit"
           ? parseFloat(
@@ -657,11 +628,8 @@ export default function TradingPanel({
                 (parseFloat(limitPrice || "0") / 100)
               ).toFixed(6)
             )
-          : parseFloat(parseFloat(amount || "0").toFixed(2));
-      const sizeNum =
-        direction === "SELL"
-          ? parseFloat(amount || "0")
-          : parseFloat(submitAmount || "0");
+          : parseFloat(marketEstCost.toFixed(2));
+      const sizeNum = parseFloat(amount || "0");
 
       // 限价单用 limitPrice;市价单给 TOB /order/create 带 orderPrice 作保护价:
       // 取当前可成交价 selectedPrice(BUY=bestAsk/SELL=bestBid)再套默认滑点(5%,BUY 上浮/SELL 下浮),
@@ -1030,6 +998,31 @@ export default function TradingPanel({
               </span>
             </div>
 
+            {/* 限价买:吃单部分(price≤限价)的预估手续费;纯挂单为 0 不显示 */}
+            {direction === "BUY" &&
+              (() => {
+                const sel = items.find((i) => i.value === selectOutcomeId);
+                const ob = sel?.type === "YES" ? yesOrderbook : noOrderbook;
+                const lp = parseFloat(limitPrice || "0") / 100;
+                const lf = usdForShares(
+                  ob,
+                  "buy",
+                  parseFloat(amount || "0"),
+                  lp,
+                  feeRate
+                ).fee;
+                return lf > 0 ? (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-medium text-[var(--text-secondary)]">
+                      {(t.trade as any).fee || "Fee"}
+                    </span>
+                    <span className="text-[var(--text-secondary)]">
+                      {formatFeeUsd(lf)}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
+
             <div className="flex justify-between items-center text-base">
               <div className="flex items-center gap-1.5 font-medium text-[var(--text-secondary)]">
                 {direction === "BUY" ? t.trade.toWin : t.trade.total}
@@ -1095,71 +1088,62 @@ export default function TradingPanel({
               </div>
             </div>
           </>
-        ) : /* Market Order Summary */
+        ) : /* Market Order Summary(amount 现为份额,走盘口护栏价封顶估算成本/到手) */
         amount && parseFloat(amount) > 0 ? (
-          <WinPreview
-            amount={parseFloat(amount)}
-            price={selectedPrice}
-            isSell={direction === "SELL"}
-            {...(() => {
-              const input = parseFloat(amount || "0");
-              if (!input || input <= 0) return { avgPrice: 0 };
-              const ob = direction === "BUY" ? yesOrderbook : noOrderbook;
-
-              // fallback: use simple estimate (amount / selectedPrice)
-              if (!ob) {
-                return { avgPrice: selectedPrice || 0 };
-              }
-
-              let remaining = input; // USDT to spend / receive
-              let totalShares = 0;
-              let totalCost = 0;
-
-              if (direction === "BUY") {
-                const asks = (ob.asks || []).slice().reverse(); // low->high
-                for (const lvl of asks) {
-                  if (remaining <= 0) break;
-                  const p = lvl.price;
-                  const s = lvl.size;
-                  const cost = p * s;
-                  if (remaining >= cost) {
-                    totalShares += s;
-                    totalCost += cost;
-                    remaining -= cost;
-                  } else {
-                    const partial = remaining / p;
-                    totalShares += partial;
-                    totalCost += partial * p;
-                    remaining = 0;
-                    break;
-                  }
-                }
-              } else {
-                const bids = ob.bids || [];
-                for (const lvl of bids) {
-                  if (remaining <= 0) break;
-                  const p = lvl.price;
-                  const s = lvl.size;
-                  const proceeds = p * s;
-                  if (remaining >= proceeds) {
-                    totalShares += s;
-                    totalCost += proceeds;
-                    remaining -= proceeds;
-                  } else {
-                    const partial = remaining / p;
-                    totalShares += partial;
-                    totalCost += partial * p;
-                    remaining = 0;
-                    break;
-                  }
-                }
-              }
-
-              const avg =
-                totalShares > 0 ? totalCost / totalShares : selectedPrice || 0;
-              return { avgPrice: avg };
-            })()}
-          />
+          (() => {
+            const shares = parseFloat(amount || "0");
+            const sel = items.find((i) => i.value === selectOutcomeId);
+            const ob = sel?.type === "YES" ? yesOrderbook : noOrderbook;
+            const side: "buy" | "sell" =
+              direction === "BUY" ? "buy" : "sell";
+            // 护栏价封顶 → 显示的预计花费/到手与实际成交一致(份额超护栏深度时只算可成交部分)。
+            // 买入额外算手续费并展示。
+            const { cost, avgPrice, fee } = usdForShares(
+              ob,
+              side,
+              shares,
+              marketProtectionPrice(ob, side),
+              direction === "BUY" ? feeRate : undefined
+            );
+            const avg = avgPrice > 0 ? avgPrice : selectedPrice || 0;
+            return (
+              <>
+                {/* 买入:预计花费(成交额) + 手续费;卖出由 WinPreview 显示「预计到手」 */}
+                {direction === "BUY" && (
+                  <>
+                    <div className="flex justify-between items-center text-base">
+                      <span className="font-medium text-[var(--text-secondary)]">
+                        {t.trade.total}
+                      </span>
+                      <span className="text-[var(--accent)] font-bold text-xl">
+                        $
+                        {cost.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    {fee > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-medium text-[var(--text-secondary)]">
+                          {(t.trade as any).fee || "Fee"}
+                        </span>
+                        <span className="text-[var(--text-secondary)]">
+                          {formatFeeUsd(fee)}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+                <WinPreview
+                  amount={shares}
+                  price={avg}
+                  isSell={direction === "SELL"}
+                  avgPrice={avg}
+                />
+              </>
+            );
+          })()
         ) : null}
       </div>
 
@@ -1306,7 +1290,9 @@ function PriceInput({
   getLatestTokenBalance?: () => Promise<number>;
 }) {
   const { t } = useTranslation();
-  const isShares = orderType === "limit" || tradeType === "sell"; // Limit order or Sell order always uses "Shares"
+  // amount 现统一为份额(shares-in,买/卖、市价/限价一致,对齐 upstream)→ 标签恒为「Shares」,
+  // 占位符恒为 "0",不再用 "$" 前缀(那是旧的 USD-in 市价买模型)。
+  const isShares = true;
 
   const handleQuickAdd = (add: number) => {
     const current = parseFloat(amount || "0");
@@ -1473,10 +1459,10 @@ function WinPreview({
   avgPrice?: number;
 }) {
   const { t } = useTranslation();
-  // Simplified logic
-  // Sell Market: Input is Shares. Win = Shares * Price.
-
-  const winAmount = price > 0 ? (isSell ? amount * price : amount / price) : 0;
+  // amount 现为份额(买/卖统一,shares-in,对齐 upstream)。
+  // - 买入:若结算为该结果,每份兑付 $1 → 可赢 = 份额(payout)。
+  // - 卖出:预计到手 = 份额 × 价格(走盘口均价)。
+  const winAmount = isSell ? (price > 0 ? amount * price : 0) : amount;
 
   const avgCents = avgPrice > 0 ? (avgPrice * 100).toFixed(1) + "¢" : "—";
 

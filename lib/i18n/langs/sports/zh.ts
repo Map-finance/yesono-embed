@@ -47,7 +47,7 @@ export default {
     halftimeResult: "半场结果",
     corners: "角球",
     bothTeamsToScore: "双方都进球？",
-    positions: "持仓",
+    positions: "持仓盈亏",
     moreGames: "更多比赛",
   },
   marketAbout: {

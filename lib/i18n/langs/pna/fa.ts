@@ -1,5 +1,5 @@
 export default {
-  timeRange: { pastDay: "روز گذشته", pastWeek: "هفته گذشته", pastMonth: "ماه گذشته", allTime: "همه زمان‌ها" },
+  timeRange: { pastDay: "روز گذشته", pastWeek: "هفته گذشته", pastMonth: "ماه گذشته", allTime: "همه زمان‌ها", asOfLastHour: "تا ساعت گذشته" },
   profile: { joined: "عضویت", views: "بازدید", positionsValue: "ارزش موقعیت‌ها", modeYesNo: "Yes/No", modeAsianHandicap: "هندیکپ آسیایی", asianPositionsValue: "ارزش کل موقعیت‌ها", asianSlipCount: "تعداد اسلیپ", biggestWin: "بزرگترین برد", predictions: "پیش‌بینی‌ها", recharge: "واریز", withdraw: "برداشت" },
   tabs: { positions: "موقعیت‌ها", activity: "فعالیت", asianHandicapOrders: "سفارشات هندیکپ", openOrders: "سفارشات باز", marketCreation: "سوابق ایجاد", marketAudit: "سوابق بررسی", marketRecords: "سوابق بازار", depositWithdrawHistory: "تاریخچه واریز/برداشت" },
   auditRecords: { event: "رویداد / بازارها", status: "وضعیت", createdAt: "ارسال شده", action: "عملیات", create: "ایجاد", edit: "ویرایش", pendingHint: "در انتظار بررسی", total: "مجموع", noRecords: "سابقه بررسی وجود ندارد" },

@@ -20,6 +20,8 @@ import {
 } from '@/types/market';
 import { authFetch, getLanguageHeaders, getValidAccessToken } from '../api';
 import { getAuthApiHost } from '@/lib/config/authApiUrl';
+import { fetchWithTimeout } from '@/lib/utils/fetchWithTimeout';
+import { dedupe } from '@/lib/utils/requestDedupe';
 
 // API 基础配置 - 直接访问，不使用代理
 const API_BASE_URL = getAuthApiHost();
@@ -34,28 +36,33 @@ const getApiUrl = (path: string) => {
  * GET /api/market/category
  */
 export async function getCategories(locale?: string): Promise<TagResp[]> {
-  const url = getApiUrl('/api/market/category');
-  const languageHeaders = locale ? { 'Accept-Language': locale } : getLanguageHeaders();
+  // in-flight 去重(ttl=0,不缓存,保证实时):并发的相同请求坍缩成一个,
+  // 折叠跨组件/切 tab/StrictMode 的重复请求(之前每个 FilterBar 挂载就打一份),
+  // 但每次完成后都会重新拉最新,不返回陈旧数据。
+  return dedupe(`categories:${locale ?? ''}`, async () => {
+    const url = getApiUrl('/api/market/category');
+    const languageHeaders = locale ? { 'Accept-Language': locale } : getLanguageHeaders();
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...languageHeaders,
-    },
+    const response = await fetchWithTimeout(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...languageHeaders,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch categories: ${response.status}`);
+    }
+
+    const result: ApiResponse<TagResp[]> = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.msg || 'Failed to fetch categories');
+    }
+
+    return result.data || [];
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch categories: ${response.status}`);
-  }
-
-  const result: ApiResponse<TagResp[]> = await response.json();
-
-  if (!result.success) {
-    throw new Error(result.msg || 'Failed to fetch categories');
-  }
-
-  return result.data || [];
 }
 
 /**
@@ -482,7 +489,7 @@ import { useLocale } from '@/lib/i18n';
 /**
  * 获取分类列表 Hook
  */
-export function useCategories() {
+export function useCategories(enabled: boolean = true) {
   const { locale } = useLocale();
   const [categories, setCategories] = useState<TagResp[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -501,9 +508,11 @@ export function useCategories() {
     }
   }, [locale]);
 
+  // 仅在 enabled(弹窗打开)时加载;enabled 默认 true → 不传的调用方行为不变。
+  // CreateMarketNew 常驻挂在 FilterBarSimple 上,旧实现每个列表页首屏都无谓拉一次分类。
   useEffect(() => {
-    load();
-  }, [load]);
+    if (enabled) load();
+  }, [enabled, load]);
 
   return { categories, isLoading, error, reload: load };
 }

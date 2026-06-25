@@ -2,7 +2,7 @@
 
 /**
  * TagTreeNav - 子标签树导航组件
- * 支持横向标签（如 politics, finance 页面）和纵向树形结构（如 /sports/live, /crypto 页面）
+ * 支持横向标签（如 politics, finance 页面）和纵向树形结构（如 /sports, /crypto 页面）
  */
 
 import React, { useState } from 'react';

@@ -4,6 +4,7 @@ export default {
     pastWeek: "សប្តាហ៍មុន",
     pastMonth: "ខែមុន",
     allTime: "ទាំងអស់",
+    asOfLastHour: "គិតត្រឹមម៉ោងមុន",
   },
 
   profile: {

@@ -22,7 +22,7 @@ const nextConfig = {
   },
   typescript: {
     // TODO: 暂时关掉以推进依赖升级；存量 ts 错误见 git diff 后另开 PR 修
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   compress: true,
   productionBrowserSourceMaps: false,

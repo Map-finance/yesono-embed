@@ -7,13 +7,12 @@
 
 import React, { useState } from "react";
 import { ChevronUp } from "lucide-react";
-import type { SportsEventDetail } from "@/types/sports";
+import { SportsEventDetail, getEventCommentMarketId } from "@/types/sports";
 import type { PolymarketMarketResp } from "@/types/home";
 import { useTranslation } from "@/lib/i18n";
 import CommentSection from "@/components/common/CommentSection";
 import ActivityFeed from "@/components/detail/ActivityFeed";
 import TopHolders from "@/components/detail/TopHolders";
-import Positions from "@/components/detail/Positions";
 
 interface EventBottomTabsProps {
   eventData: SportsEventDetail;
@@ -30,7 +29,8 @@ const EventBottomTabs: React.FC<EventBottomTabsProps> = ({
   const bottomTabs = [
     t.market.commentsNumber ? t.market.commentsNumber(0) : "Comments",
     t.market.topHolders || "Top Holders",
-    t.sports.detail.positions,
+    // 暂时隐藏「持仓盈亏」tab（如需恢复：放回此行 + 下方 Positions 块，并把 Activity 改回 index 3）
+    // t.sports.detail.positions,
     t.market.activity || "Activity",
   ];
 
@@ -56,16 +56,20 @@ const EventBottomTabs: React.FC<EventBottomTabsProps> = ({
       </div>
 
       {/* Comments */}
-      {activeBottomTab === 0 && <CommentSection entityId={eventData.id} />}
+      {activeBottomTab === 0 && (
+        <CommentSection
+          entityId={getEventCommentMarketId(eventData) || eventData.id}
+        />
+      )}
 
       {/* Top Holders */}
       {activeBottomTab === 1 && <TopHolders markets={polymarketMarkets} />}
 
-      {/* Positions */}
-      {activeBottomTab === 2 && <Positions markets={polymarketMarkets} />}
+      {/* Positions（暂时隐藏，连同 bottomTabs 里的对应项一起恢复） */}
+      {/* {activeBottomTab === 2 && <Positions markets={polymarketMarkets} />} */}
 
       {/* Activity */}
-      {activeBottomTab === 3 && (
+      {activeBottomTab === 2 && (
         <ActivityFeed
           marketId={eventData.id}
           unionKey={eventData.slug}

@@ -96,7 +96,7 @@ export function ResolvedBadge({
 }) {
   return (
     <div
-      className={`px-2 py-1.5 rounded-lg bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)] font-medium text-[11px] leading-tight text-center ${className || ""}`}
+      className={`px-2 py-1.5 rounded-lg bg-[rgba(59,130,246,0.15)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)] font-medium text-[11px] leading-tight text-center whitespace-normal break-words flex items-center justify-center ${className || ""}`}
       title={label}
     >
       {label}

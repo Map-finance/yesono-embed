@@ -123,5 +123,7 @@ export default {
   insufficientShares: '持倉不足',
     addedToFavorites: '已添加收藏',
     removedFromFavorites: '已取消收藏',
-    operationFailed: '操作失敗'
-}  
+    operationFailed: '操作失敗',
+    pageNotFound: '頁面不存在',
+    backToHome: '返回首頁',
+}

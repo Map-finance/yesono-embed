@@ -31,6 +31,11 @@ export interface SportsEventDetail {
   description: string;
   icon: string;
   image: string;
+  /** 后端新增:主队/客队/联赛信息,含队标/会徽 logo URL(国家队=国旗、俱乐部=队徽,后端给定)。
+   *  home=主队(标题首个队,左),away=客队(右);取不到 logo 为 null,前端回退 icon/image/默认。 */
+  home?: { name: string; logo: string | null } | null;
+  away?: { name: string; logo: string | null } | null;
+  league?: { name: string; logo: string | null } | null;
   startDate: string;     // 毫秒时间戳字符串
   endDate: string;       // 毫秒时间戳字符串
   marketCount: number;
@@ -38,6 +43,29 @@ export interface SportsEventDetail {
   tagsSlug: string[];
   props: SportsMarketItem[] | null;
   market: Record<string, SportsMarketItem[]> | null; // key: "moneyline" | "spreads" | "totals" etc.
+}
+
+/**
+ * 取事件下「任意一个 marketId」作为评论区 entityId —— 评论按 marketId 维度存储,
+ * 不能用事件 id。优先 moneyline,其次 spreads/totals,再其次其他类目 / props。
+ * 同一事件返回稳定的同一个 marketId(避免切盘口时评论区重载)。取不到返回 undefined。
+ */
+export function getEventCommentMarketId(
+  event: SportsEventDetail | null | undefined,
+): string | undefined {
+  if (!event) return undefined;
+  const m = event.market;
+  if (m) {
+    for (const key of ["moneyline", "spreads", "totals"]) {
+      const id = m[key]?.find((it) => it?.marketId)?.marketId;
+      if (id) return id;
+    }
+    for (const items of Object.values(m)) {
+      const id = items?.find((it) => it?.marketId)?.marketId;
+      if (id) return id;
+    }
+  }
+  return event.props?.find((it) => it?.marketId)?.marketId;
 }
 
 // API 请求参数

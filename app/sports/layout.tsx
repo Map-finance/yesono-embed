@@ -7,8 +7,7 @@ import SportsTagNav from "@/components/sports/SportsTagNav";
 /**
  * 中文注释（关键修复说明）：
  * 1) Next.js 在预渲染阶段要求：任何使用 useSearchParams 的客户端组件，都必须处在 Suspense 边界内；
- * 2) /sports/live 虽然页面本身只是跳转，但仍会先渲染 /sports 的 layout；
- * 3) 因此将原先直接使用 useSearchParams 的布局逻辑，拆到内部组件并放进 Suspense，
+ * 2) 因此将原先直接使用 useSearchParams 的布局逻辑，拆到内部组件并放进 Suspense，
  *    避免构建阶段出现 missing-suspense-with-csr-bailout 报错。
  */
 function SportsLayoutContent({ children }: { children: React.ReactNode }) {
@@ -19,26 +18,14 @@ function SportsLayoutContent({ children }: { children: React.ReactNode }) {
   // 从 URL 参数获取 tag
   const tagFromUrl = searchParams.get("tag");
   const tagsFromUrl = searchParams.get("tags");
-  const eventFromUrl = searchParams.get("event");
 
-  const [selectedTagSlug, setSelectedTagSlug] = useState<string | null>(() => {
-    if (tagFromUrl === "live") return "__live__";
-    if (tagFromUrl === "asian") return "__asian__";
-    if (tagFromUrl) return tagFromUrl;
-    // 有 event 参数但没有 tag 时，不默认选中 asian（等待事件数据加载后更新）
-    if (eventFromUrl) return null;
-    return "__asian__";
-  });
+  const [selectedTagSlug, setSelectedTagSlug] = useState<string | null>(
+    () => tagFromUrl || null
+  );
 
   // URL 参数变化时同步状态
   useEffect(() => {
-    if (tagFromUrl === "live") {
-      setSelectedTagSlug("__live__");
-    } else if (tagFromUrl === "asian") {
-      setSelectedTagSlug("__asian__");
-    } else if (tagFromUrl) {
-      setSelectedTagSlug(tagFromUrl);
-    }
+    setSelectedTagSlug(tagFromUrl || null);
   }, [tagFromUrl]);
 
   // tag 选择回调：导航到 /sports?tag=xxx&tags=xxx
@@ -48,10 +35,8 @@ function SportsLayoutContent({ children }: { children: React.ReactNode }) {
       const nameParam = displayName
         ? `&name=${encodeURIComponent(displayName)}`
         : "";
-      if (!slug || slug === "__asian__") {
-        router.push(`/sports?tag=asian${nameParam}`);
-      } else if (slug === "__live__") {
-        router.push(`/sports?tag=live${nameParam}`);
+      if (!slug) {
+        router.push(`/sports`);
       } else if (tagsChain) {
         router.push(
           `/sports?tag=${slug}&tags=${encodeURIComponent(tagsChain)}${nameParam}`

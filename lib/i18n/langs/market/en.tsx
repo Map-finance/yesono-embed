@@ -514,6 +514,7 @@ export default {
     currentPrice: 'Current price',
     priceToBeat: 'Price to beat',
     finalPrice: 'Final price',
+    settling: 'Settling…',
     goToLiveMarket: 'Go to live market',
     liveButton: 'Live',
     countdown: {
@@ -533,6 +534,10 @@ export default {
   rulesDesc: 'The FED interest rates are defined in this market by the upper bound of the target federal funds range. The decisions on the target...',
   past: 'Past',
   comments: 'Comments',
+  position: 'Position',
+  clearPosition: 'Redeem',
+  historicalOrders: 'Order History',
+  viewNetPositions: 'View Net Positions',
   positions: 'Positions',
   buyYes: 'Buy Yes',
   buyNo: 'Buy No',

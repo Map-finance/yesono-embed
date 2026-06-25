@@ -1,5 +1,5 @@
 export default {
-  timeRange: { pastDay: "Tegnap", pastWeek: "Elmúlt hét", pastMonth: "Elmúlt hónap", allTime: "Összesen" },
+  timeRange: { pastDay: "Tegnap", pastWeek: "Elmúlt hét", pastMonth: "Elmúlt hónap", allTime: "Összesen", asOfLastHour: "Az előző óráig" },
   profile: { joined: "Csatlakozott", views: "megtekintés", positionsValue: "Pozíciók értéke", modeYesNo: "Yes/No", modeAsianHandicap: "Ázsiai Handicap", asianPositionsValue: "Összes pozíció értéke", asianSlipCount: "Slip szám", biggestWin: "Legnagyobb nyeremény", predictions: "Előrejelzések", recharge: "Befizetés", withdraw: "Kivétel" },
   tabs: { positions: "Pozíciók", activity: "Tevékenység", asianHandicapOrders: "ÁH Megbízások", openOrders: "Nyitott megbízások", marketCreation: "Létrehozási rekordok", marketAudit: "Ellenőrzési rekordok", marketRecords: "Piaci nyilvántartás", depositWithdrawHistory: "Befizetés/kivétel előzmények" },
   auditRecords: { event: "Esemény / Piacok", status: "Állapot", createdAt: "Beküldve", action: "Művelet", create: "Létrehozás", edit: "Szerkesztés", pendingHint: "Ellenőrzésre vár", total: "Összesen", noRecords: "Nincsenek ellenőrzési rekordok" },

@@ -4,6 +4,7 @@ export default {
     pastWeek: "Tuần qua",
     pastMonth: "Tháng qua",
     allTime: "Tất cả",
+    asOfLastHour: "tính đến giờ trước",
   },
 
   profile: {

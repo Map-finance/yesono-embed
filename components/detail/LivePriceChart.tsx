@@ -654,6 +654,9 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
       updatePulseDotRef.current();
     },
     onUnsupported: () => {
+      // 已结算/非 live 市场走 close-price HTTP 兜底、本就没有实时 WS 数据,
+      // 3s 无数据是正常的 → 不当作"不支持"而把用户弹回概率兜底图(对齐 upstream 的 isLive 守卫)。
+      if (!isLiveRef.current) return;
       onUnsupportedRef.current?.();
     },
   });
@@ -678,7 +681,12 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
           : Array.isArray(d)
             ? d
             : [];
-        if (raw.length === 0) return;
+        // 已结算市场不收 WS 数据，loading 的关闭不能再依赖 WS 历史消息，
+        // 改由 close-price 响应后统一收尾（有无数据都要关，否则会一直转圈）
+        if (raw.length === 0) {
+          setLoading(false);
+          return;
+        }
         const pts: Point[] = raw
           .map((p) => {
             const ts = Number(p.timestamp);
@@ -690,15 +698,22 @@ export const LivePriceChart: React.FC<LivePriceChartProps> = ({
           )
           .sort((a, b) => (a.time as number) - (b.time as number))
           .filter((p, i, self) => i === 0 || p.time !== self[i - 1].time);
-        if (pts.length === 0) return;
+        if (pts.length === 0) {
+          setLoading(false);
+          return;
+        }
         closeSeriesRef.current = pts;
         if (seriesRef.current) {
           seriesRef.current.setData(pts);
           chartRef.current?.timeScale().fitContent();
           updatePulseDotRef.current();
         }
+        setLoading(false);
       })
-      .catch((e) => console.warn("[LivePriceChart] close-price 拉取失败", e));
+      .catch((e) => {
+        console.warn("[LivePriceChart] close-price 拉取失败", e);
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };

@@ -512,6 +512,7 @@ export default {
     currentPrice: '当前价格',
     priceToBeat: '目标价格',
     finalPrice: '最终价格',
+    settling: '结算中…',
     goToLiveMarket: '前往实时盘口',
     liveButton: '直播',
     countdown: {
@@ -531,6 +532,10 @@ export default {
   rulesDesc: '本市场中的美联储利率由目标联邦基金利率区间的上限定义。关于目标的决定...',
   past: '历史',
   comments: '评论',
+  position: '持仓',
+  clearPosition: '清仓',
+  historicalOrders: '历史委托',
+  viewNetPositions: '查看全部持仓',
   positions: '持仓',
   buyYes: '买入 Yes',
   buyNo: '买入 No',

@@ -5,6 +5,7 @@ export default {
     pastWeek: "过去一周",
     pastMonth: "过去一月",
     allTime: "全部时间",
+    asOfLastHour: "截至上一小时",
   },
 
   // Profile stats

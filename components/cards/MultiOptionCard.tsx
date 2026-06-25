@@ -16,7 +16,9 @@ import { useToast } from "@/components/ui/Toast";
 
 interface MultiOptionCardProps {
   market: Market;
-  onFavoriteChange?: () => void;
+  onFavoriteChange?: (slug: string, isFavorite: boolean) => void;
+  /** 是否显示收藏按钮。默认 true;数据源无收藏字段的场景(如 sports props 卡)传 false 隐藏 */
+  showBookmark?: boolean;
 }
 
 interface BuyState {
@@ -28,6 +30,7 @@ interface BuyState {
 const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
   market,
   onFavoriteChange,
+  showBookmark = true,
 }) => {
   const { t } = useTranslation();
   const toast = useToast();
@@ -95,7 +98,7 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
         } else {
           toast.success(t.common.removedFromFavorites);
         }
-        onFavoriteChange?.();
+        onFavoriteChange?.(slug, !market.isFavorite);
       } else {
         toast.error(t.common.operationFailed);
       }
@@ -288,19 +291,21 @@ const MultiOptionCard: React.FC<MultiOptionCardProps> = ({
         <div className="text-xs text-(--text-secondary)">
           {market.volume} {t.common.volume}
         </div>
-        <button
-          onClick={handleFavoriteClick}
-          className={`p-1.5 rounded transition-colors ${
-            market.isFavorite
-              ? "text-(--accent) hover:text-(--accent)"
-              : "text-(--text-secondary) hover:text-(--text-primary)"
-          }`}
-        >
-          <Bookmark
-            size={16}
-            fill={market.isFavorite ? "currentColor" : "none"}
-          />
-        </button>
+        {showBookmark && (
+          <button
+            onClick={handleFavoriteClick}
+            className={`p-1.5 rounded transition-colors ${
+              market.isFavorite
+                ? "text-(--accent) hover:text-(--accent)"
+                : "text-(--text-secondary) hover:text-(--text-primary)"
+            }`}
+          >
+            <Bookmark
+              size={16}
+              fill={market.isFavorite ? "currentColor" : "none"}
+            />
+          </button>
+        )}
       </div>
     </div>
   );

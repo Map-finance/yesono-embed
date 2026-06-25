@@ -149,16 +149,21 @@ const OutcomeList: React.FC<OutcomeListProps> = ({
         if (resolved) {
           // 找出获胜的 outcome（价格为 1 的那个，或价格最高的那个作为 fallback）
           try {
+            // 注：prices 实际可能是 string[]，比较前显式 Number() 包装，否则
+            // ">" 会按字典序比较挑错 "Resolved: {outcome}" 标签
             const outcomes = getOutcomesByMarket(m);
-            const prices = JSON.parse(m.outcomePrices || "[]") as number[];
-            const winnerIndex = prices.findIndex((p) => p >= 0.99);
+            const prices = JSON.parse(m.outcomePrices || "[]") as (
+              | number
+              | string
+            )[];
+            const winnerIndex = prices.findIndex((p) => Number(p) >= 0.99);
             if (winnerIndex >= 0) {
               resolvedOutcome = outcomes[winnerIndex];
             } else if (outcomes.length > 0) {
               // 价格未更新为 1/0 时，取价格最高的 outcome 作为 fallback
               let maxIdx = 0;
               for (let i = 1; i < prices.length; i++) {
-                if (prices[i] > prices[maxIdx]) maxIdx = i;
+                if (Number(prices[i]) > Number(prices[maxIdx])) maxIdx = i;
               }
               resolvedOutcome = outcomes[maxIdx];
             }

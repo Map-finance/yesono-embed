@@ -4,6 +4,7 @@
  */
 
 import type { TimeRange as ApiTimeRange } from "@/lib/hooks/usePriceHistory";
+import { formatOutcomeProbabilityCents } from "@/utils/format";
 
 /** UI 上展示的时间范围选项（OutcomeGraph 子图表用）。 */
 export type UITimeRange = "1H" | "6H" | "1D" | "1W" | "1M" | "ALL";
@@ -30,11 +31,13 @@ export const mapToApiRange = (range: UITimeRange): ApiTimeRange => {
   }
 };
 
-/** 把 0..1 的概率转成按钮上显示的「xx.x¢」字符串。 */
-export const formatButtonPrice = (rawPrice: number): string => {
-  const priceInCents = rawPrice * 100;
-  return priceInCents.toFixed(1) + "¢";
-};
+/**
+ * 把 0..1 的概率转成按钮上显示的「xx.x¢」字符串。
+ * 用 clamp 到 [0.1¢, 99.9¢] 的概率工具，避免 toFixed 把价格四舍五入成
+ * 误导性的 100.0¢ / 0.0¢（"绝对发生/不发生"）。
+ */
+export const formatButtonPrice = (rawPrice: number): string =>
+  formatOutcomeProbabilityCents(rawPrice, 1);
 
 /** OutcomeRow 渲染所需的扁平结构（从 PolymarketMarketResp / Market.options 投影而来）。 */
 export interface DisplayOption {

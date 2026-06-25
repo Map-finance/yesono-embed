@@ -6,12 +6,14 @@ import { VSCard, ImageCard, MultiOptionCard } from "./cards";
 
 interface MarketCardProps {
   market: Market;
-  onFavoriteChange?: () => void;
+  onFavoriteChange?: (slug: string, isFavorite: boolean) => void;
+  showBookmark?: boolean;
 }
 
 const MarketCard: React.FC<MarketCardProps> = ({
   market,
   onFavoriteChange,
+  showBookmark = true,
 }) => {
   switch (market.cardType) {
     case "vs":
@@ -19,6 +21,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
         <VSCard
           market={market}
           onFavoriteChange={onFavoriteChange}
+          showBookmark={showBookmark}
         />
       );
     case "image":
@@ -26,6 +29,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
         <ImageCard
           market={market}
           onFavoriteChange={onFavoriteChange}
+          showBookmark={showBookmark}
         />
       );
     case "multi":
@@ -33,6 +37,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
         <MultiOptionCard
           market={market}
           onFavoriteChange={onFavoriteChange}
+          showBookmark={showBookmark}
         />
       );
     default:
@@ -40,6 +45,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
         <MultiOptionCard
           market={market}
           onFavoriteChange={onFavoriteChange}
+          showBookmark={showBookmark}
         />
       );
   }

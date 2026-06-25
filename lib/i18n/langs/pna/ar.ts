@@ -1,5 +1,5 @@
 export default {
-  timeRange: { pastDay: "اليوم", pastWeek: "الأسبوع الماضي", pastMonth: "الشهر الماضي", allTime: "كل الوقت" },
+  timeRange: { pastDay: "اليوم", pastWeek: "الأسبوع الماضي", pastMonth: "الشهر الماضي", allTime: "كل الوقت", asOfLastHour: "حتى الساعة الماضية" },
   profile: { joined: "انضم", views: "مشاهدات", positionsValue: "قيمة المراكز", modeYesNo: "Yes/No", modeAsianHandicap: "الإعاقة الآسيوية", asianPositionsValue: "القيمة الإجمالية", asianSlipCount: "عدد القسائم", biggestWin: "أكبر مكاسب", predictions: "التوقعات", recharge: "إيداع", withdraw: "سحب" },
   tabs: { positions: "المراكز", activity: "النشاط", asianHandicapOrders: "أوامر AH", openOrders: "الأوامر المفتوحة", marketCreation: "سجلات الإنشاء", marketAudit: "سجلات التدقيق", marketRecords: "سجلات السوق", depositWithdrawHistory: "سجل الإيداع/السحب" },
   auditRecords: { event: "الحدث / الأسواق", status: "الحالة", createdAt: "تاريخ الإرسال", action: "إجراء", create: "إنشاء", edit: "تعديل", pendingHint: "في انتظار المراجعة", total: "المجموع", noRecords: "لا توجد سجلات مراجعة" },

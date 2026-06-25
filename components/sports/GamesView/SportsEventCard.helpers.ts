@@ -3,15 +3,11 @@
  */
 
 import type { SportsMarketItem, SportsMarketOutcome } from "@/types/sports";
-import { formatOutcomeProbabilityCents } from "@/utils/format";
+import { fillEvenSplitWhenAllZero, formatOutcomeProbabilityCents } from "@/utils/format";
+import { sortOutcomesByOriginalIndex } from "@/lib/utils/outcomes";
 
-/** 从 marketTitle 提取缩写 (前3-4个字母) */
-export function getAbbr(title: string): string {
-  const clean = title.replace(/\s*\(.*\)/, "").trim();
-  const words = clean.split(/\s+/);
-  const word = words.find((w) => w.length > 2) || words[0] || "";
-  return word.slice(0, 4).toUpperCase();
-}
+/** 球队/盘口名缩写 —— 统一用共享口径(CJK→3 字,拉丁→前 4 字母大写)。 */
+export { getTeamAbbr as getAbbr } from "@/lib/utils/teamAbbr";
 
 /** 格式化价格为 cents（与交易面板一致；clamp 见 utils/format.ts） */
 export function formatPrice(price: string): string {
@@ -25,11 +21,14 @@ export function getYesOutcome(
   return item.outcomes?.find((o) => o.outcome === "Yes") || item.outcomes?.[0];
 }
 
-/** 获取 Yes 价格 */
+/** 获取 Yes 价格（组内全 0/无流动性 → 50/50 平分，而非 0.1¢；保留 1–99¢ clamp） */
 export function getYesPrice(item?: SportsMarketItem): string {
   if (!item) return "—";
-  const yes = getYesOutcome(item);
-  return yes ? formatPrice(yes.price) : "—";
+  const sorted = sortOutcomesByOriginalIndex(item.outcomes || []);
+  if (sorted.length === 0) return "—";
+  // YES outcome 在该 market 内 sorted index = 0；组内全 0 时平分各 50%
+  const filled = fillEvenSplitWhenAllZero(sorted.map((o) => o.price));
+  return formatOutcomeProbabilityCents(filled[0]);
 }
 
 /**

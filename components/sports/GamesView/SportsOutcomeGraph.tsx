@@ -19,6 +19,24 @@ import {
 } from "recharts";
 import { useSingleMarketPriceHistory, TimeRange } from "@/lib/hooks/usePriceHistory";
 
+/** 把 i18n 的 locale 映射到 Intl 用的 BCP47 标签（替代硬编码 "en-US"）。 */
+function toIntlLocale(locale: string): string {
+  switch (locale) {
+    case "en":
+      return "en-US";
+    case "ja":
+      return "ja-JP";
+    case "vi":
+      return "vi-VN";
+    case "th":
+      return "th-TH";
+    case "km":
+      return "km-KH";
+    default:
+      return locale;
+  }
+}
+
 type UITimeRange = "1H" | "6H" | "1D" | "1W" | "1M" | "ALL";
 const timeRanges: UITimeRange[] = ["1H", "6H", "1D", "1W", "1M", "ALL"];
 
@@ -38,7 +56,8 @@ const SportsOutcomeGraph: React.FC<SportsOutcomeGraphProps> = ({
   label,
   isVisible = true,
 }) => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const intlLocale = toIntlLocale(locale);
   const [selectedRange, setSelectedRange] = useState<UITimeRange>("1D");
 
   const {
@@ -126,21 +145,21 @@ const SportsOutcomeGraph: React.FC<SportsOutcomeGraphProps> = ({
     (ts: number) => {
       const d = new Date(ts);
       if (["1H", "6H"].includes(selectedRange)) {
-        return d.toLocaleTimeString("en-US", {
+        return d.toLocaleTimeString(intlLocale, {
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
         });
       }
       if (selectedRange === "1D") {
-        return d.toLocaleDateString("en-US", {
+        return d.toLocaleDateString(intlLocale, {
           month: "short",
           day: "numeric",
           hour: "numeric",
           minute: "2-digit",
         });
       }
-      return d.toLocaleDateString("en-US", {
+      return d.toLocaleDateString(intlLocale, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -148,7 +167,7 @@ const SportsOutcomeGraph: React.FC<SportsOutcomeGraphProps> = ({
         minute: "2-digit",
       });
     },
-    [selectedRange]
+    [selectedRange, intlLocale]
   );
 
   const handleChartMouseMove = useCallback(
@@ -309,7 +328,7 @@ const SportsOutcomeGraph: React.FC<SportsOutcomeGraphProps> = ({
           </div>
         ) : chartData.length === 0 ? (
           <div className="flex items-center justify-center h-full text-(--text-secondary) text-sm">
-            No data
+            {t.market.common.noData || "No data"}
           </div>
         ) : (
           <>

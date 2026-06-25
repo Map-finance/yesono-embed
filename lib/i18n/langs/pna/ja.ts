@@ -4,6 +4,7 @@ export default {
     pastWeek: "過去1週間",
     pastMonth: "過去1ヶ月",
     allTime: "全期間",
+    asOfLastHour: "前の1時間まで",
   },
   profile: {
     joined: "参加日",
